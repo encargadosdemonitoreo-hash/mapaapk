@@ -5,9 +5,6 @@
   "use strict";
 
   // Variables de Estado
-  let zonaSeleccionada = null;
-  let editandoPoligono = false;
-  let manejadoresEdicion = null;
   let dibujandoZona = false;
   let colocandoMarcador = false;
   let puntosDibujo = [];
@@ -19,27 +16,15 @@
   let capaHeatmap = null;
   let puntosHeatmap = [];
   let abonadosApp = [];
-  let abonadoEnEdicionAB = null;
 
   // Elementos DOM Admin
   const nombreZona = document.getElementById("nombreZona");
   const tipoZona = document.getElementById("tipoZona");
   const colorInput = document.getElementById("colorInput");
-  const colorPreview = document.getElementById("colorPreview");
   const tipoLinea = document.getElementById("tipoLinea");
   const relleno = document.getElementById("relleno");
   const opacidad = document.getElementById("opacidad");
-  const buscarZona = document.getElementById("buscarZona");
   const listaZonas = document.getElementById("listaZonas");
-  const menuEditar = document.getElementById("menuEditar");
-  const seleccionInfo = document.getElementById("seleccionInfo");
-  const editarNombre = document.getElementById("editarNombre");
-  const editarTipo = document.getElementById("editarTipo");
-  const editarColor = document.getElementById("editarColor");
-  const editarColorPreview = document.getElementById("editarColorPreview");
-  const editarLinea = document.getElementById("editarLinea");
-  const editarRelleno = document.getElementById("editarRelleno");
-  const editarOpacidad = document.getElementById("editarOpacidad");
   const contador = document.getElementById("contador");
   const estado = document.getElementById("estado");
   const btnDeshacerPunto = document.getElementById("btnDeshacerPunto");
@@ -53,10 +38,28 @@
   const heatRadius = document.getElementById("heatRadius");
   const heatBlur = document.getElementById("heatBlur");
   const heatMax = document.getElementById("heatMax");
-  const heatGradient = document.getElementById("heatGradient");
   const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
 
-  // 1. CÁLCULO DE ÁREA GEODÉSICA
+  // 1. MANEJADOR GLOBAL DE ACORDEONES Y OCULTAR PANEL
+  document.addEventListener("click", function(e) {
+    const header = e.target.closest(".menu-header");
+    if (header) {
+      e.preventDefault();
+      const menu = header.closest(".menu");
+      if (menu) menu.classList.toggle("abierto");
+      return;
+    }
+
+    const btnOcultar = e.target.closest("#btnOcultar");
+    if (btnOcultar) {
+      e.preventDefault();
+      document.body.classList.toggle("panel-oculto");
+      setTimeout(() => { if (window.map) window.map.invalidateSize(); }, 200);
+      return;
+    }
+  });
+
+  // 2. CÁLCULO DE ÁREA GEODÉSICA
   function desanidarLatLngs(latlngs) {
     let pts = latlngs;
     while (Array.isArray(pts) && pts.length > 0 && Array.isArray(pts[0])) {
@@ -88,7 +91,7 @@
     return Math.round(m2) + " m²";
   }
 
-  // 2. ESTILOS Y ETIQUETAS
+  // 3. ESTILOS Y ETIQUETAS
   function crearEstilo(color, linea, rellenoVal, opacity) {
     let estilo = {
       color: color || "#2E7D32",
@@ -106,11 +109,6 @@
     if (linea === "alerta") estilo.className = "linea-alerta";
     if (linea === "contorno" || rellenoVal === "sin") estilo.fillOpacity = 0;
     return estilo;
-  }
-
-  function aplicarEstilo(layer) {
-    const st = crearEstilo(layer.options.color, layer.options.tipoLinea, layer.options.relleno, layer.options.opacidad);
-    layer.setStyle(st);
   }
 
   function etiquetaTipo(tipo) {
@@ -131,7 +129,7 @@
     layer.unbindTooltip().bindTooltip(txt, { permanent: false, direction: 'auto' });
   }
 
-  // 3. CAPTURA Y ALMACENAMIENTO DE ESTADO
+  // 4. CAPTURA Y ALMACENAMIENTO DE ESTADO
   function capturarEstado() {
     const lista = [];
     if (window.zonas) {
@@ -181,7 +179,7 @@
     if (lblBuscar) lblBuscar.textContent = cant + " zonas";
   }
 
-  // 4. DIBUJO MANUAL Y DESHACER (CTRL+Z)
+  // 5. DIBUJO MANUAL Y DESHACER (CTRL+Z)
   document.getElementById("btnDibujar")?.addEventListener("click", function(e) {
     if (modoEdicionBloqueado) return alert("Modo solo lectura activo.");
     e.stopPropagation();
@@ -202,6 +200,7 @@
   }
 
   function limpiarDibujoManual() {
+    if (!window.map) return;
     if (lineaDibujo) window.map.removeLayer(lineaDibujo);
     if (poligonoPrevisualizacion) window.map.removeLayer(poligonoPrevisualizacion);
     marcadoresDibujo.forEach(m => window.map.removeLayer(m));
@@ -228,7 +227,7 @@
   });
 
   function deshacerUltimoPunto() {
-    if (!dibujandoZona || puntosDibujo.length === 0) return;
+    if (!dibujandoZona || puntosDibujo.length === 0 || !window.map) return;
     puntosDibujo.pop();
     const m = marcadoresDibujo.pop();
     if (m) window.map.removeLayer(m);
@@ -236,7 +235,7 @@
   }
 
   function agregarPuntoDibujo(latlng) {
-    if (!dibujandoZona || procesandoFinalizacion) return;
+    if (!dibujandoZona || procesandoFinalizacion || !window.map) return;
     puntosDibujo.push(latlng);
     const esPrimero = puntosDibujo.length === 1;
     const m = L.circleMarker(latlng, {
@@ -251,6 +250,7 @@
   }
 
   function actualizarPrevisualizacion() {
+    if (!window.map) return;
     if (lineaDibujo) window.map.removeLayer(lineaDibujo);
     if (poligonoPrevisualizacion) window.map.removeLayer(poligonoPrevisualizacion);
     if (puntosDibujo.length < 2) return;
@@ -262,7 +262,7 @@
   }
 
   function finalizarDibujoManual() {
-    if (!dibujandoZona || procesandoFinalizacion) return;
+    if (!dibujandoZona || procesandoFinalizacion || !window.map) return;
     if (puntosDibujo.length < 3) return alert("La zona requiere al menos 3 puntos.");
     procesandoFinalizacion = true;
 
@@ -278,7 +278,7 @@
     const layer = L.polygon(puntosDibujo, crearEstilo(datosNuevos.color, datosNuevos.tipoLinea, datosNuevos.relleno, datosNuevos.opacidad)).addTo(window.map);
     layer.options = datosNuevos;
     vinculoTooltip(layer);
-    window.zonas.addLayer(layer);
+    if (window.zonas) window.zonas.addLayer(layer);
 
     limpiarDibujoManual();
     document.getElementById("btnDibujar").textContent = "✏️ Dibujar nueva zona";
@@ -289,18 +289,22 @@
     setTimeout(() => { procesandoFinalizacion = false; }, 100);
   }
 
-  window.map?.on("click", (e) => {
-    if (colocandoMarcador) {
-      crearMarcadorEstrategico(e.latlng, nombreMarcador.value.trim(), tipoIconoMarcador.value, colorMarcador.value, null, true);
-      colocandoMarcador = false;
-      document.body.classList.remove("modo-marcador");
-      nombreMarcador.value = "";
-      return;
-    }
-    if (dibujandoZona && !procesandoFinalizacion) agregarPuntoDibujo(e.latlng);
-  });
+  function VincularMapaAdminEventos() {
+    if (!window.map) return setTimeout(VincularMapaAdminEventos, 300);
+    window.map.on("click", (e) => {
+      if (colocandoMarcador) {
+        crearMarcadorEstrategico(e.latlng, nombreMarcador.value.trim(), tipoIconoMarcador.value, colorMarcador.value, null, true);
+        colocandoMarcador = false;
+        document.body.classList.remove("modo-marcador");
+        nombreMarcador.value = "";
+        return;
+      }
+      if (dibujandoZona && !procesandoFinalizacion) agregarPuntoDibujo(e.latlng);
+    });
+  }
+  VincularMapaAdminEventos();
 
-  // 5. MARCACIONES ESTRATÉGICAS
+  // 6. MARCACIONES ESTRATÉGICAS
   document.getElementById("btnAgregarMarcador")?.addEventListener("click", function(e) {
     if (modoEdicionBloqueado) return alert("Modo solo lectura activo.");
     e.stopPropagation();
@@ -312,6 +316,7 @@
   });
 
   function crearMarcadorEstrategico(latlng, nombre, icono, color, idExistente = null, guardarAuto = true) {
+    if (!window.map) return;
     const idUnico = idExistente || ("m_" + Date.now());
     const htmlIcono = `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${color};color:#fff;font-size:16px;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.35);">${icono}</div>`;
     const mIcon = L.divIcon({ className: "", html: htmlIcono, iconSize: [32, 32], iconAnchor: [16, 16] });
@@ -320,7 +325,7 @@
     m.options = { idUnico, nombre, icono, color };
 
     m.on("dragend", function() { guardarLocal(); sincronizarFirebaseSilent(); });
-    window.capaMarcadores.addLayer(m);
+    if (window.capaMarcadores) window.capaMarcadores.addLayer(m);
 
     if (guardarAuto) {
       guardarLocal();
@@ -356,8 +361,9 @@
     if (lbl) lbl.textContent = cant + " puntos";
   }
 
-  // 6. MAPA DE CALOR
+  // 7. MAPA DE CALOR
   function renderizarHeatmap() {
+    if (!window.map) return;
     if (capaHeatmap) { window.map.removeLayer(capaHeatmap); capaHeatmap = null; }
     if (!puntosHeatmap.length) return;
     const r = parseInt(heatRadius.value, 10);
@@ -386,14 +392,14 @@
   });
 
   document.getElementById("btnBorrarHeatmap")?.addEventListener("click", function() {
-    if (capaHeatmap) window.map.removeLayer(capaHeatmap);
+    if (capaHeatmap && window.map) window.map.removeLayer(capaHeatmap);
     capaHeatmap = null;
     puntosHeatmap = [];
     document.getElementById("inputHeatmapCoords").value = "";
     guardarLocal();
   });
 
-  // 7. GESTIÓN DE ABONADOS GPS
+  // 8. GESTIÓN DE ABONADOS GPS
   function cargarAbonadosLocal() {
     const d = localStorage.getItem("abonadosGPSAdmin");
     if (d) { try { abonadosApp = JSON.parse(d); } catch(e) { abonadosApp = []; } }
@@ -474,7 +480,7 @@
     alert("✅ Procesados " + cant + " abonados.");
   });
 
-  // 8. LISTA DE ZONAS Y EDITORES
+  // 9. LISTA DE ZONAS Y EDITORES
   function actualizarListaZonas() {
     if (!listaZonas) return;
     listaZonas.innerHTML = "";
@@ -484,7 +490,7 @@
         div.className = "zona-item";
         div.innerHTML = `<div><b>${escaparHTML(layer.options.nombre)}</b><br><small>${etiquetaTipo(layer.options.tipoZona)}</small></div>`;
         div.onclick = () => {
-          if (layer.getBounds) window.map.fitBounds(layer.getBounds(), { padding: [40, 40] });
+          if (layer.getBounds && window.map) window.map.fitBounds(layer.getBounds(), { padding: [40, 40] });
         };
         listaZonas.appendChild(div);
       });
@@ -492,7 +498,7 @@
     actualizarContadores();
   }
 
-  // 9. PUBLICACIÓN / SINCRONIZACIÓN CON FIREBASE
+  // 10. PUBLICACIÓN / SINCRONIZACIÓN CON FIREBASE
   function sincronizarFirebaseSilent() {
     const fbUrlRaw = cfgFirebaseUrl?.value.trim() || localStorage.getItem("fbUrlAdmin") || "";
     if (!fbUrlRaw) return;
