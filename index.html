@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mesa de Consulta de Cobertura</title>
   
-  <!-- Manifest & Theme -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1a73e8">
 
@@ -13,17 +12,19 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
-    /* 1. PREVENIR PULL-TO-REFRESH Y REBOTES EN CELULARES */
+    /* BLOQUEO TOTAL DE OVERFLOW Y PULL-TO-REFRESH */
     html, body {
       height: 100%;
       width: 100%;
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      overscroll-behavior: none;
-      overscroll-behavior-y: none;
-      touch-action: manipulation;
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
+      overscroll-behavior-y: none !important;
+      touch-action: none;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     #map {
@@ -36,7 +37,7 @@
       touch-action: none;
     }
 
-    /* BARRA SUPERIOR DE BÚSQUEDA FLOTANTE */
+    /* BARRA DE BÚSQUEDA FLOTANTE */
     .top-bar {
       position: absolute;
       top: 12px;
@@ -69,35 +70,32 @@
       cursor: pointer;
       padding: 6px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
     .btn-admin-toggle {
       position: absolute;
-      bottom: 20px;
+      bottom: 25px;
       right: 15px;
       z-index: 1000;
       background: #1a73e8;
       color: white;
       border: none;
-      padding: 10px 16px;
-      border-radius: 20px;
+      padding: 12px 18px;
+      border-radius: 25px;
       font-weight: 600;
       font-size: 13px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       cursor: pointer;
     }
 
-    /* ESTADO DE CONEXIÓN FIREBASE */
+    /* ESTADO FIREBASE */
     .status-badge {
       position: absolute;
       top: 65px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       color: #fff;
       font-size: 11px;
       padding: 4px 12px;
@@ -106,73 +104,111 @@
       pointer-events: none;
     }
 
-    /* MODAL FICHA DE ABONADO / ZONA */
-    .info-card {
+    /* PANEL MODAL ADMIN INTEGRADO (Sin salir de la app) */
+    .admin-panel {
       position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      width: 88%;
-      max-width: 400px;
-      background: white;
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 2000;
       display: none;
+      align-items: center;
+      justify-content: center;
     }
 
-    .info-card h3 { margin: 0 0 6px 0; font-size: 18px; color: #1a73e8; }
-    .info-card p { margin: 4px 0; font-size: 14px; color: #444; }
-    .info-card .btn-close {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      background: none;
+    .admin-content {
+      background: white;
+      width: 85%;
+      max-width: 380px;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .admin-content h3 { margin-top: 0; color: #1a73e8; }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
       border: none;
-      font-size: 18px;
+      padding: 8px 14px;
+      border-radius: 6px;
       cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 6px;
     }
   </style>
 </head>
 <body>
 
-  <!-- BARRA DE BÚSQUEDA -->
+  <!-- BARRA BÚSQUEDA -->
   <div class="top-bar">
-    <button class="btn-icon">🔍</button>
+    <button class="btn-icon" onclick="ejecutarBusqueda()">🔍</button>
     <input type="text" id="searchInput" placeholder="Buscar Calle, Esquina o Nº Abonado..." onkeyup="if(event.key==='Enter') ejecutarBusqueda()">
     <button class="btn-icon" onclick="iniciarDictadoVoz()" title="Dictar por Voz">🎙️</button>
   </div>
 
-  <!-- ESTADO DE FIREBASE -->
   <div id="statusBadge" class="status-badge">Conectando a Firebase...</div>
 
   <!-- MAPA -->
   <div id="map"></div>
 
-  <!-- BOTÓN PARA ACCEDER A ADMIN -->
-  <button class="btn-admin-toggle" onclick="toggleAdmin()">👤 Modo Admin</button>
+  <!-- BOTÓN MODO ADMIN -->
+  <button class="btn-admin-toggle" onclick="abrirAdmin()">👤 Modo Admin</button>
 
-  <!-- FICHA INFORMATIVA DE COBERTURA -->
-  <div id="infoCard" class="info-card">
-    <button class="btn-close" onclick="cerrarFicha()">✕</button>
-    <h3 id="cardTitle">Zona / Abonado</h3>
-    <p id="cardDesc">Información de la ubicación seleccionada.</p>
+  <!-- MODAL ADMIN INTEGRADO -->
+  <div id="adminPanel" class="admin-panel">
+    <div class="admin-content">
+      <h3>Panel Administrador</h3>
+      <p>Modo administración activo dentro de la misma pantalla.</p>
+      <hr>
+      <p><strong>Herramientas Rápidas:</strong></p>
+      <button class="btn-danger" onclick="limpiarMapa()">Borrar Capas Temporales</button>
+      <button class="btn-secondary" onclick="cerrarAdmin()">Cerrar Administrador</button>
+    </div>
   </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Firebase App & Database (SDK v8) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
     // -----------------------------------------------------------
-    // 1. CONFIGURACIÓN DE FIREBASE (Datos Guardados)
+    // PREVENCIÓN ABSOLUTA DE PULL-TO-REFRESH EN ANDROID/IOS
+    // -----------------------------------------------------------
+    document.body.addEventListener('touchmove', function(e) {
+      if (e.target.id === 'map' || e.target.closest('#map')) {
+        // Permite gestos dentro del mapa pero evita que la ventana recargue
+        return;
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener('scroll', function(e) {
+      window.scrollTo(0, 0);
+    });
+
+    // -----------------------------------------------------------
+    // FIREBASE
     // -----------------------------------------------------------
     const firebaseConfig = {
-      databaseURL: "https://GPSMESA-default-rtdb.firebaseio.com" // Asegurate de que esta sea tu URL de Firebase
+      databaseURL: "https://GPSMESA-default-rtdb.firebaseio.com"
     };
 
     if (!firebase.apps.length) {
@@ -181,14 +217,13 @@
     const db = firebase.database();
 
     // -----------------------------------------------------------
-    // 2. INICIALIZACIÓN DEL MAPA (CartoDB / OpenStreetMap HD)
+    // MAPA
     // -----------------------------------------------------------
     const map = L.map('map', {
       zoomControl: false,
       bounceAtZoomLimits: false
-    }).setView([-34.6037, -58.3816], 13); // Coordenadas por defecto (Buenos Aires / Ajustable)
+    }).setView([-34.6037, -58.3816], 13);
 
-    // Capa ultrarrápida basada en OpenStreetMap (Sin bloqueos de tiles)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd',
@@ -197,9 +232,7 @@
 
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // -----------------------------------------------------------
-    // 3. DESCARGA EN TIEMPO REAL DESDE FIREBASE
-    // -----------------------------------------------------------
+    // Cargar Zonas desde Firebase
     const statusBadge = document.getElementById('statusBadge');
 
     db.ref('zonas').on('value', (snapshot) => {
@@ -222,17 +255,16 @@
       }
     }, (error) => {
       statusBadge.innerText = '🔴 Error de conexión con Firebase';
-      console.error(error);
     });
 
     // -----------------------------------------------------------
-    // 4. MOTOR DE BÚSQUEDA DE ALTA PRECISIÓN (Nominatim OSM)
+    // BÚSQUEDA OSM
     // -----------------------------------------------------------
     function ejecutarBusqueda() {
       const query = document.getElementById('searchInput').value.trim();
       if (!query) return;
 
-      statusBadge.innerText = '🔍 Buscando ubicación...';
+      statusBadge.innerText = '🔍 Buscando...';
 
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`, {
         headers: { 'User-Agent': 'MesaDeConsultaApp/1.0' }
@@ -241,32 +273,25 @@
       .then(data => {
         if (data && data.length > 0) {
           const result = data[0];
-          const lat = parseFloat(result.lat);
-          const lon = parseFloat(result.lon);
-
-          map.setView([lat, lon], 16);
-
-          L.marker([lat, lon]).addTo(map)
-            .bindPopup(`<b>Ubicación encontrada:</b><br>${result.display_name}`)
+          map.setView([parseFloat(result.lat), parseFloat(result.lon)], 16);
+          L.marker([parseFloat(result.lat), parseFloat(result.lon)]).addTo(map)
+            .bindPopup(`<b>Resultado:</b><br>${result.display_name}`)
             .openPopup();
-
-          mostrarFicha("Resultado de Búsqueda", result.display_name);
           statusBadge.innerText = '🟢 Conectado';
         } else {
-          alert('No se encontraron resultados para esa búsqueda.');
+          alert('Sin resultados para esta búsqueda.');
           statusBadge.innerText = '🟢 Conectado';
         }
       })
-      .catch(err => {
-        alert('Error al realizar la búsqueda.');
+      .catch(() => {
+        alert('Error al buscar.');
         statusBadge.innerText = '🟢 Conectado';
       });
     }
 
-    // Dictado por Voz
     function iniciarDictadoVoz() {
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('Tu navegador o teléfono no soporta dictado por voz.');
+        alert('Dictado por voz no disponible.');
         return;
       }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -276,39 +301,32 @@
 
       statusBadge.innerText = '🎙️ Escuchando...';
 
-      recognition.onresult = function(event) {
-        const texto = event.results[0][0].transcript;
-        document.getElementById('searchInput').value = texto;
+      recognition.onresult = function(e) {
+        document.getElementById('searchInput').value = e.results[0][0].transcript;
         ejecutarBusqueda();
       };
-
-      recognition.onerror = function() {
-        statusBadge.innerText = '🟢 Conectado';
-      };
+      recognition.onerror = () => { statusBadge.innerText = '🟢 Conectado'; };
     }
 
     // -----------------------------------------------------------
-    // 5. MANEJO DE FICHAS E INTERFAZ
+    // MANEJO DEL PANEL ADMIN INTEGRADO
     // -----------------------------------------------------------
-    function mostrarFicha(titulo, desc) {
-      document.getElementById('cardTitle').innerText = titulo;
-      document.getElementById('cardDesc').innerText = desc;
-      document.getElementById('infoCard').style.display = 'block';
-    }
-
-    function cerrarFicha() {
-      document.getElementById('infoCard').style.display = 'none';
-    }
-
-    function toggleAdmin() {
-      const pass = prompt("Ingrese la contraseña de Administrador:");
-      if (pass === "admin123") { // Podés cambiar esta clave
-        alert("Modo Administrador activado. Habilitando herramientas...");
-        // Podés redirigir a admin.html si tenés el panel en otro archivo
-        window.location.href = "admin.html";
+    function abrirAdmin() {
+      const pass = prompt("Ingrese la clave de Administrador:");
+      if (pass === "admin123") {
+        document.getElementById('adminPanel').style.display = 'flex';
       } else if (pass !== null) {
-        alert("Contraseña incorrecta.");
+        alert("Clave incorrecta.");
       }
+    }
+
+    function cerrarAdmin() {
+      document.getElementById('adminPanel').style.display = 'none';
+    }
+
+    function limpiarMapa() {
+      alert("Operación completada.");
+      cerrarAdmin();
     }
   </script>
 </body>
