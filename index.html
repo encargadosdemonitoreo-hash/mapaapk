@@ -4,197 +4,272 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Sistema de Cobertura y Monitoreo</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
+/* =========================================================
+   ESTILOS GENERALES Y ESTRUCTURA SPA
+========================================================= */
+html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
     overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #0f172a;
-  }
+}
 
-  /* PANTALLA DE SELECCIÓN INICIAL */
-  #selectorInicio {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #0f172a;
-    z-index: 99999;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    padding: 20px;
-    box-sizing: border-box;
-  }
+#map {
+    position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+    width: 100%; height: 100%; z-index: 1; background: #e5e3df;
+}
 
-  #selectorInicio.oculto {
-    display: none !important;
-  }
+body.modo-dibujo #map, body.modo-marcador #map, body.modo-consulta-manual #map {
+    cursor: crosshair !important;
+}
 
-  .card-selector {
-    background: #1e293b;
-    border-radius: 20px;
-    padding: 30px 24px;
-    width: 100%;
-    max-width: 360px;
-    text-align: center;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    border: 1px solid #334155;
-  }
+/* =========================================================
+   PANTALLA DE SELECCIÓN INICIAL (SELECTOR MAESTRO)
+========================================================= */
+#selectorInicio {
+    position: fixed; top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #0f172a; z-index: 99999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; padding: 20px; box-sizing: border-box;
+}
 
-  .titulo-app {
-    font-size: 22px;
-    font-weight: 800;
-    margin-bottom: 6px;
-    color: #f8fafc;
-  }
+#selectorInicio.oculto { display: none !important; }
 
-  .subtitulo-app {
-    font-size: 12px;
-    color: #94a3b8;
-    margin-bottom: 24px;
-  }
+.card-selector {
+    background: #1e293b; border-radius: 20px; padding: 30px 24px;
+    width: 100%; max-width: 360px; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid #334155;
+}
 
-  .btn-opcion {
-    width: 100%;
-    height: 52px;
-    margin-bottom: 12px;
-    border: 0;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 800;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    transition: transform 0.2s, background 0.2s;
-  }
+.btn-opcion {
+    width: 100%; height: 52px; margin-bottom: 12px;
+    border: 0; border-radius: 12px; font-size: 14px; font-weight: 800;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.btn-consulta { background: #1a73e8; color: #ffffff; }
+.btn-admin { background: #334155; color: #f8fafc; border: 1px solid #475569; }
 
-  .btn-opcion:active {
-    transform: scale(0.98);
-  }
+/* =========================================================
+   CONTROLES Y PANELES MÓDULOS
+========================================================= */
+.panel-modulo { display: none; }
+.panel-modulo.activo { display: block; }
 
-  .btn-consulta {
-    background: #1a73e8;
-    color: #ffffff;
-  }
+#btnCambiarModulo {
+    position: fixed; bottom: 16px; left: 12px; z-index: 9000;
+    background: #0f172a; color: #fff; border: 1px solid #334155;
+    border-radius: 20px; padding: 8px 14px; font-size: 11px; font-weight: 800;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: none;
+}
+#btnCambiarModulo.visible { display: block; }
 
-  .btn-admin {
-    background: #334155;
-    color: #f8fafc;
-    border: 1px solid #475569;
-  }
+/* PANEL CONSULTA */
+.panel-consulta {
+    position: absolute; z-index: 2000; top: 10px; left: 10px; right: 10px;
+    width: auto; max-width: 380px; max-height: 85vh; overflow-y: auto;
+    background: rgba(255, 255, 255, 0.98); border-radius: 16px; padding: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22); box-sizing: border-box;
+}
 
-  /* CONTENEDORES DE MÓDULOS */
-  .frame-modulo {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: none;
-  }
+/* PANEL ADMIN */
+.panel-admin {
+    position: absolute; top: 65px; right: 15px;
+    width: 360px; max-height: calc(100vh - 80px); overflow-y: auto;
+    z-index: 1000; background: rgba(255, 255, 255, 0.98); border-radius: 18px;
+    padding: 14px; box-sizing: border-box; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
 
-  .frame-modulo.activo {
-    display: block;
-  }
+@media (max-width: 600px) {
+    .panel-consulta { top: 8px; left: 8px; right: 8px; max-width: none; max-height: 75vh; }
+    .panel-admin { top: 60px; left: 10px; right: 10px; width: auto; max-height: calc(100vh - 80px); }
+}
 
-  /* BOTÓN VOLVER AL SELECTOR */
-  #btnVolverInicio {
-    position: fixed;
-    bottom: 16px;
-    left: 12px;
-    z-index: 9990;
-    background: #0f172a;
-    color: #fff;
-    border: 1px solid #334155;
-    border-radius: 20px;
-    padding: 8px 14px;
-    font-size: 11px;
-    font-weight: 800;
-    cursor: pointer;
-    display: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
+.busqueda { display: flex; flex-direction: column; gap: 6px; }
+.linea-input { display: flex; gap: 4px; align-items: center; }
+input[type="text"], input[type="password"], select, textarea {
+    width: 100%; height: 38px; border: 1px solid #cbd5e0; border-radius: 8px; padding: 0 10px; font-size: 13px; font-weight: 600; box-sizing: border-box;
+}
+.btn-accion { height: 38px; padding: 0 12px; border: 0; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 13px; }
+.btn-blue { background: #1a73e8; color: #fff; }
 
-  #btnVolverInicio.visible {
-    display: block;
-  }
+.menu { margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 10px; overflow: hidden; background: #fff; }
+.menu-header { width: 100%; padding: 10px; border: 0; background: #f8fafc; font-weight: 800; font-size: 12px; display: flex; justify-content: space-between; cursor: pointer; border-left: 5px solid #1a73e8; color: #202124; }
+.menu.abierto .menu-header { background: #1a73e8; color: #fff; }
+.menu-contenido { display: none; padding: 10px; border-top: 1px solid #e2e8f0; }
+.menu.abierto .menu-contenido { display: block; }
+
+#indicadorSyncStatus {
+    position: absolute; bottom: 16px; right: 12px; z-index: 1500;
+    font-size: 10px; font-weight: 800; background: rgba(255,255,255,0.95);
+    padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); pointer-events: none;
+}
 </style>
 </head>
 <body>
 
-<!-- SELECTOR PRINCIPAL -->
+<!-- SELECTOR INICIAL -->
 <div id="selectorInicio">
   <div class="card-selector">
     <div style="font-size: 40px; margin-bottom: 10px;">🛡️</div>
-    <div class="titulo-app">MONITOREO VÍAS DE ACCESO</div>
-    <div class="subtitulo-app">Seleccioná el módulo de operación</div>
+    <div style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">SISTEMA MONITOREO</div>
+    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">Geofencing & Control de Cobertura</div>
 
-    <button id="btnIrConsulta" class="btn-opcion btn-consulta" type="button">
-      🔎 MESA DE CONSULTA
-    </button>
-
-    <button id="btnIrAdmin" class="btn-opcion btn-admin" type="button">
-      🛠️ PANEL ADMINISTRADOR
-    </button>
+    <button id="btnModoConsulta" class="btn-opcion btn-consulta" type="button">🔎 MESA DE CONSULTA</button>
+    <button id="btnModoAdmin" class="btn-opcion btn-admin" type="button">🛠️ PANEL ADMINISTRADOR</button>
   </div>
 </div>
 
-<!-- IFRAMES CONTENEDORES -->
-<iframe id="frameConsulta" class="frame-modulo" src="about:blank"></iframe>
-<iframe id="frameAdmin" class="frame-modulo" src="about:blank"></iframe>
+<div id="map"></div>
+<div id="indicadorSyncStatus">🟢 Conectado</div>
+<button id="btnCambiarModulo" type="button">🏠 Cambiar Módulo</button>
 
-<!-- BOTÓN PARA CAMBIAR DE MÓDULO -->
-<button id="btnVolverInicio" type="button">🏠 Cambiar Módulo</button>
+<!-- MODULO CONSULTA -->
+<div id="moduloConsulta" class="panel-modulo">
+  <div class="panel-consulta">
+    <div style="font-size:14px; font-weight:800; margin-bottom:6px;">🔎 Consulta de Cobertura</div>
+    <div class="busqueda">
+      <div class="linea-input">
+        <input id="buscarABInput" placeholder="🏢 Buscar Abonado por N° (AB)...">
+        <button id="btnBuscarAB" class="btn-accion btn-blue" type="button">Buscar AB</button>
+      </div>
+      <div class="linea-input">
+        <input id="direccion" placeholder="Calle, esquina o altura...">
+        <button id="buscar" class="btn-accion btn-blue">Buscar</button>
+      </div>
+      <button id="btnGPSConsulta" class="btn-accion" style="background:#f8fafc; border:1px solid #cbd5e0;" type="button">📍 Mi Ubicación GPS</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODULO ADMIN -->
+<div id="moduloAdmin" class="panel-modulo">
+  <div class="panel-admin">
+    <div style="font-size:16px; font-weight:800; margin-bottom:6px;">🛠️ Panel Administrador</div>
+    
+    <div class="menu abierto">
+      <button class="menu-header" type="button"><span>➕ NUEVA ZONA</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <label style="font-size:10px; font-weight:bold;">Nombre Zona</label>
+        <input type="text" id="nombreZona" placeholder="Ej: Zona Morón">
+        <button id="btnDibujar" class="btn-accion btn-blue" style="width:100%; margin-top:8px;" type="button">✏️ Dibujar Zona</button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-header" type="button"><span>⚡ FIREBASE REALTIME</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <input type="text" id="cfgFirebaseUrl" placeholder="https://mapa-ef4d1-default-rtdb.firebaseio.com/mapa.json">
+        <button id="btnPublicarFirebase" class="btn-accion btn-blue" style="width:100%; margin-top:8px;" type="button">🚀 Publicar a Firebase</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  const selectorInicio = document.getElementById("selectorInicio");
-  const frameConsulta = document.getElementById("frameConsulta");
-  const frameAdmin = document.getElementById("frameAdmin");
-  const btnVolverInicio = document.getElementById("btnVolverInicio");
+document.addEventListener("DOMContentLoaded", async function(){
+"use strict";
 
-  // ABRIR MESA DE CONSULTA
-  document.getElementById("btnIrConsulta").onclick = function() {
-    if (frameConsulta.src === "about:blank" || frameConsulta.src === "") {
-      frameConsulta.src = "consulta.html";
+// INICIALIZACIÓN MAPA
+const map = L.map("map", { center: [-34.6486, -58.6198], zoom: 11 });
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(map);
+
+let zonasGeoJSON = [];
+let abonadosList = [];
+let urlFirebaseEfectiva = "https://mapa-ef4d1-default-rtdb.firebaseio.com/mapa.json";
+const capaZonas = L.geoJSON().addTo(map);
+
+// LECTURA DINÁMICA DE CONFIG.JSON
+async function cargarConfiguracionRemota() {
+  try {
+    const res = await fetch("config.json?v=" + Date.now(), { cache: "no-store" });
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg && cfg.url_datos) {
+        urlFirebaseEfectiva = cfg.url_datos;
+        document.getElementById("cfgFirebaseUrl").value = urlFirebaseEfectiva;
+      }
     }
-    activarModulo(frameConsulta);
-  };
+  } catch(e){}
+}
 
-  // ABRIR PANEL ADMINISTRADOR
-  document.getElementById("btnIrAdmin").onclick = function() {
-    if (frameAdmin.src === "about:blank" || frameAdmin.src === "") {
-      frameAdmin.src = "admin.html";
+// CARGA Y SINCRONIZACIÓN
+async function sincronizarServidor() {
+  try {
+    const res = await fetch(urlFirebaseEfectiva, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data) {
+        if (data.zonas) {
+          zonasGeoJSON = data.zonas;
+          capaZonas.clearLayers();
+          capaZonas.addData(zonasGeoJSON);
+        }
+        if (data.abonados) abonadosList = data.abonados;
+        localStorage.setItem("cacheMapaSingle", JSON.stringify(data));
+        document.getElementById("indicadorSyncStatus").textContent = "🟢 Sincronizado en Vivo";
+      }
     }
-    activarModulo(frameAdmin);
-  };
-
-  function activarModulo(frameObjetivo) {
-    selectorInicio.classList.add("oculto");
-    frameConsulta.classList.remove("activo");
-    frameAdmin.classList.remove("activo");
-    
-    frameObjetivo.classList.add("activo");
-    btnVolverInicio.classList.add("visible");
+  } catch(e) {
+    const cache = localStorage.getItem("cacheMapaSingle");
+    if (cache) {
+      const data = JSON.parse(cache);
+      if (data.zonas) { capaZonas.clearLayers(); capaZonas.addData(data.zonas); }
+      document.getElementById("indicadorSyncStatus").textContent = "⚠️ Modo Offline";
+    }
   }
+}
 
-  // VOLVER A LA PANTALLA PRINCIPAL
-  btnVolverInicio.onclick = function() {
-    selectorInicio.classList.remove("oculto");
-    frameConsulta.classList.remove("activo");
-    frameAdmin.classList.remove("activo");
-    btnVolverInicio.classList.remove("visible");
-  };
+// CONTROL DE MODULOS
+const selector = document.getElementById("selectorInicio");
+const btnCambiar = document.getElementById("btnCambiarModulo");
+
+document.getElementById("btnModoConsulta").onclick = function() {
+  selector.classList.add("oculto");
+  document.getElementById("moduloConsulta").classList.add("activo");
+  document.getElementById("moduloAdmin").classList.remove("activo");
+  btnCambiar.classList.add("visible");
+  map.invalidateSize();
+};
+
+document.getElementById("btnModoAdmin").onclick = function() {
+  selector.classList.add("oculto");
+  document.getElementById("moduloAdmin").classList.add("activo");
+  document.getElementById("moduloConsulta").classList.remove("activo");
+  btnCambiar.classList.add("visible");
+  map.invalidateSize();
+};
+
+btnCambiar.onclick = function() {
+  selector.classList.remove("oculto");
+  document.getElementById("moduloConsulta").classList.remove("activo");
+  document.getElementById("moduloAdmin").classList.remove("activo");
+  btnCambiar.classList.remove("visible");
+};
+
+// ACCIÓN PUBLICAR FIREBASE
+document.getElementById("btnPublicarFirebase").onclick = async function() {
+  const url = document.getElementById("cfgFirebaseUrl").value.trim() || urlFirebaseEfectiva;
+  const payload = { zonas: zonasGeoJSON, abonados: abonadosList, fecha: new Date().toISOString() };
+  try {
+    const res = await fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if(res.ok) alert("✅ Publicado con éxito en Firebase");
+    else alert("🔴 Error al publicar " + res.status);
+  } catch(e) { alert("🔴 Error de red"); }
+};
+
+// INICIO
+await cargarConfiguracionRemota();
+await sincronizarServidor();
+setInterval(sincronizarServidor, 5000);
+});
 </script>
-
 </body>
 </html>
