@@ -391,7 +391,7 @@ document.getElementById("formLogin").onsubmit = function(e){
     return;
   }
 
-  // CONVIERTE USUARIOS DE FIREBASE EN ARRAY Y COMPARA
+  // OBTENER LISTA DE USUARIOS (SOPORTA ARRAY U OBJETO INDEXADO DE FIREBASE)
   let listaUsuarios = [];
   if (Array.isArray(usuariosLocal)) {
     listaUsuarios = usuariosLocal;
@@ -525,9 +525,11 @@ async function actualizarDesdeFirebase() {
     if (!res.ok) throw new Error("Error HTTP " + res.status);
     const dataFB = await res.json();
     if (dataFB) {
-      if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
-      if (dataFB.abonados) abonadosLocal = dataFB.abonados;
-      if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
+      // EXTRAE DATOS INCLUSO SI VIENEN ANIDADOS
+      const payload = dataFB.mapa || dataFB;
+      if (payload.zonas) { elementos = payload.zonas; renderizarDatosMapa(elementos); }
+      if (payload.abonados) abonadosLocal = payload.abonados;
+      if (payload.usuarios) usuariosLocal = payload.usuarios;
       
       localStorage.setItem("copiaCacheMapaZonas", JSON.stringify(dataFB));
       if(statusSync) { statusSync.textContent = "🟢 Sincronizado en Vivo"; statusSync.style.color = "#2e7d32"; }
@@ -543,9 +545,10 @@ function cargarCopiaOffline() {
   if (cacheLocal) {
     try {
       const dataFB = JSON.parse(cacheLocal);
-      if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
-      if (dataFB.abonados) abonadosLocal = dataFB.abonados;
-      if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
+      const payload = dataFB.mapa || dataFB;
+      if (payload.zonas) { elementos = payload.zonas; renderizarDatosMapa(elementos); }
+      if (payload.abonados) abonadosLocal = payload.abonados;
+      if (payload.usuarios) usuariosLocal = payload.usuarios;
       if(statusSync) { statusSync.textContent = "⚠️ Modo Offline (Local)"; statusSync.style.color = "#f29900"; }
     } catch(err) {}
   } else {
