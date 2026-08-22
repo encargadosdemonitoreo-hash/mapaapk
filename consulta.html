@@ -168,7 +168,7 @@ body.es-admin .solo-verificador, body.es-admin .solo-admin { display: block !imp
       <div id="sugerenciasAB" class="sugerencias-consulta"></div>
     </div>
 
-    <!-- BÚSQUEDA POR DIRECCIÓN: Visible para todos (Invitado, Verificador, Monitoreo) -->
+    <!-- BÚSQUEDA POR DIRECCIÓN: Visible para todos -->
     <div class="linea-input">
       <input id="direccion" autocomplete="off" placeholder="Calle, esquina o altura...">
       <button id="btnLimpiarInput" class="btn-input-accion" type="button">❌</button>
@@ -280,7 +280,7 @@ const txtUserSesion = document.getElementById("txtUserSesion");
 const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
 
-function establecerRol(rol, nombreUsuario) {
+function establecerRol(rol, nombreUsuario, guardar = true) {
   rolActual = rol;
   document.body.classList.remove("es-admin", "es-verificador");
 
@@ -293,6 +293,23 @@ function establecerRol(rol, nombreUsuario) {
   } else {
     txtUserSesion.textContent = "Invitado";
   }
+
+  if (guardar) {
+    if (rol === "Invitado") {
+      localStorage.removeItem("sesionUsuarioRol");
+    } else {
+      localStorage.setItem("sesionUsuarioRol", JSON.stringify({ rol, nombreUsuario }));
+    }
+  }
+}
+
+// RESTAURAR SESIÓN GUARDADA AL RECARGAR PÁGINA
+const sesionPrevio = localStorage.getItem("sesionUsuarioRol");
+if (sesionPrevio) {
+  try {
+    const s = JSON.parse(sesionPrevio);
+    establecerRol(s.rol, s.nombreUsuario, false);
+  } catch(e) {}
 }
 
 function cargarHistorialLocal() {
@@ -369,7 +386,15 @@ document.getElementById("formLogin").onsubmit = function(e){
     return;
   }
 
-  const usuarioEncontrado = usuariosLocal.find(x => x.usuario.toLowerCase() === u && x.clave === p);
+  // CONVERSIÓN DE FIREBASE A ARRAY BUSCABLE
+  let listaUsuarios = [];
+  if (Array.isArray(usuariosLocal)) {
+    listaUsuarios = usuariosLocal;
+  } else if (typeof usuariosLocal === 'object' && usuariosLocal !== null) {
+    listaUsuarios = Object.values(usuariosLocal);
+  }
+
+  const usuarioEncontrado = listaUsuarios.find(x => x && x.usuario && x.usuario.toLowerCase() === u && x.clave === p);
 
   if (usuarioEncontrado) {
     const rolAsignado = usuarioEncontrado.rol || "Monitoreo";
@@ -577,8 +602,10 @@ inputAB.oninput = function() {
   if (q.length < 1) { sugAB.style.display = "none"; return; }
   sugAB.innerHTML = "";
 
-  abonadosLocal.forEach(ab => {
-    if (ab.ab.toUpperCase().includes(q) || (ab.direccion && ab.direccion.toUpperCase().includes(q))) {
+  let listaAbonados = Array.isArray(abonadosLocal) ? abonadosLocal : Object.values(abonadosLocal || {});
+
+  listaAbonados.forEach(ab => {
+    if (ab && ab.ab && (ab.ab.toString().toUpperCase().includes(q) || (ab.direccion && ab.direccion.toUpperCase().includes(q)))) {
       const div = document.createElement("div"); div.className = "sugerencia-item";
       div.textContent = "🏢 AB " + ab.ab + " - " + (ab.direccion || "Sin dirección") + (ab.localidad ? " (" + ab.localidad + ")" : "");
       div.onclick = () => {
@@ -597,7 +624,10 @@ inputAB.oninput = function() {
 document.getElementById("btnBuscarAB").onclick = function() {
   const q = inputAB.value.trim().replace("AB", "").trim().toUpperCase();
   if (!q) return;
-  const encontrado = abonadosLocal.find(ab => ab.ab.toUpperCase() === q);
+
+  let listaAbonados = Array.isArray(abonadosLocal) ? abonadosLocal : Object.values(abonadosLocal || {});
+  const encontrado = listaAbonados.find(ab => ab && ab.ab && ab.ab.toString().toUpperCase() === q);
+
   if (encontrado) {
     const nomAB = "AB " + encontrado.ab + " - " + (encontrado.direccion || "");
     inputAB.value = "";
