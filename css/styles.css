@@ -16,7 +16,9 @@ html, body {
   background-color: #111;
   color: #333;
   touch-action: manipulation;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: none !important;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #map {
@@ -30,21 +32,47 @@ html, body {
 }
 
 /* =========================================================
-   SISTEMA DE PANTALLAS Y MENÚS FLOTANTES
+   MODOS DE TEMA DEL PANEL (CLARO, OSCURO, TÁCTICO)
 ========================================================= */
-.vistas-container {
-  display: none;
+body.modo-dark .panel {
+  background: rgba(30, 30, 30, 0.95) !important;
+  color: #fff !important;
 }
 
-body.vista-consulta #vistaConsulta {
-  display: block;
+body.modo-dark .menu, body.modo-dark .menu-header {
+  background: #2a2a2a !important;
+  color: #fff !important;
+  border-color: #444 !important;
 }
 
-body.vista-admin #vistaAdmin {
-  display: block;
+body.modo-dark input, body.modo-dark select, body.modo-dark textarea {
+  background: #333 !important;
+  color: #fff !important;
+  border-color: #555 !important;
+}
+
+body.modo-tactico .panel {
+  background: rgba(10, 20, 10, 0.95) !important;
+  color: #00ff66 !important;
+}
+
+body.modo-tactico .menu, body.modo-tactico .menu-header {
+  background: #051505 !important;
+  color: #00ff66 !important;
+  border-color: #005511 !important;
+}
+
+body.modo-tactico input, body.modo-tactico select, body.modo-tactico textarea {
+  background: #002200 !important;
+  color: #00ff66 !important;
+  border-color: #008822 !important;
 }
 
 /* PANELS LATERALES */
+.vistas-container { display: none; }
+body.vista-consulta #vistaConsulta { display: block; }
+body.vista-admin #vistaAdmin { display: block; }
+
 .panel {
   position: absolute;
   top: 10px;
@@ -62,14 +90,8 @@ body.vista-admin #vistaAdmin {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* OCULTAR PANELES */
-body.panel-oculto #panelAdmin {
-  transform: translateX(-360px);
-}
-
-body.panel-consulta-oculto #panelConsulta {
-  transform: translateX(-360px);
-}
+body.panel-oculto #panelAdmin { transform: translateX(-360px); }
+body.panel-consulta-oculto #panelConsulta { transform: translateX(-360px); }
 
 #btnOcultar, #btnOcultarPanelConsulta {
   position: absolute;
@@ -90,12 +112,26 @@ body.panel-consulta-oculto #panelConsulta {
   gap: 6px;
 }
 
-body:not(.panel-oculto) #btnOcultar {
-  left: 360px;
+body:not(.panel-oculto) #btnOcultar { left: 360px; }
+body:not(.panel-consulta-oculto) #btnOcultarPanelConsulta { left: 360px; }
+
+/* CHECKBOXES ALINEADOS */
+.contenedor-checkbox {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 11px !important;
+  font-weight: bold !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  cursor: pointer;
 }
 
-body:not(.panel-consulta-oculto) #btnOcultarPanelConsulta {
-  left: 360px;
+.contenedor-checkbox input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  cursor: pointer;
 }
 
 /* ACCORDEÓN DE MENÚS */
@@ -120,11 +156,6 @@ body:not(.panel-consulta-oculto) #btnOcultarPanelConsulta {
   font-weight: bold;
   color: #3c4043;
   cursor: pointer;
-  text-align: left;
-}
-
-.menu-header:hover {
-  background: #f1f3f4;
 }
 
 .menu-contenido {
@@ -133,15 +164,8 @@ body:not(.panel-consulta-oculto) #btnOcultarPanelConsulta {
   border-top: 1px solid #e0e0e0;
 }
 
-.menu.abierto .menu-contenido {
-  display: block;
-}
+.menu.abierto .menu-contenido { display: block; }
 
-.menu.abierto .menu-header span:last-child {
-  transform: rotate(180deg);
-}
-
-/* INPUTS Y BOTONES */
 label {
   display: block;
   font-size: 11px;
@@ -158,10 +182,6 @@ input, select, textarea {
   border-radius: 6px;
   font-size: 12px;
   outline: none;
-}
-
-input:focus, select:focus, textarea:focus {
-  border-color: #1a73e8;
 }
 
 .btn {
@@ -185,11 +205,7 @@ input:focus, select:focus, textarea:focus {
 .btn-naranja { background: #e37400; color: #fff; }
 .btn-secundario { background: #f1f3f4; color: #3c4043; border: 1px solid #dadce0; }
 
-.linea-input {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 6px;
-}
+.linea-input { display: flex; gap: 4px; margin-bottom: 6px; }
 
 .btn-input-accion {
   padding: 0 10px;
@@ -202,8 +218,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .btn-mic.escuchando {
-  background: #d93025;
-  color: #fff;
+  background: #d93025 !important;
+  color: #fff !important;
   animation: pulsoMic 1s infinite alternate;
 }
 
@@ -231,10 +247,6 @@ input:focus, select:focus, textarea:focus {
   border-bottom: 1px solid #eee;
 }
 
-.sugerencia-item:hover {
-  background: #e8f0fe;
-}
-
 .btn-accion-secundario {
   flex: 1;
   padding: 6px;
@@ -252,11 +264,7 @@ input:focus, select:focus, textarea:focus {
   color: #1a73e8;
 }
 
-.lista-zonas {
-  max-height: 120px;
-  overflow-y: auto;
-  margin-top: 6px;
-}
+.lista-zonas { max-height: 120px; overflow-y: auto; margin-top: 6px; }
 
 .zona-item {
   display: flex;
@@ -268,20 +276,8 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
 }
 
-.zona-item:hover {
-  background: #f8f9fa;
-}
+.btn-borrar-item { background: none; border: none; cursor: pointer; font-size: 12px; }
 
-.btn-borrar-item {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-/* =========================================================
-   LOGIN OVERLAY
-========================================================= */
 #loginOverlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -294,9 +290,7 @@ input:focus, select:focus, textarea:focus {
   padding: 16px;
 }
 
-#loginOverlay.oculto {
-  display: none;
-}
+#loginOverlay.oculto { display: none; }
 
 .login-card {
   background: #fff;
@@ -311,16 +305,9 @@ input:focus, select:focus, textarea:focus {
 .login-icon { font-size: 40px; margin-bottom: 8px; }
 .login-titulo { font-size: 18px; font-weight: 800; color: #1a73e8; }
 .login-subtitulo { font-size: 12px; color: #5f6368; margin-bottom: 16px; }
-
 .login-field { text-align: left; margin-bottom: 12px; }
 
-#loginErrorMsg {
-  color: #d93025;
-  font-size: 11px;
-  font-weight: bold;
-  display: none;
-  margin-top: 8px;
-}
+#loginErrorMsg { color: #d93025; font-size: 11px; font-weight: bold; display: none; margin-top: 8px; }
 
 #selectorModoIonray {
   display: none;
@@ -329,20 +316,10 @@ input:focus, select:focus, textarea:focus {
   padding-top: 12px;
 }
 
-.btn-modo {
-  width: 100%;
-  padding: 10px;
-  margin-top: 6px;
-  border-radius: 8px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-}
-
+.btn-modo { width: 100%; padding: 10px; margin-top: 6px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
 .btn-modo-consulta { background: #e8f0fe; color: #1a73e8; }
 .btn-modo-admin { background: #1a73e8; color: #fff; }
 
-/* ESTADO SYNC */
 #indicadorSyncStatus {
   position: absolute;
   bottom: 10px;
@@ -353,110 +330,11 @@ input:focus, select:focus, textarea:focus {
   border-radius: 12px;
   font-size: 10px;
   font-weight: bold;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
-/* POPUP CONSULTA BURBUJAS */
-.burbuja-marcacion {
-  font-family: inherit;
-  font-size: 12px;
-  min-width: 220px;
-  cursor: pointer;
-}
-
-.burbuja-cabecera {
-  font-weight: 800;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-bottom: 4px;
-}
-
-.burbuja-sub { font-size: 11px; color: #555; }
-.burbuja-entre { font-size: 11px; color: #1a73e8; font-weight: bold; margin-top: 2px; }
-
-.burbuja-cobertura { color: #2e7d32; }
-.burbuja-peligrosa { color: #d93025; }
-.burbuja-nomovil { color: #d93025; }
-.burbuja-alerta { color: #e37400; }
-
-.burbuja-como-llegar {
-  margin-top: 6px;
-  padding: 6px;
-  border-radius: 6px;
-  font-size: 10px;
-}
-
-.burbuja-como-llegar.con-datos { background: #e8f0fe; color: #1a73e8; }
-.burbuja-como-llegar.sin-datos { background: #fce8e6; color: #d93025; }
-
-.burbuja-indicador {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: #888;
-  margin-top: 6px;
-  border-top: 1px solid #eee;
-  padding-top: 4px;
-}
-
-.burbuja-cuerpo {
-  display: none;
-  margin-top: 8px;
-  border-top: 1px dashed #ccc;
-  padding-top: 8px;
-}
-
-.burbuja-marcacion.expandida .burbuja-cuerpo {
-  display: block;
-}
-
-.card-propiedad {
-  background: #f8f9fa;
-  padding: 6px;
-  border-radius: 6px;
-  margin-bottom: 6px;
-  font-size: 10px;
-}
-
-.card-propiedad-titulo { font-weight: bold; color: #1a73e8; margin-bottom: 2px; }
-
-.card-eta {
-  background: #fef7e0;
-  border: 1px solid #feefc3;
-  padding: 6px;
-  border-radius: 6px;
-  font-size: 10px;
-  color: #b06000;
-  margin-bottom: 6px;
-}
-
-.grupo-botones-nav {
-  display: flex;
-  gap: 6px;
-}
-
-.btn-nav {
-  flex: 1;
-  padding: 6px;
-  border-radius: 6px;
-  text-decoration: none;
-  text-align: center;
-  font-weight: bold;
-  font-size: 10px;
-  color: #fff;
-}
-
-.btn-waze { background: #33ccff; color: #000; }
-.btn-gmaps { background: #4285f4; }
-
-/* ADAPTACIÓN CELULAR */
+/* RESPONSIVE CELULAR */
 @media (max-width: 600px) {
-  .panel {
-    width: calc(100% - 20px);
-  }
-  
+  .panel { width: calc(100% - 20px); }
   body:not(.panel-oculto) #btnOcultar,
   body:not(.panel-consulta-oculto) #btnOcultarPanelConsulta {
     left: 10px;
