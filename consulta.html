@@ -138,8 +138,8 @@ body.es-admin .solo-admin { display: block !important; }
     <div style="font-size:32px; margin-bottom:8px;">🛡️</div>
     <div style="font-weight:800; font-size:16px; margin-bottom:12px;">ACCESO ADMINISTRADOR</div>
     <form id="formLogin" autocomplete="off">
-      <input type="text" id="usr" placeholder="Usuario (ej: IONRAY)" style="width:100%; height:38px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="off" required>
-      <input type="password" id="pwd" placeholder="Contraseña" style="width:100%; height:38px; margin-top:8px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="new-password" required>
+      <input type="text" id="usr" placeholder="Usuario (ej: IONRAY)" style="width:100%; height:38px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="off">
+      <input type="password" id="pwd" placeholder="Contraseña" style="width:100%; height:38px; margin-top:8px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="new-password">
       <button type="submit" style="width:100%; height:40px; margin-top:14px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:8px; cursor:pointer; font-size:13px;">🔑 Iniciar Sesión</button>
       <button type="button" id="btnCerrarLogin" style="width:100%; height:34px; margin-top:6px; background:transparent; color:#5f6368; border:0; cursor:pointer; font-size:12px;">Cancelar</button>
     </form>
@@ -344,9 +344,14 @@ document.getElementById("formLogin").onsubmit = function(e){
   const u = inputUsr ? inputUsr.value.trim().toLowerCase() : "";
   const p = inputPwd ? inputPwd.value.trim() : "";
 
+  if (!u || !p) {
+    alert("Por favor, ingrese usuario y contraseña.");
+    return;
+  }
+
   const usuarioEncontrado = usuariosLocal.find(x => x.usuario.toLowerCase() === u && x.clave === p);
 
-  if (usuarioEncontrado || (u === "ionray" && p === "ionray") || u === "") {
+  if (usuarioEncontrado || (u === "ionray" && p === "ionray")) {
     esAdmin = true;
     document.body.classList.add("es-admin");
     const nombreDisplay = usuarioEncontrado ? (usuarioEncontrado.nombre || usuarioEncontrado.usuario) : "IONRAY (Admin)";
