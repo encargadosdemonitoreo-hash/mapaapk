@@ -3,67 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Sistema de Cobertura y Monitoreo</title>
+<title>Sistema de Cobertura</title>
 <style>
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f172a; display: flex; align-items: center; justify-content: center;
   }
-  .contenedor-inicio {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 20px; box-sizing: border-box;
-  }
-  .card-selector {
+  .card {
     background: #1e293b; border-radius: 20px; padding: 30px 24px;
-    width: 100%; max-width: 360px; text-align: center;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid #334155;
+    width: 90%; max-width: 340px; text-align: center; border: 1px solid #334155;
   }
-  .titulo-app { font-size: 20px; font-weight: 800; margin-bottom: 4px; color: #f8fafc; }
-  .subtitulo-app { font-size: 12px; color: #94a3b8; margin-bottom: 24px; }
-  .btn-opcion {
-    width: 100%; height: 52px; margin-bottom: 12px; border: 0;
-    border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box;
+  .btn {
+    display: block; width: 100%; height: 50px; line-height: 50px;
+    margin-bottom: 12px; border-radius: 12px; font-weight: bold;
+    text-decoration: none; font-size: 14px; box-sizing: border-box;
   }
-  .btn-consulta { background: #1a73e8; color: #ffffff; }
-  .btn-admin { background: #334155; color: #f8fafc; border: 1px solid #475569; }
+  .btn-blue { background: #1a73e8; color: #fff; }
+  .btn-dark { background: #334155; color: #fff; border: 1px solid #475569; }
 </style>
 </head>
 <body>
 
-<div class="contenedor-inicio">
-  <div class="card-selector">
-    <div style="font-size: 40px; margin-bottom: 10px;">🛡️</div>
-    <div class="titulo-app">MONITOREO VÍAS DE ACCESO</div>
-    <div class="subtitulo-app">Central de Cobertura y Geofencing</div>
+<div class="card">
+  <div style="font-size: 36px; margin-bottom: 10px;">🛡️</div>
+  <div style="color: #fff; font-size: 18px; font-weight: bold; margin-bottom: 20px;">SISTEMA MONITOREO</div>
 
-    <button type="button" class="btn-opcion btn-consulta" onclick="navegarDirecto('consulta.html')">
-      🔎 MESA DE CONSULTA
-    </button>
-
-    <button type="button" class="btn-opcion btn-admin" onclick="navegarDirecto('admin.html')">
-      🛠️ PANEL ADMINISTRADOR
-    </button>
-  </div>
+  <a href="consulta.html" class="btn btn-blue" onclick="localStorage.clear();">🔎 MESA DE CONSULTA</a>
+  <a href="admin.html" class="btn btn-dark" onclick="localStorage.clear();">🛠️ PANEL ADMINISTRADOR</a>
 </div>
-
-<script>
-  // 1. Desinstalar cualquier Service Worker activo en el celular para destruir el caché persistente
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for (let registration of registrations) {
-        registration.unregister();
-      }
-    });
-  }
-
-  // 2. Redirección limpia
-  function navegarDirecto(pagina) {
-    window.location.replace(pagina + "?nocache=" + new Date().getTime());
-  }
-</script>
 
 </body>
 </html>
