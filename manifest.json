@@ -1,21 +1,16 @@
 {
-  "short_name": "ConsultaGPS",
-  "name": "Mesa de Consulta de Cobertura & GPS",
+  "name": "Mesa de Consulta y Monitoreo GPS",
+  "short_name": "MonitoreoGPS",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1a73e8",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
     }
-  ],
-  "start_url": "./consulta.html",
-  "background_color": "#1a73e8",
-  "theme_color": "#1a73e8",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
