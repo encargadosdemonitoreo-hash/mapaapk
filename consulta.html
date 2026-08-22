@@ -280,25 +280,27 @@ const txtUserSesion = document.getElementById("txtUserSesion");
 const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
 
-// NORMALIZA Y APLICA EL ROL SONTOLANDO MAYÚSCULAS/MINÚSCULAS
+// MAPEA ROLES DESDE ADMIN.HTML (SUPER_ADMIN, OPERADOR_ADMIN, OPERADOR_CONSULTA)
 function establecerRol(rol, nombreUsuario, guardar = true) {
   const r = (rol || "INVITADO").toString().toUpperCase().trim();
-  rolActual = r;
   
   document.body.classList.remove("es-admin", "es-verificador");
 
-  if (r === "MONITOREO" || r === "ADMIN" || r === "ADMINISTRADOR") {
+  if (r === "SUPER_ADMIN" || r === "OPERADOR_ADMIN" || r === "MONITOREO" || r === "ADMIN") {
+    rolActual = "MONITOREO";
     document.body.classList.add("es-admin");
     txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (MONITOREO)` : "MONITOREO";
-  } else if (r === "VERIFICADOR") {
+  } else if (r === "OPERADOR_CONSULTA" || r === "VERIFICADOR") {
+    rolActual = "VERIFICADOR";
     document.body.classList.add("es-verificador");
     txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (VERIFICADOR)` : "VERIFICADOR";
   } else {
+    rolActual = "INVITADO";
     txtUserSesion.textContent = "Invitado";
   }
 
   if (guardar) {
-    if (r === "INVITADO") {
+    if (rolActual === "INVITADO") {
       localStorage.removeItem("sesionUsuarioRol");
     } else {
       localStorage.setItem("sesionUsuarioRol", JSON.stringify({ rol: r, nombreUsuario }));
@@ -400,16 +402,16 @@ document.getElementById("formLogin").onsubmit = function(e){
   const usuarioEncontrado = listaUsuarios.find(x => x && x.usuario && x.usuario.toString().toLowerCase() === u && x.clave && x.clave.toString() === p);
 
   if (usuarioEncontrado) {
-    const rolAsignado = usuarioEncontrado.rol || "MONITOREO";
+    const rolAsignado = usuarioEncontrado.rol || "SUPER_ADMIN";
     establecerRol(rolAsignado, usuarioEncontrado.nombre || usuarioEncontrado.usuario);
     loginOverlay.classList.add("oculto");
   } 
   else if (u === "ionray" && p === "ionray") {
-    establecerRol("MONITOREO", "IONRAY");
+    establecerRol("SUPER_ADMIN", "IONRAY");
     loginOverlay.classList.add("oculto");
   } 
   else if (u === "verificador" && p === "verif123") {
-    establecerRol("VERIFICADOR", "VERIFICADOR");
+    establecerRol("OPERADOR_CONSULTA", "VERIFICADOR");
     loginOverlay.classList.add("oculto");
   } 
   else {
