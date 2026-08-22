@@ -19,14 +19,13 @@
   const sugConsulta = document.getElementById("sugerenciasConsulta");
   const btnClicMapa = document.getElementById("btnClicMapa");
   const selectZonaConsulta = document.getElementById("selectZonaConsulta");
-  const statusSync = document.getElementById("indicadorSyncStatus");
   const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
 
   // 1. RECONOCIMIENTO POR VOZ (DICTADO MICRÓFONO)
   function iniciarDictadoVoz(inputId, btnMic) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("El reconocimiento de voz no está soportado o los permisos del sistema se encuentran bloqueados.");
+      alert("El micrófono no está soportado en este navegador o requiere permisos HTTPS/App.");
       return;
     }
 
@@ -39,17 +38,20 @@
 
     recognition.onresult = function(event) {
       btnMic.classList.remove("escuchando");
-      const texto = event.results[0][0].transcript;
-      const el = document.getElementById(inputId);
-      if (el) {
-        el.value = texto;
-        el.dispatchEvent(new Event("input"));
+      if (event.results && event.results[0] && event.results[0][0]) {
+        const texto = event.results[0][0].transcript;
+        const el = document.getElementById(inputId);
+        if (el) {
+          el.value = texto;
+          el.dispatchEvent(new Event("input"));
+        }
       }
     };
 
-    recognition.onerror = function() {
+    recognition.onerror = function(err) {
       btnMic.classList.remove("escuchando");
-      alert("No se pudo acceder al micrófono. Verifique los permisos de la aplicación.");
+      console.warn("Error reconocimiento voz:", err);
+      alert("Por favor permita el acceso al micrófono en la configuración de su celular.");
     };
 
     recognition.onend = function() {
@@ -59,11 +61,13 @@
     try { recognition.start(); } catch(e) { btnMic.classList.remove("escuchando"); }
   }
 
-  document.getElementById("btnMicAB")?.addEventListener("click", function() {
+  document.getElementById("btnMicAB")?.addEventListener("click", function(e) {
+    e.preventDefault();
     iniciarDictadoVoz("buscarABInput", this);
   });
 
-  document.getElementById("btnMicCalle")?.addEventListener("click", function() {
+  document.getElementById("btnMicCalle")?.addEventListener("click", function(e) {
+    e.preventDefault();
     iniciarDictadoVoz("direccion", this);
   });
 
@@ -119,36 +123,46 @@
   });
 
   document.getElementById("mapaEstiloConsulta")?.addEventListener("change", function() {
+    if (!window.map || !window.capasBase) return;
     Object.values(window.capasBase).forEach(c => window.map.removeLayer(c));
     if (window.capasBase[this.value]) window.capasBase[this.value].addTo(window.map);
   });
 
   // 4. MODO CLIC EN EL MAPA
-  btnClicMapa?.addEventListener("click", function() {
+  btnClicMapa?.addEventListener("click", function(e) {
+    e.preventDefault();
     modoConsultaClic = !modoConsultaClic;
     btnClicMapa.classList.toggle("activo", modoConsultaClic);
     btnClicMapa.textContent = modoConsultaClic ? "🎯 Clic en el mapa..." : "🎯 Clic en Mapa";
   });
 
-  window.map?.on("click", async function(e) {
-    if (modoConsultaClic) {
-      modoConsultaClic = false;
-      btnClicMapa.classList.remove("activo");
-      btnClicMapa.textContent = "🎯 Clic en Mapa";
-      const resData = await resolverDireccionYAltura(e.latlng.lat, e.latlng.lng);
-      if (inputCalle) inputCalle.value = "";
-      verificarPunto(e.latlng.lat, e.latlng.lng, resData.direccion, resData.entreCalles);
-    }
-  });
+  function VincularEventoMapaClic() {
+    if (!window.map) return setTimeout(VincularEventoMapaClic, 300);
+    window.map.on("click", async function(e) {
+      if (modoConsultaClic) {
+        modoConsultaClic = false;
+        btnClicMapa.classList.remove("activo");
+        btnClicMapa.textContent = "🎯 Clic en Mapa";
+        const resData = await resolverDireccionYAltura(e.latlng.lat, e.latlng.lng);
+        if (inputCalle) inputCalle.value = "";
+        verificarPunto(e.latlng.lat, e.latlng.lng, resData.direccion, resData.entreCalles);
+      }
+    });
+  }
+  VincularEventoMapaClic();
 
   // 5. GPS DE UBICACIÓN ACTUAL
-  document.getElementById("btnGPSConsulta")?.addEventListener("click", function() {
-    if (!navigator.geolocation) return alert("Geolocalización no disponible.");
+  document.getElementById("btnGPSConsulta")?.addEventListener("click", function(e) {
+    e.preventDefault();
+    if (!navigator.geolocation) return alert("Geolocalización no disponible en este dispositivo.");
+    
     navigator.geolocation.getCurrentPosition(async pos => {
       const resData = await resolverDireccionYAltura(pos.coords.latitude, pos.coords.longitude);
       if (inputCalle) inputCalle.value = "";
       verificarPunto(pos.coords.latitude, pos.coords.longitude, resData.direccion, resData.entreCalles);
-    }, err => alert("No se pudo acceder a la ubicación GPS."), { enableHighAccuracy: true });
+    }, err => {
+      alert("No se pudo obtener la ubicación GPS. Verifique que los servicios de ubicación estén activados en su celular.");
+    }, { enableHighAccuracy: true, timeout: 10000 });
   });
 
   // 6. BÚSQUEDA DE ABONADOS (AB)
@@ -175,7 +189,8 @@
     sugAB.style.display = sugAB.children.length ? "block" : "none";
   });
 
-  document.getElementById("btnBuscarAB")?.addEventListener("click", function() {
+  document.getElementById("btnBuscarAB")?.addEventListener("click", function(e) {
+    e.preventDefault();
     const q = inputAB.value.trim().replace("AB", "").trim().toUpperCase();
     if (!q) return;
     const encontrado = abonadosLocal.find(ab => ab.ab.toUpperCase() === q);
@@ -192,7 +207,7 @@
   document.getElementById("btnLimpiarAB")?.addEventListener("click", () => {
     if (inputAB) inputAB.value = "";
     if (sugAB) sugAB.style.display = "none";
-    if (markerConsulta) window.map.removeLayer(markerConsulta);
+    if (markerConsulta && window.map) window.map.removeLayer(markerConsulta);
   });
 
   // 7. GEOCODIFICACIÓN DE CALLES
@@ -240,7 +255,7 @@
   document.getElementById("btnLimpiarInput")?.addEventListener("click", () => {
     if (inputCalle) inputCalle.value = "";
     if (sugConsulta) sugConsulta.style.display = "none";
-    if (markerConsulta) window.map.removeLayer(markerConsulta);
+    if (markerConsulta && window.map) window.map.removeLayer(markerConsulta);
   });
 
   // 8. ALGORITMO RAY-CASTING Y VERIFICACIÓN DE ZONA
@@ -255,6 +270,7 @@
   }
 
   function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", datosAB = null) {
+    if (!window.map) return;
     const pt = L.latLng(lat, lon);
     if (markerConsulta) window.map.removeLayer(markerConsulta);
 
@@ -337,6 +353,7 @@
   };
 
   function renderizarCapasConsulta(datosGeo) {
+    if (!window.map) return;
     capasGeo.forEach(l => window.map.removeLayer(l));
     capasGeo = []; marcadoresAutos = [];
     if (selectZonaConsulta) selectZonaConsulta.innerHTML = '<option value="">--Ir a zona--</option>';
@@ -371,13 +388,14 @@
 
   selectZonaConsulta?.addEventListener("change", function() {
     const idx = this.value;
-    if (idx === "" || !elementosGeo[idx]) return;
+    if (idx === "" || !elementosGeo[idx] || !window.map) return;
     try { window.map.fitBounds(L.geoJSON(elementosGeo[idx]).getBounds(), { padding: [40, 40] }); } catch(e){}
   });
 
-  document.getElementById("btnOcultarPanelConsulta")?.addEventListener("click", function() {
+  document.getElementById("btnOcultarPanelConsulta")?.addEventListener("click", function(e) {
+    e.preventDefault();
     document.body.classList.toggle("panel-consulta-oculto");
-    setTimeout(() => window.map.invalidateSize(), 200);
+    setTimeout(() => { if (window.map) window.map.invalidateSize(); }, 200);
   });
 
   cargarHistorialLocal();
