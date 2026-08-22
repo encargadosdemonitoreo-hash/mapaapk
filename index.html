@@ -2,32 +2,384 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<!-- Previene el zoom accidental y fija el viewport táctil -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Ionray - Cobertura y Monitoreo</title>
 
-<!-- MODO APP REAL (Android e iOS) -->
+<!-- CONFIGURACIÓN PWA Y VISTA NATIVA -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="IonrayMap">
 <meta name="theme-color" content="#1a73e8">
 
-<title>Ionray - Cobertura y Monitoreo</title>
-
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="css/styles.css">
-
-<!-- REGISTRO DEL MOTOR DE LA APP (SERVICE WORKER) -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then((reg) => console.log('✅ Motor PWA registrado con éxito:', reg.scope))
-        .catch((err) => console.warn('❌ Fallo al registrar PWA:', err));
-    });
-  }
-</script>
 </head>
+<body class="vista-consulta">
+
+<!-- =========================================================
+   PANTALLA DE LOGIN UNIFICADA
+========================================================= -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-icon">🛡️</div>
+    <div class="login-titulo">ACCESO DE USUARIO</div>
+    <div class="login-subtitulo">Central de Monitoreo & Cobertura</div>
+    
+    <form id="formLoginUnificado" onsubmit="return false;" autocomplete="off">
+      <div class="login-field">
+        <label>Usuario</label>
+        <input type="text" id="loginUser" placeholder="Ej.: IONRAY" autocomplete="off" required>
+      </div>
+      
+      <div class="login-field">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="new-password" required>
+      </div>
+
+      <div id="loginErrorMsg">❌ Credenciales incorrectas.</div>
+
+      <button id="btnLoginSubmit" class="btn btn-azul" type="submit" style="margin-top:16px; height:44px;">🔑 Validar Acceso</button>
+    </form>
+
+    <div id="selectorModoIonray">
+      <div style="font-size:11px; font-weight:800; color:#1a73e8; margin-bottom:8px;">SELECCIONE MODO DE INGRESO (IONRAY):</div>
+      <button class="btn-modo btn-modo-consulta" id="btnModoConsultaIonray" type="button">🔎 Mesa de Consulta</button>
+      <button class="btn-modo btn-modo-admin" id="btnModoAdminIonray" type="button">🛠️ Panel Administrador</button>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+<div id="indicadorSyncStatus">🟢 Conectado</div>
+
+<!-- BARRA FLOTANTE DE ALERTA DE ACCIÓN DE ADMIN -->
+<div id="alertaFlotanteAccion" style="display:none;">
+    <span id="iconoAlertaFlotante">✏️</span>
+    <span id="textoAlertaFlotante">ACCION</span>
+</div>
+
+<!-- =========================================================
+   VISTA 1: MESA DE CONSULTA DE COBERTURA
+========================================================= -->
+<div id="vistaConsulta" class="vistas-container">
+  <button id="btnOcultarPanelConsulta" type="button">
+    <span id="icoBtnOcultarConsulta">☰</span>
+    <span id="txtBtnOcultarConsulta">Ocultar Panel</span>
+  </button>
+
+  <div class="panel" id="panelConsulta">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div class="titulo" style="font-size:15px;">🔎 Consulta de Cobertura</div>
+      <button id="btnToggleAuth" type="button" style="padding:6px 10px; border-radius:8px; border:1px solid #ccc; background:#f1f3f4; font-size:11px; font-weight:bold; cursor:pointer;">👤 <span id="txtUserSesion">Invitado</span></button>
+    </div>
+
+    <div class="busqueda">
+      <div class="linea-input">
+        <input id="buscarABInput" autocomplete="off" placeholder="🏢 Buscar Abonado por N° (AB)...">
+        <button id="btnMicAB" class="btn-input-accion btn-mic" type="button" title="Dictar Abonado">🎙️</button>
+        <button id="btnLimpiarAB" class="btn-input-accion" type="button">❌</button>
+        <button id="btnBuscarAB" class="btn-input-accion" type="button">Buscar AB</button>
+      </div>
+      <div id="sugerenciasAB" class="sugerencias-consulta"></div>
+
+      <div class="linea-input">
+        <input id="direccion" autocomplete="off" placeholder="Calle, esquina o altura...">
+        <button id="btnMicCalle" class="btn-input-accion btn-mic" type="button" title="Dictar Dirección">🎙️</button>
+        <button id="btnLimpiarInput" class="btn-input-accion" type="button">❌</button>
+        <button id="buscar" class="btn-input-accion" type="button">Buscar</button>
+      </div>
+      <div id="sugerenciasConsulta" class="sugerencias-consulta"></div>
+
+      <div style="display:flex; gap:4px; margin-top:2px;">
+        <select id="mapaEstiloConsulta" style="flex:1; height:32px; font-size:11px;">
+          <option value="esriStreet">🏙️ Esri Street HD</option>
+          <option value="satelitalHibrido">🛰️ Satelital HD</option>
+          <option value="calles">🗺️ OpenStreetMap</option>
+        </select>
+        
+        <select id="selectorTemaConsulta" style="flex:1; height:32px; font-size:11px;">
+          <option value="claro">☀️ Modo Claro</option>
+          <option value="dark">🌙 Modo Oscuro</option>
+          <option value="tactico">🚨 Modo Táctico</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:4px; margin-top:2px;">
+        <select id="selectZonaConsulta" style="width:100%; height:32px; font-size:11px;">
+          <option value="">--Ir a zona--</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:4px; margin-top:2px;">
+        <button id="btnClicMapa" class="btn-accion-secundario" type="button">🎯 Clic en Mapa</button>
+        <button id="btnGPSConsulta" class="btn-accion-secundario" type="button">📍 Mi Ubicación GPS</button>
+      </div>
+    </div>
+
+    <!-- HISTORIAL DE BÚSQUEDAS RECIENTES -->
+    <div class="menu abierto">
+      <button class="menu-header" type="button"><span>📜 HISTORIAL DE BÚSQUEDAS</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <div id="listaHistorialBusquedas" class="lista-zonas" style="max-height:140px;"></div>
+        <button id="btnBorrarHistorial" class="btn-accion-secundario" type="button" style="width:100%; margin-top:6px;">🗑️ Limpiar Historial</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+   VISTA 2: PANEL ADMINISTRADOR
+========================================================= -->
+<div id="vistaAdmin" class="vistas-container">
+  <button id="btnOcultar" type="button">
+    <span id="iconoBtnOcultar">☰</span>
+    <span id="textoBtnOcultar">Ocultar Panel</span>
+  </button>
+
+  <div class="panel" id="panelAdmin">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="titulo">MAPA ADMINISTRADOR</div>
+        <div class="subtitulo">Panel de gestión de zonas y trazados.</div>
+      </div>
+      <button id="btnToggleAuthUserAdmin" class="btn btn-secundario" type="button" style="width:auto; height:32px; font-size:11px; margin-top:0;">
+        👤 <span id="txtEstadoSesionUser">IONRAY (Cerrar)</span>
+      </button>
+    </div>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+      <div style="flex:1;">
+        <label>Tema del Panel</label>
+        <select id="selectorTemaPanel">
+          <option value="claro">☀️ Modo Claro</option>
+          <option value="dark">🌙 Modo Oscuro</option>
+          <option value="tactico">🚨 Modo Nocturno Táctico</option>
+        </select>
+      </div>
+      <div style="width:110px;">
+        <label>Seguridad</label>
+        <button id="btnBloqueoEdicion" class="btn btn-secundario" type="button" style="margin-top:0; height:38px;">🔓 Edición</button>
+      </div>
+    </div>
+
+    <!-- 1. MAPA BASE ADMIN -->
+    <div class="menu" id="menuMapa">
+      <button class="menu-header" type="button"><span>🗺️ MAPA BASE</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <label>Buscar en Bs. As. (Calle, Altura o Esquina)</label>
+        <div class="busqueda-admin">
+          <input type="text" id="buscarLugarAdmin" placeholder="Ej.: San Martín y Mitre, Morón">
+          <div id="sugerenciasAdmin" class="sugerencias-admin"></div>
+        </div>
+        <label>Servidor de Mapa</label>
+        <select id="mapaEstilo">
+          <option value="esriStreet">🏙️ Esri Street Map HD</option>
+          <option value="satelitalHibrido">🛰️ Satelital Híbrido HD</option>
+          <option value="calles">🗺️ OpenStreetMap Estándar</option>
+          <option value="oscuroLabels">🌙 CartoDB Dark</option>
+        </select>
+        <button id="btnRefrescarMapa" class="btn btn-naranja" type="button">🔄 Actualizar Mapa y Caché</button>
+        <button id="btnGPS" class="btn btn-azul" type="button">📍 Mi ubicación actual</button>
+        <button id="btnCentrar" class="btn btn-gris" type="button">🎯 Ver todas las zonas</button>
+      </div>
+    </div>
+
+    <!-- 2. MOSTRAR / OCULTAR CAPAS -->
+    <div class="menu" id="menuFiltros">
+      <button class="menu-header" type="button"><span>👁️ MOSTRAR / OCULTAR CAPAS</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <div style="display:grid; grid-template-columns:1fr; gap:6px;">
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="cobertura" checked> 🟢 Cobertura</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="peligrosa" checked> 🔴 Peligrosa</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="alerta" checked> 🟠 Alerta</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="informativa" checked> 🔵 Informativa</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="nomovil" checked> ⛔ No va móvil</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="sin_acceso_movil" checked> ⛔ Sin acceso de Móvil</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="barrio_privado" checked> 🏰 Barrio Privado</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="parque_industrial" checked> 🏭 Parque Industrial</label>
+          <label class="contenedor-checkbox"><input type="checkbox" class="filtro-check" value="localidad" checked> 🏙️ Localidad / Municipio</label>
+          <label class="contenedor-checkbox"><input type="checkbox" id="chkMarcadores" checked> 📍 Marcaciones / Puntos Estratégicos</label>
+          <label class="contenedor-checkbox"><input type="checkbox" id="chkHeatmap" checked> 🔥 Mapa de Calor (Incidentes)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. MAPA DE CALOR -->
+    <div class="menu" id="menuHeatmap">
+      <button class="menu-header" type="button"><span>🔥 MAPA DE CALOR</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <label>Cargar Coordenadas (Lat, Lng por línea)</label>
+        <textarea id="inputHeatmapCoords" placeholder="-34.648, -58.619&#10;-34.650, -58.622" style="height:70px; font-family:monospace; font-size:11px;"></textarea>
+        <label>Radio (<span id="lblHeatRadius">25</span>px)</label>
+        <input type="range" id="heatRadius" min="5" max="60" value="25">
+        <label>Blur (<span id="lblHeatBlur">15</span>px)</label>
+        <input type="range" id="heatBlur" min="1" max="40" value="15">
+        <label>Intensidad Max (<span id="lblHeatMax">0.8</span>)</label>
+        <input type="range" id="heatMax" min="0.1" max="1" step="0.1" value="0.8">
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button id="btnCargarHeatmap" class="btn btn-naranja" type="button" style="margin-top:0;">🔥 Cargar</button>
+          <button id="btnBorrarHeatmap" class="btn btn-secundario" type="button" style="margin-top:0;">🗑️ Limpiar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. BUSCAR ZONA -->
+    <div class="menu" id="menuBuscar">
+      <button class="menu-header" type="button"><span>🔎 BUSCAR ZONA</span><span id="lblCantBuscarZonas">0 zonas</span></button>
+      <div class="menu-contenido">
+        <input type="text" id="buscarZona" placeholder="Buscar por nombre...">
+        <div id="listaZonas" class="lista-zonas"></div>
+      </div>
+    </div>
+
+    <!-- 5. NUEVA ZONA -->
+    <div class="menu abierto" id="menuNueva">
+      <button class="menu-header" type="button"><span>➕ NUEVA ZONA</span><span>▲</span></button>
+      <div class="menu-contenido">
+        <label>Nombre de la zona</label>
+        <input type="text" id="nombreZona" placeholder="Ej.: Zona Centro">
+        <label>Categoría</label>
+        <select id="tipoZona">
+          <option value="cobertura">🟢 Cobertura</option>
+          <option value="peligrosa">🔴 Peligrosa</option>
+          <option value="alerta">🟠 Alerta</option>
+          <option value="informativa">🔵 Informativa</option>
+          <option value="nomovil">⛔ No va móvil</option>
+          <option value="sin_acceso_movil">⛔ Sin acceso de Móvil</option>
+          <option value="barrio_privado">🏰 Barrio Privado</option>
+          <option value="parque_industrial">🏭 Parque Industrial</option>
+          <option value="localidad">🏙️ Localidad</option>
+        </select>
+        <label>Color</label>
+        <div id="colorPreview" style="height:20px; border-radius:6px; background:#2E7D32; margin-bottom:4px;"></div>
+        <input type="color" id="colorInput" value="#2E7D32" style="height:36px; padding:2px;">
+        <label>Estilo de línea</label>
+        <select id="tipoLinea">
+          <option value="solida">➖ Sólida</option>
+          <option value="puntos">┈┈ Punteada</option>
+          <option value="rayas">╍╍ Rayas</option>
+        </select>
+        <label>Relleno</label>
+        <select id="relleno"><option value="normal">Normal</option><option value="sin">Sin relleno</option></select>
+        <label>Opacidad</label>
+        <input type="range" id="opacidad" min="0" max="100" value="25">
+        <button id="btnDibujar" class="btn btn-verde" type="button">✏️ Dibujar nueva zona</button>
+        <button id="btnCancelarDibujo" class="btn btn-rojo" type="button" style="display:none;">❌ Cancelar Dibujo</button>
+        <button id="btnDeshacerPunto" class="btn btn-secundario" type="button" style="display:none;">↩️ Deshacer punto (Ctrl+Z)</button>
+      </div>
+    </div>
+
+    <!-- 6. MARCACIONES ESTRATÉGICAS -->
+    <div class="menu" id="menuMarcaciones">
+      <button class="menu-header" type="button"><span>📍 MARCACIONES / MÓVILES</span><span id="lblCantMarcaciones">0 puntos</span></button>
+      <div class="menu-contenido">
+        <label>Nombre del Marcador / Móvil</label>
+        <input type="text" id="nombreMarcador" placeholder="Ej.: Móvil 1 - Morón">
+        <label>Tipo de Icono</label>
+        <select id="tipoIconoMarcador">
+          <option value="🚗">🚗 Auto / Patrulla</option>
+          <option value="🏍️">🏍️ Moto Acudidor</option>
+          <option value="🏠">🏠 Casa / Abonado</option>
+          <option value="🏢">🏢 Base Operativa</option>
+        </select>
+        <label>Color</label>
+        <input type="color" id="colorMarcador" value="#1a73e8" style="height:36px; padding:2px;">
+        <button id="btnAgregarMarcador" class="btn btn-azul" type="button">📍 Colocar Marcación</button>
+        <div id="listaMarcadores" class="lista-zonas"></div>
+      </div>
+    </div>
+
+    <!-- 7. GESTIÓN DE ABONADOS GPS -->
+    <div class="menu" id="menuAbonados">
+      <button class="menu-header" type="button"><span>🏢 GESTIÓN DE ABONADOS GPS</span><span id="lblCantAbonados">0 abonados</span></button>
+      <div class="menu-contenido">
+        <div style="font-weight:800; font-size:11px; color:#1a73e8;" id="tituloFormAB">Alta / Edición de Abonado</div>
+        <label>N° Abonado (AB)</label>
+        <input type="text" id="abNumero" placeholder="Ej.: 1045">
+        <label>Dirección</label>
+        <input type="text" id="abDireccion" placeholder="Ej.: Av. Rivadavia 18200">
+        <label>Localidad</label>
+        <input type="text" id="abLocalidad" placeholder="Ej.: Morón">
+        <label>Cómo Llegar</label>
+        <textarea id="abComoLlegar" style="height:50px; font-size:11px;" placeholder="Instrucciones operativas..."></textarea>
+        <div style="display:flex; gap:4px; margin-top:4px;">
+          <input type="text" id="abLat" placeholder="Latitud">
+          <input type="text" id="abLon" placeholder="Longitud">
+        </div>
+        <div style="display:flex; gap:4px; margin-top:6px;">
+          <button id="btnGeocodificarAB" class="btn btn-secundario" type="button" style="margin-top:0;">🌐 Coords</button>
+          <button id="btnGuardarABManual" class="btn btn-verde" type="button" style="margin-top:0;">💾 Guardar AB</button>
+        </div>
+        <label style="margin-top:10px;">🔍 Buscar Abonado Cargado</label>
+        <input type="text" id="buscarABAdminLista" placeholder="Buscar por AB, Dirección...">
+        <div id="listaAbonadosRegistrados" class="lista-zonas" style="max-height:130px;"></div>
+      </div>
+    </div>
+
+    <!-- 8. EDITAR ZONA SELECCIONADA -->
+    <div class="menu" id="menuEditar">
+      <button class="menu-header" type="button"><span>✏️ EDITAR ZONA</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <div id="seleccionInfo" style="padding:4px 0; font-size:11px; color:#666;">Seleccioná una zona en el mapa.</div>
+        <label>Nombre</label>
+        <input type="text" id="editarNombre">
+        <label>Categoría</label>
+        <select id="editarTipo">
+          <option value="cobertura">🟢 Cobertura</option>
+          <option value="peligrosa">🔴 Peligrosa</option>
+          <option value="alerta">🟠 Alerta</option>
+          <option value="informativa">🔵 Informativa</option>
+          <option value="nomovil">⛔ No va móvil</option>
+          <option value="sin_acceso_movil">⛔ Sin acceso de Móvil</option>
+          <option value="barrio_privado">🏰 Barrio Privado</option>
+          <option value="parque_industrial">🏭 Parque Industrial</option>
+          <option value="localidad">🏙️ Localidad</option>
+        </select>
+        <label>Color</label>
+        <div id="editarColorPreview" style="height:20px; border-radius:6px; background:#2E7D32; margin-bottom:4px;"></div>
+        <input type="color" id="editarColor" value="#2E7D32" style="height:36px; padding:2px;">
+        <label>Estilo de línea</label>
+        <select id="editarLinea">
+          <option value="solida">➖ Sólida</option>
+          <option value="puntos">┈┈ Punteada</option>
+          <option value="rayas">╍╍ Rayas</option>
+        </select>
+        <label>Relleno</label>
+        <select id="editarRelleno"><option value="normal">Normal</option><option value="sin">Sin relleno</option></select>
+        <label>Opacidad</label>
+        <input type="range" id="editarOpacidad" min="0" max="100" value="25">
+        <button id="btnGuardarEdicion" class="btn btn-verde" type="button">💾 Guardar cambios</button>
+        <button id="btnEditarVertices" class="btn btn-secundario" type="button">🔵 Activar / Desactivar Vértices</button>
+        <button id="btnEliminarSeleccionada" class="btn btn-rojo" type="button">🗑️ Eliminar zona</button>
+      </div>
+    </div>
+
+    <!-- 9. CONFIGURACIÓN Y FIREBASE -->
+    <div class="menu" id="menuHerramientas">
+      <button class="menu-header" type="button"><span>⚙️ CONFIGURACIÓN Y FIREBASE</span><span>▼</span></button>
+      <div class="menu-contenido">
+        <label>URL de Base de Datos Realtime (Firebase)</label>
+        <input type="text" id="cfgFirebaseUrl" placeholder="https://mapa-ef4d1-default-rtdb.firebaseio.com/mapa.json">
+        <button id="btnPublicarMultiples" class="btn btn-azul" type="button" style="margin-top:8px; height:42px;">🚀 Sincronizar en Firebase</button>
+        <button id="btnBorrar" class="btn btn-rojo" type="button" style="margin-top:10px;">🗑️ Borrar TODAS las Zonas</button>
+      </div>
+    </div>
+
+    <div class="estado" style="margin-top:10px; font-size:11px; padding:8px; background:#f8f9fa; border-radius:8px;">
+      <b>Zonas:</b> <span id="contador">0</span> &nbsp;|&nbsp; <span id="estado">Listo</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/mapa.js"></script>
+<script src="js/consulta.js"></script>
+<script src="js/admin.js"></script>
+
+</body>
+</html>
