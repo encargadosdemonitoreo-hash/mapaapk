@@ -1,16 +1,26 @@
 {
-  "name": "Mesa de Consulta y Monitoreo GPS",
-  "short_name": "MonitoreoGPS",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1a73e8",
-  "orientation": "portrait",
+  "short_name": "IonrayMap",
+  "name": "Ionray - Cobertura y Monitoreo",
   "icons": [
     {
-      "src": "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
+      "type": "image/png",
       "sizes": "192x192",
-      "type": "image/png"
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "id": "/index.html",
+  "start_url": "./index.html",
+  "background_color": "#111111",
+  "theme_color": "#1a73e8",
+  "display": "standalone",
+  "orientation": "portrait",
+  "description": "Sistema de Cobertura, Monitoreo y Trazado Táctico",
+  "categories": ["utilities", "productivity"]
 }
