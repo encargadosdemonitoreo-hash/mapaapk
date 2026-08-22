@@ -68,8 +68,10 @@ body.modo-tactico select { background: #000; color: #ff1744; border-color: #b71c
 .menu-contenido { display: none; padding: 10px; border-top: 1px solid #e2e8f0; }
 .menu.abierto .menu-contenido { display: block; }
 
-.solo-admin { display: none !important; }
-body.es-admin .solo-admin { display: block !important; }
+/* REGLAS CSS DE CONTROL DE ACCESO SEGÚN ROL */
+.solo-verificador, .solo-admin { display: none !important; }
+body.es-verificador .solo-verificador { display: block !important; }
+body.es-admin .solo-verificador, body.es-admin .solo-admin { display: block !important; }
 
 @keyframes moverGuiones { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
 @keyframes pulsoLinea { 0% { stroke-opacity: 0.4; stroke-width: 3px; } 50% { stroke-opacity: 1; stroke-width: 6px; } 100% { stroke-opacity: 0.4; stroke-width: 3px; } }
@@ -136,9 +138,9 @@ body.es-admin .solo-admin { display: block !important; }
 <div id="loginOverlay" class="oculto">
   <div class="login-card">
     <div style="font-size:32px; margin-bottom:8px;">🛡️</div>
-    <div style="font-weight:800; font-size:16px; margin-bottom:12px;">ACCESO ADMINISTRADOR</div>
+    <div style="font-weight:800; font-size:16px; margin-bottom:12px;">ACCESO AL SISTEMA</div>
     <form id="formLogin" autocomplete="off">
-      <input type="text" id="usr" placeholder="Usuario (ej: IONRAY)" style="width:100%; height:38px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="off">
+      <input type="text" id="usr" placeholder="Usuario" style="width:100%; height:38px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="off">
       <input type="password" id="pwd" placeholder="Contraseña" style="width:100%; height:38px; margin-top:8px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="new-password">
       <button type="submit" style="width:100%; height:40px; margin-top:14px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:8px; cursor:pointer; font-size:13px;">🔑 Iniciar Sesión</button>
       <button type="button" id="btnCerrarLogin" style="width:100%; height:34px; margin-top:6px; background:transparent; color:#5f6368; border:0; cursor:pointer; font-size:12px;">Cancelar</button>
@@ -156,13 +158,17 @@ body.es-admin .solo-admin { display: block !important; }
   </div>
 
   <div class="busqueda">
-    <div class="linea-input">
-      <input id="buscarABInput" autocomplete="off" placeholder="🏢 Buscar Abonado por N° (AB)...">
-      <button id="btnLimpiarAB" class="btn-input-accion" type="button">❌</button>
-      <button id="btnBuscarAB" class="btn-input-accion" type="button">Buscar AB</button>
+    <!-- BLOQUE BÚSQUEDA ABONADO: Solo visible para Verificador y Monitoreo -->
+    <div id="bloqueBuscarAB" class="solo-verificador">
+      <div class="linea-input">
+        <input id="buscarABInput" autocomplete="off" placeholder="🏢 Buscar Abonado por N° (AB)...">
+        <button id="btnLimpiarAB" class="btn-input-accion" type="button">❌</button>
+        <button id="btnBuscarAB" class="btn-input-accion" type="button">Buscar AB</button>
+      </div>
+      <div id="sugerenciasAB" class="sugerencias-consulta"></div>
     </div>
-    <div id="sugerenciasAB" class="sugerencias-consulta"></div>
 
+    <!-- BÚSQUEDA POR DIRECCIÓN: Visible para todos (Invitado, Verificador, Monitoreo) -->
     <div class="linea-input">
       <input id="direccion" autocomplete="off" placeholder="Calle, esquina o altura...">
       <button id="btnLimpiarInput" class="btn-input-accion" type="button">❌</button>
@@ -204,6 +210,7 @@ body.es-admin .solo-admin { display: block !important; }
     </div>
   </div>
 
+  <!-- HERRAMIENTAS DE ADMINISTRACIÓN: Solo visible para Monitoreo -->
   <div class="solo-admin" style="margin-top:10px; border-top:1px solid #e0e4e8; padding-top:8px;">
     <div style="font-size:11px; font-weight:800; color:#1557b0; margin-bottom:4px;">🛠️ HERRAMIENTAS DE ADMINISTRACIÓN</div>
     <div class="menu">
@@ -264,7 +271,7 @@ if (temaGuardado) {
   selectorTemaPanel.dispatchEvent(new Event("change"));
 }
 
-let esAdmin = false;
+let rolActual = "Invitado";
 let usuariosLocal = [];
 let historialBusquedas = [];
 
@@ -272,6 +279,21 @@ const loginOverlay = document.getElementById("loginOverlay");
 const txtUserSesion = document.getElementById("txtUserSesion");
 const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
+
+function establecerRol(rol, nombreUsuario) {
+  rolActual = rol;
+  document.body.classList.remove("es-admin", "es-verificador");
+
+  if (rol === "Monitoreo") {
+    document.body.classList.add("es-admin");
+    txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (Monitoreo)` : "Monitoreo";
+  } else if (rol === "Verificador") {
+    document.body.classList.add("es-verificador");
+    txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (Verificador)` : "Verificador";
+  } else {
+    txtUserSesion.textContent = "Invitado";
+  }
+}
 
 function cargarHistorialLocal() {
   const data = localStorage.getItem("historialConsultaApp");
@@ -315,10 +337,8 @@ document.getElementById("btnBorrarHistorial").onclick = function() {
 
 document.getElementById("btnToggleAuth").onclick = function(e){
   e.stopPropagation();
-  if (esAdmin) {
-    esAdmin = false;
-    document.body.classList.remove("es-admin");
-    txtUserSesion.textContent = "Invitado";
+  if (rolActual !== "Invitado") {
+    establecerRol("Invitado");
     const inputUsr = document.getElementById("usr");
     const inputPwd = document.getElementById("pwd");
     if (inputUsr) inputUsr.value = "";
@@ -351,13 +371,20 @@ document.getElementById("formLogin").onsubmit = function(e){
 
   const usuarioEncontrado = usuariosLocal.find(x => x.usuario.toLowerCase() === u && x.clave === p);
 
-  if (usuarioEncontrado || (u === "ionray" && p === "ionray")) {
-    esAdmin = true;
-    document.body.classList.add("es-admin");
-    const nombreDisplay = usuarioEncontrado ? (usuarioEncontrado.nombre || usuarioEncontrado.usuario) : "IONRAY (Admin)";
-    txtUserSesion.textContent = nombreDisplay;
+  if (usuarioEncontrado) {
+    const rolAsignado = usuarioEncontrado.rol || "Monitoreo";
+    establecerRol(rolAsignado, usuarioEncontrado.nombre || usuarioEncontrado.usuario);
     loginOverlay.classList.add("oculto");
-  } else {
+  } 
+  else if (u === "ionray" && p === "ionray") {
+    establecerRol("Monitoreo", "IONRAY");
+    loginOverlay.classList.add("oculto");
+  } 
+  else if (u === "verificador" && p === "verif123") {
+    establecerRol("Verificador", "Verificador");
+    loginOverlay.classList.add("oculto");
+  } 
+  else {
     alert("Usuario o contraseña incorrectos.");
   }
 };
