@@ -308,6 +308,7 @@ if (temaGuardado) {
 }
 
 let rolActual = "INVITADO";
+let nombreUsuarioActual = "Invitado";
 let usuariosConsultaLocal = [];
 let historialBusquedas = [];
 
@@ -316,8 +317,38 @@ const txtUserSesion = document.getElementById("txtUserSesion");
 const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
 
+// SISTEMA DE LOGS Y TELEMETRÍA EN LA NUBE
+async function registrarLogFirebase(tipoAccion, detalleData = {}) {
+  const urlBruta = cfgFirebaseUrl ? cfgFirebaseUrl.value.trim() : endpointGuardado;
+  if (!urlBruta) return;
+
+  let urlBase = urlBruta;
+  if (urlBase.endsWith("/")) urlBase = urlBase.slice(0, -1);
+  if (urlBase.endsWith(".json")) urlBase = urlBase.slice(0, -5);
+  
+  const urlLogs = urlBase.endsWith("/mapa") ? urlBase + "/logs_consulta.json" : urlBase + "/mapa/logs_consulta.json";
+
+  const payloadLog = {
+    fechaHora: new Date().toLocaleString("es-AR"),
+    timestamp: Date.now(),
+    usuario: nombreUsuarioActual,
+    rol: rolActual,
+    accion: tipoAccion,
+    detalle: detalleData
+  };
+
+  try {
+    fetch(urlLogs, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payloadLog)
+    }).catch(e => {});
+  } catch(e) {}
+}
+
 function establecerRol(rol, nombreUsuario, guardar = true) {
   const r = (rol || "INVITADO").toString().toUpperCase().trim();
+  nombreUsuarioActual = nombreUsuario || "Invitado";
   
   document.body.classList.remove("es-admin", "es-verificador");
 
@@ -331,6 +362,7 @@ function establecerRol(rol, nombreUsuario, guardar = true) {
     txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (VERIFICADOR)` : "VERIFICADOR";
   } else {
     rolActual = "INVITADO";
+    nombreUsuarioActual = "Invitado";
     txtUserSesion.textContent = "Invitado";
   }
 
@@ -338,16 +370,21 @@ function establecerRol(rol, nombreUsuario, guardar = true) {
     if (rolActual === "INVITADO") {
       localStorage.removeItem("sesionUsuarioRolConsulta");
     } else {
-      localStorage.setItem("sesionUsuarioRolConsulta", JSON.stringify({ rol: r, nombreUsuario }));
+      localStorage.setItem("sesionUsuarioRolConsulta", JSON.stringify({ rol: r, nombreUsuario: nombreUsuarioActual }));
     }
   }
 }
+
+// ARRANQUE BLINDADO: POR DEFECTO MANTIENE INVITADO A MENOS QUE HAYA SESIÓN PREVIA VÁLIDA
+establecerRol("INVITADO", "Invitado", false);
 
 const sesionPrevio = localStorage.getItem("sesionUsuarioRolConsulta");
 if (sesionPrevio) {
   try {
     const s = JSON.parse(sesionPrevio);
-    establecerRol(s.rol, s.nombreUsuario, false);
+    if (s && s.rol && s.rol !== "INVITADO") {
+      establecerRol(s.rol, s.nombreUsuario, false);
+    }
   } catch(e) {}
 }
 
@@ -357,10 +394,10 @@ function cargarUsuariosConsultaLocal() {
     try { usuariosConsultaLocal = JSON.parse(data); } catch(e) { usuariosConsultaLocal = []; }
   }
   
+  // ÚNICO USUARIO MAESTRO INICIAL OBLIGATORIO
   if (!usuariosConsultaLocal || usuariosConsultaLocal.length === 0) {
     usuariosConsultaLocal = [
-      { id: "u_cons_1", nombre: "IONRAY Administrador", usuario: "ionray", clave: "ionray", rol: "SUPER_ADMIN", fechaAlta: new Date().toLocaleDateString("es-AR") },
-      { id: "u_cons_2", nombre: "Operador Verificador", usuario: "verificador", clave: "verif123", rol: "VERIFICADOR", fechaAlta: new Date().toLocaleDateString("es-AR") }
+      { id: "u_cons_1", nombre: "IONRAY Administrador", usuario: "ionray", clave: "ionray", rol: "SUPER_ADMIN", fechaAlta: new Date().toLocaleDateString("es-AR") }
     ];
     guardarUsuariosConsultaLocal();
   }
@@ -444,6 +481,7 @@ function eliminarUsuarioConsulta(idUsr) {
   if (confirm(`¿Eliminar definitivamente el registro de "${u ? u.nombre : 'esta persona'}"?`)) {
     usuariosConsultaLocal = usuariosConsultaLocal.filter(x => x.id !== idUsr);
     guardarUsuariosConsultaLocal();
+    registrarLogFirebase("ELIMINACION_USUARIO", { idEliminado: idUsr, nombreEliminado: u ? u.nombre : "Desconocido" });
   }
 }
 
@@ -467,6 +505,7 @@ document.getElementById("btnGuardarUsrConsulta")?.addEventListener("click", func
       usuariosConsultaLocal[idx].clave = pass;
       usuariosConsultaLocal[idx].rol = rol;
       alert(`✅ Registro de "${nom || user}" actualizado.`);
+      registrarLogFirebase("EDICION_USUARIO", { usuarioModificado: user, nuevoRol: rol });
     }
   } else {
     const existe = usuariosConsultaLocal.some(x => x.usuario.toLowerCase() === user);
@@ -484,6 +523,7 @@ document.getElementById("btnGuardarUsrConsulta")?.addEventListener("click", func
       fechaAlta: new Date().toLocaleDateString("es-AR")
     });
     alert(`✅ Persona "${nom || user}" registrada con éxito.`);
+    registrarLogFirebase("CREACION_USUARIO", { usuarioCreado: user, rolAsignado: rol });
   }
 
   guardarUsuariosConsultaLocal();
@@ -512,6 +552,7 @@ async function sincronizarUsuariosFirebase() {
 
     if (res.ok) {
       alert("🚀 ¡Base de personas guardada y sincronizada en Firebase!");
+      registrarLogFirebase("SINCRONIZACION_USUARIOS_FIREBASE", { cantidadUsuarios: usuariosConsultaLocal.length });
     } else {
       alert("Error al conectar con Firebase: HTTP " + res.status);
     }
@@ -565,6 +606,7 @@ document.getElementById("btnBorrarHistorial").onclick = function() {
 document.getElementById("btnToggleAuth").onclick = function(e){
   e.stopPropagation();
   if (rolActual !== "INVITADO") {
+    registrarLogFirebase("CIERRE_SESION", { usuario: nombreUsuarioActual });
     establecerRol("INVITADO");
     const inputUsr = document.getElementById("usr");
     const inputPwd = document.getElementById("pwd");
@@ -606,17 +648,16 @@ document.getElementById("formLogin").onsubmit = function(e){
     const rolAsignado = usuarioEncontrado.rol || "SUPER_ADMIN";
     establecerRol(rolAsignado, usuarioEncontrado.nombre || usuarioEncontrado.usuario);
     loginOverlay.classList.add("oculto");
+    registrarLogFirebase("INICIO_SESION_EXITOSO", { metodo: "base_local" });
   } 
   else if (u === "ionray" && p === "ionray") {
     establecerRol("SUPER_ADMIN", "IONRAY");
     loginOverlay.classList.add("oculto");
-  } 
-  else if (u === "verificador" && p === "verif123") {
-    establecerRol("VERIFICADOR", "VERIFICADOR");
-    loginOverlay.classList.add("oculto");
+    registrarLogFirebase("INICIO_SESION_EXITOSO", { metodo: "maestro_ionray" });
   } 
   else {
     alert("Usuario o contraseña incorrectos.");
+    registrarLogFirebase("INICIO_SESION_FALLIDO", { intentoUsuario: u });
   }
 };
 
@@ -976,6 +1017,15 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
     claseBurbuja = "burbuja-fuera"; 
     icono = "🚫"; 
   }
+
+  // REGISTRA EL LOG DE LA BÚSQUEDA REALIZADA EN FIREBASE
+  registrarLogFirebase(datosAB ? "CONSULTA_ABONADO" : "CONSULTA_DIRECCION", {
+    ubicacion: nombre,
+    coords: `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+    resultado: estadoTexto,
+    esAbonadoAB: !!datosAB,
+    numeroAB: datosAB ? datosAB.ab : null
+  });
 
   let etaTxt = "";
   if (marcadoresAutos.length) {
