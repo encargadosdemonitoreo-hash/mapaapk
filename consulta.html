@@ -11,7 +11,7 @@ body.modo-consulta-manual #map { cursor: crosshair !important; }
 
 #loginOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); z-index: 10000 !important; display: flex; align-items: center; justify-content: center; }
 #loginOverlay.oculto { display: none !important; }
-.login-card { width: 300px; background: #fff; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); color: #202124; }
+.login-card { width: 320px; background: #fff; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); color: #202124; }
 
 .panel {
   position: absolute; z-index: 2000; top: 10px; left: 10px; right: 10px;
@@ -125,6 +125,10 @@ body.es-admin .solo-verificador, body.es-admin .solo-admin { display: block !imp
 .historial-item:hover { background: #f8fafc; }
 .historial-item:last-child { border-bottom: 0; }
 
+.lista-zonas { margin-top: 6px; max-height: 150px; overflow-y: auto; border: 1px solid #cbd5e0; border-radius: 8px; background: #fff; }
+.zona-item { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid #f1f3f9; display: flex; justify-content: space-between; align-items: center; }
+.btn-borrar-item { background: #d93025; color: #fff; border: 0; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 700; cursor: pointer; }
+
 #indicadorSyncStatus {
   position: absolute; bottom: 16px; right: 12px; z-index: 1500;
   font-size: 10px; font-weight: 800; background: rgba(255,255,255,0.95);
@@ -158,7 +162,6 @@ body.es-admin .solo-verificador, body.es-admin .solo-admin { display: block !imp
   </div>
 
   <div class="busqueda">
-    <!-- BLOQUE BÚSQUEDA ABONADO: Visible para Verificador y Monitoreo -->
     <div id="bloqueBuscarAB" class="solo-verificador">
       <div class="linea-input">
         <input id="buscarABInput" autocomplete="off" placeholder="🏢 Buscar Abonado por N° (AB)...">
@@ -168,7 +171,6 @@ body.es-admin .solo-verificador, body.es-admin .solo-admin { display: block !imp
       <div id="sugerenciasAB" class="sugerencias-consulta"></div>
     </div>
 
-    <!-- BÚSQUEDA POR DIRECCIÓN: Visible para todos -->
     <div class="linea-input">
       <input id="direccion" autocomplete="off" placeholder="Calle, esquina o altura...">
       <button id="btnLimpiarInput" class="btn-input-accion" type="button">❌</button>
@@ -210,9 +212,43 @@ body.es-admin .solo-verificador, body.es-admin .solo-admin { display: block !imp
     </div>
   </div>
 
-  <!-- HERRAMIENTAS DE ADMINISTRACIÓN: Solo visible para Monitoreo -->
   <div class="solo-admin" style="margin-top:10px; border-top:1px solid #e0e4e8; padding-top:8px;">
-    <div style="font-size:11px; font-weight:800; color:#1557b0; margin-bottom:4px;">🛠️ HERRAMIENTAS DE ADMINISTRACIÓN</div>
+    <div style="font-size:11px; font-weight:800; color:#1557b0; margin-bottom:4px;">🛠️ ADMINISTRACIÓN Y FICHERO DE PERSONAS</div>
+    
+    <div class="menu">
+        <button class="menu-header" type="button"><span>👥 GESTIÓN DE USUARIOS DE CONSULTA</span><span>▼</span></button>
+        <div class="menu-contenido">
+            <div style="font-size:10px; font-weight:800; color:#1a73e8; margin-bottom:4px;" id="tituloFormUsrConsulta">Crear / Editar Registro de Persona</div>
+            <input type="hidden" id="usrConsId" value="">
+            
+            <label style="font-size:10px; font-weight:bold; color:#666;">Nombre Completo / Puesto</label>
+            <input type="text" id="usrConsNombre" placeholder="Ej.: Juan Perez - Mesa Entrada" style="width:100%; height:32px; font-size:11px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
+
+            <label style="font-size:10px; font-weight:bold; color:#666; margin-top:4px;">Usuario (Login)</label>
+            <input type="text" id="usrConsUser" placeholder="Ej.: jperez" style="width:100%; height:32px; font-size:11px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
+
+            <label style="font-size:10px; font-weight:bold; color:#666; margin-top:4px;">Contraseña</label>
+            <input type="password" id="usrConsPass" placeholder="Clave de acceso" style="width:100%; height:32px; font-size:11px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
+
+            <label style="font-size:10px; font-weight:bold; color:#666; margin-top:4px;">Perfil / Nivel de Acceso</label>
+            <select id="usrConsRol" style="width:100%; height:32px; font-size:11px; border:1px solid #ccc; border-radius:6px; color:#000;">
+                <option value="SUPER_ADMIN">👑 SUPER_ADMIN (Acceso Total + Admin)</option>
+                <option value="VERIFICADOR">🔍 VERIFICADOR (Direcciones + Abonados AB)</option>
+                <option value="INVITADO">👤 INVITADO (Solo Direcciones y GPS)</option>
+            </select>
+
+            <div style="display:flex; gap:4px; margin-top:6px;">
+                <button id="btnGuardarUsrConsulta" type="button" style="flex:1; height:34px; background:#1e8e3e; color:#fff; font-weight:bold; border:0; border-radius:6px; cursor:pointer; font-size:11px;">💾 Guardar Ficha</button>
+                <button id="btnCancelarUsrConsulta" type="button" style="display:none; height:34px; background:#64748b; color:#fff; font-weight:bold; border:0; border-radius:6px; cursor:pointer; font-size:11px;">❌ Cancelar</button>
+            </div>
+
+            <label style="font-size:10px; font-weight:bold; color:#666; margin-top:8px; display:block;">Base de Datos de Personas Cargadas</label>
+            <div id="listaUsuariosConsulta" class="lista-zonas"></div>
+
+            <button id="btnSincronizarUsuariosFB" type="button" style="width:100%; height:36px; margin-top:8px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:6px; cursor:pointer; font-size:11px;">🚀 Sincronizar Base a Firebase</button>
+        </div>
+    </div>
+
     <div class="menu">
         <button class="menu-header" type="button"><span>⚡ CONFIGURACIÓN FIREBASE</span><span>▼</span></button>
         <div class="menu-contenido">
@@ -272,7 +308,7 @@ if (temaGuardado) {
 }
 
 let rolActual = "INVITADO";
-let usuariosLocal = [];
+let usuariosConsultaLocal = [];
 let historialBusquedas = [];
 
 const loginOverlay = document.getElementById("loginOverlay");
@@ -280,17 +316,16 @@ const txtUserSesion = document.getElementById("txtUserSesion");
 const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
 
-// MAPEA ROLES DESDE ADMIN.HTML (SUPER_ADMIN, OPERADOR_ADMIN, OPERADOR_CONSULTA)
 function establecerRol(rol, nombreUsuario, guardar = true) {
   const r = (rol || "INVITADO").toString().toUpperCase().trim();
   
   document.body.classList.remove("es-admin", "es-verificador");
 
   if (r === "SUPER_ADMIN" || r === "OPERADOR_ADMIN" || r === "MONITOREO" || r === "ADMIN") {
-    rolActual = "MONITOREO";
+    rolActual = "SUPER_ADMIN";
     document.body.classList.add("es-admin");
-    txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (MONITOREO)` : "MONITOREO";
-  } else if (r === "OPERADOR_CONSULTA" || r === "VERIFICADOR") {
+    txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (SUPER_ADMIN)` : "SUPER_ADMIN";
+  } else if (r === "VERIFICADOR" || r === "OPERADOR_CONSULTA") {
     rolActual = "VERIFICADOR";
     document.body.classList.add("es-verificador");
     txtUserSesion.textContent = nombreUsuario ? `${nombreUsuario} (VERIFICADOR)` : "VERIFICADOR";
@@ -301,21 +336,191 @@ function establecerRol(rol, nombreUsuario, guardar = true) {
 
   if (guardar) {
     if (rolActual === "INVITADO") {
-      localStorage.removeItem("sesionUsuarioRol");
+      localStorage.removeItem("sesionUsuarioRolConsulta");
     } else {
-      localStorage.setItem("sesionUsuarioRol", JSON.stringify({ rol: r, nombreUsuario }));
+      localStorage.setItem("sesionUsuarioRolConsulta", JSON.stringify({ rol: r, nombreUsuario }));
     }
   }
 }
 
-// RESTAURAR SESIÓN GUARDADA EN EL NAVEGADOR
-const sesionPrevio = localStorage.getItem("sesionUsuarioRol");
+const sesionPrevio = localStorage.getItem("sesionUsuarioRolConsulta");
 if (sesionPrevio) {
   try {
     const s = JSON.parse(sesionPrevio);
     establecerRol(s.rol, s.nombreUsuario, false);
   } catch(e) {}
 }
+
+function cargarUsuariosConsultaLocal() {
+  const data = localStorage.getItem("usuariosConsultaPropio");
+  if (data) {
+    try { usuariosConsultaLocal = JSON.parse(data); } catch(e) { usuariosConsultaLocal = []; }
+  }
+  
+  if (!usuariosConsultaLocal || usuariosConsultaLocal.length === 0) {
+    usuariosConsultaLocal = [
+      { id: "u_cons_1", nombre: "IONRAY Administrador", usuario: "ionray", clave: "ionray", rol: "SUPER_ADMIN", fechaAlta: new Date().toLocaleDateString("es-AR") },
+      { id: "u_cons_2", nombre: "Operador Verificador", usuario: "verificador", clave: "verif123", rol: "VERIFICADOR", fechaAlta: new Date().toLocaleDateString("es-AR") }
+    ];
+    guardarUsuariosConsultaLocal();
+  }
+  renderizarListaUsuariosConsulta();
+}
+
+function guardarUsuariosConsultaLocal() {
+  localStorage.setItem("usuariosConsultaPropio", JSON.stringify(usuariosConsultaLocal));
+  renderizarListaUsuariosConsulta();
+}
+
+function renderizarListaUsuariosConsulta() {
+  const cont = document.getElementById("listaUsuariosConsulta");
+  if (!cont) return;
+  cont.innerHTML = "";
+
+  usuariosConsultaLocal.forEach(u => {
+    const div = document.createElement("div");
+    div.className = "zona-item";
+    
+    let iconoRol = "👤";
+    if (u.rol === "SUPER_ADMIN") iconoRol = "👑";
+    if (u.rol === "VERIFICADOR") iconoRol = "🔍";
+
+    const info = document.createElement("div");
+    info.innerHTML = `<b>${u.nombre || u.usuario}</b> (${u.usuario})<br><small style="color:#1a73e8;">${iconoRol} ${u.rol}</small>`;
+
+    const acciones = document.createElement("div");
+    acciones.style.display = "flex";
+    acciones.style.gap = "4px";
+
+    const btnEd = document.createElement("button");
+    btnEd.className = "btn-borrar-item";
+    btnEd.style.background = "#1a73e8";
+    btnEd.textContent = "✏️";
+    btnEd.onclick = () => cargarFormularioEdicionUsr(u);
+
+    const btnDel = document.createElement("button");
+    btnDel.className = "btn-borrar-item";
+    btnDel.textContent = "🗑️";
+    btnDel.onclick = () => eliminarUsuarioConsulta(u.id);
+
+    acciones.appendChild(btnEd);
+    acciones.appendChild(btnDel);
+    div.appendChild(info);
+    div.appendChild(acciones);
+    cont.appendChild(div);
+  });
+}
+
+function cargarFormularioEdicionUsr(u) {
+  document.getElementById("usrConsId").value = u.id;
+  document.getElementById("usrConsNombre").value = u.nombre || "";
+  document.getElementById("usrConsUser").value = u.usuario || "";
+  document.getElementById("usrConsPass").value = u.clave || "";
+  document.getElementById("usrConsRol").value = u.rol || "SUPER_ADMIN";
+
+  document.getElementById("tituloFormUsrConsulta").textContent = `✏️ Editando: ${u.nombre || u.usuario}`;
+  document.getElementById("btnCancelarUsrConsulta").style.display = "inline-block";
+}
+
+function limpiarFormularioUsr() {
+  document.getElementById("usrConsId").value = "";
+  document.getElementById("usrConsNombre").value = "";
+  document.getElementById("usrConsUser").value = "";
+  document.getElementById("usrConsPass").value = "";
+  document.getElementById("usrConsRol").value = "SUPER_ADMIN";
+
+  document.getElementById("tituloFormUsrConsulta").textContent = "Crear / Editar Registro de Persona";
+  document.getElementById("btnCancelarUsrConsulta").style.display = "none";
+}
+
+document.getElementById("btnCancelarUsrConsulta")?.addEventListener("click", limpiarFormularioUsr);
+
+function eliminarUsuarioConsulta(idUsr) {
+  if (usuariosConsultaLocal.length <= 1) {
+    alert("Debe existir al menos un usuario en el sistema.");
+    return;
+  }
+  const u = usuariosConsultaLocal.find(x => x.id === idUsr);
+  if (confirm(`¿Eliminar definitivamente el registro de "${u ? u.nombre : 'esta persona'}"?`)) {
+    usuariosConsultaLocal = usuariosConsultaLocal.filter(x => x.id !== idUsr);
+    guardarUsuariosConsultaLocal();
+  }
+}
+
+document.getElementById("btnGuardarUsrConsulta")?.addEventListener("click", function(){
+  const idEd = document.getElementById("usrConsId").value;
+  const nom = document.getElementById("usrConsNombre").value.trim();
+  const user = document.getElementById("usrConsUser").value.trim().toLowerCase();
+  const pass = document.getElementById("usrConsPass").value.trim();
+  const rol = document.getElementById("usrConsRol").value;
+
+  if (!user || !pass) {
+    alert("Completá usuario y contraseña.");
+    return;
+  }
+
+  if (idEd) {
+    const idx = usuariosConsultaLocal.findIndex(x => x.id === idEd);
+    if (idx !== -1) {
+      usuariosConsultaLocal[idx].nombre = nom || user;
+      usuariosConsultaLocal[idx].usuario = user;
+      usuariosConsultaLocal[idx].clave = pass;
+      usuariosConsultaLocal[idx].rol = rol;
+      alert(`✅ Registro de "${nom || user}" actualizado.`);
+    }
+  } else {
+    const existe = usuariosConsultaLocal.some(x => x.usuario.toLowerCase() === user);
+    if (existe) {
+      alert(`El usuario "${user}" ya existe. Elegí uno diferente.`);
+      return;
+    }
+
+    usuariosConsultaLocal.push({
+      id: "u_cons_" + Date.now(),
+      nombre: nom || user,
+      usuario: user,
+      clave: pass,
+      rol: rol,
+      fechaAlta: new Date().toLocaleDateString("es-AR")
+    });
+    alert(`✅ Persona "${nom || user}" registrada con éxito.`);
+  }
+
+  guardarUsuariosConsultaLocal();
+  limpiarFormularioUsr();
+});
+
+async function sincronizarUsuariosFirebase() {
+  const urlBruta = cfgFirebaseUrl ? cfgFirebaseUrl.value.trim() : endpointGuardado;
+  if (!urlBruta) {
+    alert("Configurá la URL de Firebase primero.");
+    return;
+  }
+
+  let urlBase = urlBruta;
+  if (urlBase.endsWith("/")) urlBase = urlBase.slice(0, -1);
+  if (urlBase.endsWith(".json")) urlBase = urlBase.slice(0, -5);
+  
+  const urlFinalUsuarios = urlBase.endsWith("/mapa") ? urlBase + "/usuarios_consulta.json" : urlBase + "/mapa/usuarios_consulta.json";
+
+  try {
+    const res = await fetch(urlFinalUsuarios, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(usuariosConsultaLocal)
+    });
+
+    if (res.ok) {
+      alert("🚀 ¡Base de personas guardada y sincronizada en Firebase!");
+    } else {
+      alert("Error al conectar con Firebase: HTTP " + res.status);
+    }
+  } catch(e) {
+    alert("Error de red al sincronizar la base de personas.");
+  }
+}
+
+document.getElementById("btnSincronizarUsuariosFB")?.addEventListener("click", sincronizarUsuariosFirebase);
 
 function cargarHistorialLocal() {
   const data = localStorage.getItem("historialConsultaApp");
@@ -391,17 +596,13 @@ document.getElementById("formLogin").onsubmit = function(e){
     return;
   }
 
-  // OBTENER LISTA DE USUARIOS (SOPORTA ARRAY U OBJETO INDEXADO DE FIREBASE)
-  let listaUsuarios = [];
-  if (Array.isArray(usuariosLocal)) {
-    listaUsuarios = usuariosLocal;
-  } else if (typeof usuariosLocal === 'object' && usuariosLocal !== null) {
-    listaUsuarios = Object.values(usuariosLocal);
-  }
+  let listaUsuarios = Array.isArray(usuariosConsultaLocal) ? usuariosConsultaLocal : Object.values(usuariosConsultaLocal || {});
 
   const usuarioEncontrado = listaUsuarios.find(x => x && x.usuario && x.usuario.toString().toLowerCase() === u && x.clave && x.clave.toString() === p);
 
   if (usuarioEncontrado) {
+    usuarioEncontrado.ultimoAcceso = new Date().toLocaleString("es-AR");
+    guardarUsuariosConsultaLocal();
     const rolAsignado = usuarioEncontrado.rol || "SUPER_ADMIN";
     establecerRol(rolAsignado, usuarioEncontrado.nombre || usuarioEncontrado.usuario);
     loginOverlay.classList.add("oculto");
@@ -411,7 +612,7 @@ document.getElementById("formLogin").onsubmit = function(e){
     loginOverlay.classList.add("oculto");
   } 
   else if (u === "verificador" && p === "verif123") {
-    establecerRol("OPERADOR_CONSULTA", "VERIFICADOR");
+    establecerRol("VERIFICADOR", "VERIFICADOR");
     loginOverlay.classList.add("oculto");
   } 
   else {
@@ -490,7 +691,6 @@ const urlParams = new URLSearchParams(window.location.search);
 let endpointGuardado = urlParams.get("db") || localStorage.getItem("fbUrlAdmin") || "https://mapa-ef4d1-default-rtdb.firebaseio.com/";
 if (cfgFirebaseUrl) cfgFirebaseUrl.value = endpointGuardado;
 
-/* CARGA DINÁMICA REMOTA CON RESPALDO OFFLINE LOCAL */
 async function obtenerUrlServidorDinamica() {
   try {
     const resp = await fetch("config.json?v=" + Date.now(), { cache: "no-store" });
@@ -525,11 +725,14 @@ async function actualizarDesdeFirebase() {
     if (!res.ok) throw new Error("Error HTTP " + res.status);
     const dataFB = await res.json();
     if (dataFB) {
-      // EXTRAE DATOS INCLUSO SI VIENEN ANIDADOS
       const payload = dataFB.mapa || dataFB;
       if (payload.zonas) { elementos = payload.zonas; renderizarDatosMapa(elementos); }
       if (payload.abonados) abonadosLocal = payload.abonados;
-      if (payload.usuarios) usuariosLocal = payload.usuarios;
+      
+      if (payload.usuarios_consulta) {
+        usuariosConsultaLocal = Array.isArray(payload.usuarios_consulta) ? payload.usuarios_consulta : Object.values(payload.usuarios_consulta);
+        guardarUsuariosConsultaLocal();
+      }
       
       localStorage.setItem("copiaCacheMapaZonas", JSON.stringify(dataFB));
       if(statusSync) { statusSync.textContent = "🟢 Sincronizado en Vivo"; statusSync.style.color = "#2e7d32"; }
@@ -548,7 +751,10 @@ function cargarCopiaOffline() {
       const payload = dataFB.mapa || dataFB;
       if (payload.zonas) { elementos = payload.zonas; renderizarDatosMapa(elementos); }
       if (payload.abonados) abonadosLocal = payload.abonados;
-      if (payload.usuarios) usuariosLocal = payload.usuarios;
+      if (payload.usuarios_consulta) {
+        usuariosConsultaLocal = Array.isArray(payload.usuarios_consulta) ? payload.usuarios_consulta : Object.values(payload.usuarios_consulta);
+        guardarUsuariosConsultaLocal();
+      }
       if(statusSync) { statusSync.textContent = "⚠️ Modo Offline (Local)"; statusSync.style.color = "#f29900"; }
     } catch(err) {}
   } else {
@@ -850,6 +1056,7 @@ document.querySelectorAll(".menu-header").forEach(h => {
   };
 });
 
+cargarUsuariosConsultaLocal();
 cargarHistorialLocal();
 });
 </script>
