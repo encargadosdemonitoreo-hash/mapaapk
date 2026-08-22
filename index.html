@@ -66,7 +66,6 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    text-decoration: none;
     box-sizing: border-box;
   }
 
@@ -90,15 +89,22 @@
     <div class="titulo-app">MONITOREO VÍAS DE ACCESO</div>
     <div class="subtitulo-app">Central de Cobertura y Geofencing</div>
 
-    <a href="consulta.html?v=100" class="btn-opcion btn-consulta">
+    <button type="button" class="btn-opcion btn-consulta" onclick="irA('consulta.html')">
       🔎 MESA DE CONSULTA
-    </a>
+    </button>
 
-    <a href="admin.html?v=100" class="btn-opcion btn-admin">
+    <button type="button" class="btn-opcion btn-admin" onclick="irA('admin.html')">
       🛠️ PANEL ADMINISTRADOR
-    </a>
+    </button>
   </div>
 </div>
+
+<script>
+  function irA(pagina) {
+    // Forzamos la recarga limpia de la ubicación reemplazando la URL completa
+    window.location.href = pagina + "?v=" + new Date().getTime();
+  }
+</script>
 
 </body>
 </html>
