@@ -1,1 +1,248 @@
+/* =========================================================
+   1. BLOQUEO GLOBAL Y REGLAS BASE PWA
+========================================================= */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    overscroll-behavior-y: none !important;
+    touch-action: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f3f5f7;
+    transition: background 0.3s, color 0.3s;
+    -webkit-user-select: none;
+    user-select: none;
+}
 
+#map {
+    position: absolute;
+    top: 0; bottom: 0; left: 0; right: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    background: #e5e3df;
+    touch-action: none;
+}
+
+body.modo-dibujo #map, body.modo-marcador #map, body.modo-consulta-manual #map {
+    cursor: crosshair !important;
+}
+
+#encabezadoImpresion, #pieImpresion { display: none; }
+.leaflet-container img { max-width: none !important; max-height: none !important; }
+
+/* =========================================================
+   2. PANTALLA DE LOGIN UNIFICADA Y SELECTOR IONRAY
+========================================================= */
+#loginOverlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 10000 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+#loginOverlay.oculto {
+    display: none !important;
+}
+
+.login-card {
+    width: 330px;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 20px;
+    padding: 28px 24px;
+    box-sizing: border-box;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    text-align: center;
+    animation: loginAppereance 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes loginAppereance {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.login-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 12px auto;
+    background: #1a73e8; color: #ffffff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 6px 16px rgba(26, 115, 232, 0.4);
+}
+
+.login-titulo { font-size: 18px; font-weight: 800; color: #1a202c; margin-bottom: 4px; }
+.login-subtitulo { font-size: 11px; color: #718096; margin-bottom: 20px; }
+
+.login-field { text-align: left; margin-bottom: 12px; }
+.login-field label { display: block; font-size: 10px; font-weight: 800; color: #4a5568; margin-bottom: 4px; text-transform: uppercase; }
+.login-field input {
+    width: 100%; height: 42px;
+    border: 1px solid #cbd5e0; border-radius: 10px;
+    padding: 0 12px; font-size: 13px; font-weight: 600;
+    outline: none; box-sizing: border-box;
+}
+
+#loginErrorMsg {
+    display: none; margin-top: 10px; padding: 8px;
+    border-radius: 8px; background: #fff5f5; border: 1px solid #feb2b2;
+    color: #c53030; font-size: 11px; font-weight: 700;
+}
+
+#selectorModoIonray {
+    display: none;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #cbd5e0;
+}
+
+.btn-modo {
+    width: 100%; height: 42px;
+    margin-top: 8px; border: 0; border-radius: 10px;
+    font-size: 13px; font-weight: 800; color: #fff;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-modo-consulta { background: #2e7d32; }
+.btn-modo-admin { background: #1a73e8; }
+
+/* =========================================================
+   3. ARQUITECTURA DE VISTAS Y PANELES FLOTANTES
+========================================================= */
+.vistas-container { display: none; }
+body.vista-admin #vistaAdmin, body.vista-consulta #vistaConsulta { display: block; }
+
+.panel {
+    position: absolute; z-index: 2000; top: 10px; left: 10px; right: 10px;
+    width: auto; max-width: 380px; max-height: 85vh; overflow-y: auto;
+    background: rgba(255, 255, 255, 0.98); border-radius: 16px;
+    padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.22); box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+#btnOcultarPanelConsulta, #btnOcultar {
+    position: absolute; top: 10px; right: 10px; z-index: 2005;
+    height: 38px; padding: 0 14px; border: 1px solid rgba(0,0,0,0.15); border-radius: 20px;
+    background: #1a73e8; color: #ffffff; font-size: 12px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); display: flex; align-items: center; gap: 6px;
+    backdrop-filter: blur(8px);
+}
+
+body.panel-consulta-oculto #panelConsulta, body.panel-oculto #panelAdmin { display: none !important; }
+
+@media (max-width: 600px) {
+    .panel { top: 55px; left: 8px; right: 8px; max-width: none; max-height: 75vh; padding: 10px; }
+    #btnOcultarPanelConsulta, #btnOcultar { top: 10px; right: 10px; }
+}
+
+/* =========================================================
+   4. COMPONENTES VISUALES, CONTROLES Y BUSCADORES
+========================================================= */
+.titulo { font-size: 19px; font-weight: 800; color: #202124; margin-bottom: 2px; }
+.subtitulo { font-size: 11px; color: #666; margin-bottom: 10px; }
+
+.busqueda { display: flex; flex-direction: column; gap: 6px; position: relative; }
+.linea-input { display: flex; gap: 4px; align-items: center; }
+#direccion, #buscarABInput { flex: 1; height: 38px; padding: 0 10px; border: 1px solid #cbd5e0; border-radius: 10px; font-size: 13px; font-weight: 600; outline: none; background: #fff; min-width: 0; }
+#buscarABInput { border-color: #1a73e8; background: #f4f8ff; }
+
+.btn-input-accion { height: 38px; padding: 0 10px; border: 0; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 13px; flex-shrink: 0; }
+#btnLimpiarInput, #btnLimpiarAB { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e0; width: 34px; padding: 0; }
+.btn-mic { background: #e8f0fe; color: #1a73e8; border: 1px solid #1a73e8; width: 34px; padding: 0; }
+.btn-mic.escuchando { background: #d93025 !important; color: #ffffff !important; animation: pulsoBoton 1.2s infinite; }
+#buscar, #btnBuscarAB { background: #1a73e8; color: #fff; }
+
+.btn-accion-secundario { height: 34px; padding: 0 8px; border: 1px solid #cbd5e0; background: #f8fafc; color: #334155; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 11px; flex: 1; display: inline-flex; align-items: center; justify-content: center; }
+
+#btnClicMapa.activo {
+    background: #1a73e8 !important; color: #ffffff !important; border-color: #0d47a1 !important;
+    animation: pulsoBoton 1.5s infinite;
+}
+
+@keyframes pulsoBoton { 0% { box-shadow: 0 0 0 0 rgba(26,115,232,0.5); } 70% { box-shadow: 0 0 0 8px rgba(26,115,232,0); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0); } }
+
+.sugerencias-consulta, .sugerencias-admin { display: none; position: absolute; left: 0; right: 0; z-index: 2010; background: #fff; border: 1px solid #cbd5e0; border-radius: 10px; max-height: 160px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+.sugerencia-item { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+.sugerencia-item:hover { background: #e8f0fe; }
+
+/* MENÚS ACORDEÓN */
+.menu { margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 12px; overflow: hidden; background: #ffffff; }
+.menu-header {
+    width: 100%; padding: 12px 14px; border: 0; background: #f8fafc; color: #334155;
+    display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 800; cursor: pointer; border-left: 6px solid #1a73e8;
+}
+.menu.abierto .menu-header { background: #1a73e8 !important; color: #ffffff !important; }
+.menu-contenido { display: none; padding: 12px 14px; background: #ffffff; border-top: 1px solid #e2e8f0; }
+.menu.abierto .menu-contenido { display: block; }
+
+.btn { width: 100%; height: 40px; margin-top: 8px; border: 0; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }
+.btn-verde { background: #1e8e3e; } .btn-azul { background: #1a73e8; } .btn-naranja { background: #f29900; } .btn-rojo { background: #d93025; } .btn-secundario { background: #f1f3f4; color: #3c4043; border: 1px solid #dadce0; } .btn-edicion { background: #8e24aa; }
+
+input[type="text"], input[type="password"], select, textarea {
+    width: 100%; height: 40px; padding: 0 12px; box-sizing: border-box;
+    border: 1px solid #dadce0; border-radius: 8px; background: #fff; font-size: 13px; font-weight: 600; outline: none;
+}
+
+/* =========================================================
+   5. BURBUJAS EXPANDIBLES DE RESULTADOS DE COBERTURA
+========================================================= */
+.leaflet-popup-content-wrapper { padding: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+.leaflet-popup-content { margin: 0 !important; line-height: 1.3; }
+
+.burbuja-marcacion { padding: 12px; min-width: 250px; max-width: 320px; cursor: pointer; }
+.burbuja-cabecera { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; }
+.burbuja-sub { font-size: 11px; font-weight: 700; margin-top: 3px; }
+.burbuja-entre { font-size: 10px; font-style: italic; opacity: 0.9; margin-top: 2px; }
+
+.burbuja-como-llegar { margin-top: 6px; padding: 6px 8px; border-radius: 8px; font-size: 10px; text-align: left; }
+.burbuja-como-llegar.con-datos { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(0, 0, 0, 0.15); color: #202124; }
+.burbuja-como-llegar.sin-datos { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; font-weight: 800; }
+
+.card-propiedad { margin-top: 6px; padding: 8px; background: rgba(255,255,255,0.92); border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 10px; color: #334155; text-align: left; }
+.card-propiedad-titulo { font-weight: 800; font-size: 11px; color: #1a73e8; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; }
+
+.burbuja-indicador { margin-top: 6px; font-size: 10px; font-weight: 800; color: rgba(0,0,0,0.6); display: flex; justify-content: space-between; }
+.burbuja-cuerpo { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.2); font-size: 11px; }
+.burbuja-marcacion.expandida .burbuja-cuerpo { display: block; }
+
+.burbuja-cobertura { background: #e6f4ea; border: 2px solid #34a853; color: #137333; }
+.burbuja-peligrosa { background: #fce8e6; border: 2px solid #ea4335; color: #c5221f; }
+.burbuja-nomovil { background: #f3e5f5; border: 2px solid #8e24aa; color: #4a148c; }
+.burbuja-alerta { background: #fff4e5; border: 2px solid #fbbc04; color: #b76e00; }
+.burbuja-informativa { background: #e8f0fe; border: 2px solid #4285f4; color: #1a73e8; }
+.burbuja-barrio { background: #f3e5f5; border: 2px solid #8e24aa; color: #4a148c; }
+.burbuja-industrial { background: #fff3e0; border: 2px solid #e65100; color: #bf360c; }
+.burbuja-fuera { background: #2c3e50; border: 2px solid #455a64; color: #ffffff; }
+
+.card-eta { margin-top: 6px; padding: 6px 8px; background: rgba(255,255,255,0.85); border-radius: 8px; font-size: 10px; color: #202124; }
+.grupo-botones-nav { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+.btn-nav { display: inline-flex; align-items: center; gap: 3px; padding: 5px 8px; background: #fff; border: 1px solid #dadce0; border-radius: 12px; font-size: 10px; font-weight: 700; text-decoration: none; color: #3c4043; cursor: pointer; }
+.btn-share { color: #1a73e8; background: #e8f0fe; border-color: #1a73e8; }
+.btn-wsp { color: #25D366; }
+.btn-waze { color: #00b0ff; }
+.btn-gmaps { color: #1a73e8; }
+
+/* =========================================================
+   6. MODOS OSCURO Y TÁCTICO
+========================================================= */
+body.modo-dark .panel { background: rgba(30, 41, 59, 0.98); color: #f8fafc; }
+body.modo-dark input, body.modo-dark select, body.modo-dark textarea { background: #1e293b; color: #fff; border-color: #475569; }
+body.modo-dark .btn-accion-secundario { background: #334155; color: #f1f3f9; border-color: #475569; }
+
+body.modo-tactico .panel { background: rgba(15, 15, 15, 0.98); color: #ff5252; border: 1px solid #ff1744; }
+body.modo-tactico input, body.modo-tactico select, body.modo-tactico textarea { background: #000; color: #ff1744; border-color: #b71c1c; }
+body.modo-tactico .btn-accion-secundario { background: #262626; color: #ff5252; border-color: #b71c1c; }
+
+#indicadorSyncStatus {
+    position: absolute; bottom: 16px; right: 12px; z-index: 1500;
+    font-size: 10px; font-weight: 800; background: rgba(255,255,255,0.95);
+    padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); pointer-events: none;
+}
