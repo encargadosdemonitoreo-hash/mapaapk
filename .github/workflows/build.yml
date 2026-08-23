@@ -25,9 +25,13 @@ jobs:
       - name: Instalar y Configurar Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
           npx cap init "IONRAY Cobertura" "com.ionray.cobertura" --web-dir www
           npx cap add android
+
+      - name: Generar Íconos Nativos desde icon.png
+        run: |
+          npx @capacitor/assets generate --android
 
       - name: Inyectar Permisos Nativos de GPS y Micrófono
         run: |
