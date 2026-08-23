@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- LIBERACIÓN DE PERMISOS DE RED Y RECURSOS EXTERNOS -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self' 'unsafe-inline' 'unsafe-eval' data: gap: https://ssl.gstatic.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com;
+  style-src 'self' 'unsafe-inline' https://unpkg.com;
+  img-src 'self' data: blob: https: http:;
+  connect-src 'self' https: wss: http:;
+  font-src 'self' data: https:;
+">
+
 <title>Mesa de Consulta de Cobertura</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -663,10 +674,31 @@ window.compartirNativoFicha = function(titulo, texto) {
 };
 
 window.copiarFichaMapa = function(texto) {
-  navigator.clipboard.writeText(texto).then(() => {
-    alert("📋 Ficha copiada al portapapeles.");
-  }).catch(() => alert("No se pudo copiar la información."));
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(texto).then(() => {
+      alert("📋 Ficha copiada al portapapeles.");
+    }).catch(() => fallbackCopiar(texto));
+  } else {
+    fallbackCopiar(texto);
+  }
 };
+
+function fallbackCopiar(texto) {
+  const textArea = document.createElement("textarea");
+  textArea.value = texto;
+  textArea.style.position = "fixed";
+  textArea.style.left = "-9999px";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    alert("📋 Ficha copiada al portapapeles.");
+  } catch (err) {
+    alert("No se pudo copiar la información.");
+  }
+  document.body.removeChild(textArea);
+}
 
 let modoConsultaClic = false;
 const btnClicMapa = document.getElementById("btnClicMapa");
