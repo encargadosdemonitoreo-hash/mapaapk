@@ -1158,6 +1158,16 @@ body.panel-oculto .panel { display: none; }
             <span class="badge-estado-menu">▼ Ver opciones</span>
         </button>
         <div class="menu-contenido">
+
+            <!-- MÓDULO PUBLICACIÓN DE NUEVA VERSIÓN APP -->
+            <div style="background:#0f172a; color:#fff; border-radius:10px; padding:10px; margin-bottom:12px; border:1px solid #3b82f6;">
+                <div style="font-weight:800; font-size:11px; color:#60a5fa; margin-bottom:6px;">🚀 LANZAR NUEVA VERSIÓN / PARCHE DE APP</div>
+                <label style="color:#94a3b8; margin-top:0;">Número de Versión Publicada</label>
+                <div style="display:flex; gap:6px; margin-top:4px;">
+                    <input type="text" id="adminVersionInput" placeholder="Ej.: 1.0.1" value="1.0.0" style="flex:1; height:36px; background:#1e293b; color:#fff; border:1px solid #475569; font-weight:bold;">
+                    <button id="btnPublicarVersion" class="btn btn-azul" type="button" style="margin-top:0; height:36px; width:auto; padding:0 10px;">Lanzar Parche</button>
+                </div>
+            </div>
             
             <!-- MÓDULO COMPLETO DE CREACIÓN Y EDICIÓN DE USUARIOS -->
             <div style="background:#e8f0fe; border:1px solid #1a73e8; border-radius:8px; padding:10px; margin-bottom:12px;">
@@ -1382,6 +1392,45 @@ const buscarABAdminLista = document.getElementById("buscarABAdminLista");
 const btnCancelarEdicionAB = document.getElementById("btnCancelarEdicionAB");
 const tituloFormAB = document.getElementById("tituloFormAB");
 
+const adminVersionInput = document.getElementById("adminVersionInput");
+const btnPublicarVersion = document.getElementById("btnPublicarVersion");
+
+/* =========================================================
+   PUBLICACIÓN Y LANZAMIENTO DE NUEVAS VERISIONES DE APP
+========================================================= */
+btnPublicarVersion?.addEventListener("click", async function() {
+    if (!requiereRol(["SUPER_ADMIN"], "Solo el Super Administrador puede lanzar versiones.")) return;
+
+    const nuevaVer = adminVersionInput?.value.trim();
+    if (!nuevaVer) return alert("Ingresá un número de versión válido (ej: 1.0.1)");
+
+    const fbUrlRaw = cfgFirebaseUrl?.value.trim() || localStorage.getItem("fbUrlAdmin") || "";
+    if (!fbUrlRaw) return alert("Configurá primero la URL de tu Firebase en Opciones Avanzadas.");
+
+    const endpoint = formatearUrlFirebase(fbUrlRaw);
+
+    try {
+        if (estado) estado.textContent = "⌛ Lanzando parche v" + nuevaVer + "...";
+        const res = await fetch(endpoint, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ version_app: nuevaVer })
+        });
+
+        if (res.ok) {
+            localStorage.setItem("versionAppUltima", nuevaVer);
+            registrarEventoLog(`🚀 Lanzada versión/parche v${nuevaVer} a Firebase`);
+            alert(`✅ ¡Versión v${nuevaVer} lanzada con éxito! A todas las Apps con versión anterior les aparecerá el aviso de actualización.`);
+            if (estado) estado.textContent = "✓ Versión v" + nuevaVer + " activa en Firebase";
+        } else {
+            throw new Error("HTTP " + res.status);
+        }
+    } catch(e) {
+        alert("❌ Error al publicar la versión en Firebase.");
+        if (estado) estado.textContent = "🔴 Error al lanzar versión";
+    }
+});
+
 /* =========================================================
    SISTEMA DE AUTENTICACIÓN Y LOGIN INICIAL
 ========================================================= */
@@ -1418,7 +1467,7 @@ function aplicarPermisosPorRol(u) {
 
     modoEdicionBloqueado = soloConsulta;
 
-    ["btnGuardarEdicion","btnEliminarSeleccionada","btnBorrar","btnCargar","btnCargarHeatmap","btnPublicarMultiples","btnGuardarABManual","btnProcesarMasivo"].forEach(id => {
+    ["btnGuardarEdicion","btnEliminarSeleccionada","btnBorrar","btnCargar","btnCargarHeatmap","btnPublicarMultiples","btnGuardarABManual","btnProcesarMasivo","btnPublicarVersion"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = !adminEdicion;
     });
@@ -1929,7 +1978,8 @@ function sincronizarPublicacionFirebaseSilent() {
             zonas: capturarEstado(),
             mapaBase: localStorage.getItem("servidorMapasAdmin") || "esriStreet",
             usuarios: usuariosApp,
-            abonados: abonadosApp
+            abonados: abonadosApp,
+            version_app: adminVersionInput?.value.trim() || "1.0.0"
         };
         fetch(endpoint, {
             method: "PUT",
@@ -1963,7 +2013,8 @@ btnPublicarMultiples?.addEventListener("click", async function(){
         zonas: capturarEstado(),
         mapaBase: localStorage.getItem("servidorMapasAdmin") || "esriStreet",
         usuarios: usuariosApp,
-        abonados: abonadosApp
+        abonados: abonadosApp,
+        version_app: adminVersionInput?.value.trim() || "1.0.0"
     };
 
     try {
@@ -3473,6 +3524,10 @@ async function cargarFirebaseInicial() {
             const data = await res.json();
             if (data) {
                 if (data.zonas) reconstruirDesdeDatos(data.zonas);
+                if (data.version_app && adminVersionInput) {
+                    adminVersionInput.value = data.version_app;
+                    localStorage.setItem("versionAppUltima", data.version_app);
+                }
                 if (data.usuarios && Array.isArray(data.usuarios)) {
                     usuariosApp = data.usuarios;
                     guardarUsuariosSistema();
@@ -3500,6 +3555,9 @@ async function cargar(){
 
     cargarAbonadosSistema();
     
+    const verLocal = localStorage.getItem("versionAppUltima");
+    if (verLocal && adminVersionInput) adminVersionInput.value = verLocal;
+
     const dataHeat = localStorage.getItem("puntosHeatmapAdmin");
     if(dataHeat) {
         try {
