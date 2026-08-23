@@ -1,0 +1,6 @@
+{
+  "appId": "com.ionray.cobertura",
+  "appName": "IONRAY Cobertura",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
