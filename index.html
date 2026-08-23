@@ -17,16 +17,26 @@
 <title>Mesa de Consulta de Cobertura</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-<!-- AJUSTES EXCLUSIVOS PARA PANTALLA COMPLETA EN APK / MÓVIL -->
+<!-- AJUSTES EXCLUSIVOS PARA PANTALLA COMPLETA EN APK / MÓVIL & PWA -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cobertura">
 <meta name="theme-color" content="#1a73e8">
+
+<!-- ÍCONO EMPRESARIAL Y MANIFEST EMBEBIDO -->
+<link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/HryFRg8G/logo.png">
+<link rel="apple-touch-icon" href="https://i.postimg.cc/HryFRg8G/logo.png">
+<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1lc2EgZGUgQ29uc3VsdGEgZGUgQ29iZXJ0dXJhIiwKICAic2hvcnRfbmFtZSI6ICJDb2JlcnR1cmEiLAogICJzdGFydF91cmwiOiAiaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFhNzNlOCIsCiAgInRoZW1lX2NvbG9yIjogIiMxYTczZTgiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2kucG9zdGltZy5jYy9IcnlGUmc4Ry9sb2dvLnBuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIogICAgfQogIF0KfQ==">
 
 <style>
 /* =========================================================
-   ESTILOS BASE & TIPOGRAFÍA MODERNIZADA
+   ESTILOS BASE & TIPOGRAFÍA MODERNIZADA CON ESCALADO
 ========================================================= */
+:root {
+  --factor-texto: 1;
+}
+
 html, body, #map { 
   width: 100%; 
   height: 100%; 
@@ -36,7 +46,150 @@ html, body, #map {
   transition: background 0.3s, color 0.3s; 
 }
 
+body {
+  font-size: calc(13px * var(--factor-texto));
+}
+
 body.modo-consulta-manual #map { cursor: crosshair !important; }
+
+/* ESCALADO DINÁMICO CONTROLADO DE TEXTO */
+.panel, .login-card, .burbuja-marcacion, .leaflet-popup-content, .sugerencia-item, .historial-item, input, select, button {
+  font-size: calc(1em * var(--factor-texto)) !important;
+}
+
+/* =========================================================
+   PANTALLA DE CARGA (SPLASH SCREEN CON LOGO ANIMADO)
+========================================================= */
+#splashScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #0f172a;
+  z-index: 20000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+#splashScreen.oculto {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.splash-container {
+  text-align: center;
+  padding: 20px;
+}
+.splash-logo {
+  max-width: 210px;
+  max-height: 95px;
+  object-fit: contain;
+  animation: logoGlowPulse 2s ease-in-out infinite;
+}
+@keyframes logoGlowPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.85)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)); }
+}
+.splash-bar-bg {
+  width: 180px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin: 20px auto 10px auto;
+  overflow: hidden;
+  position: relative;
+}
+.splash-bar-fill {
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 4px;
+  position: absolute;
+  animation: barraInfinita 1.5s infinite ease-in-out;
+}
+@keyframes barraInfinita {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+.splash-txt {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+/* CARTEL CYBER-GLASS DE ACTUALIZACIÓN */
+#avisoUpdateCyber {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-150%);
+  width: 90%;
+  max-width: 380px;
+  background: rgba(10, 15, 30, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(59, 130, 246, 0.6);
+  border-radius: 16px;
+  padding: 14px 18px;
+  color: #f8fafc;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.35), inset 0 0 15px rgba(59, 130, 246, 0.1);
+  z-index: 10001;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#avisoUpdateCyber.visible {
+  transform: translateX(-50%) translateY(0);
+}
+.aviso-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: monospace;
+  font-size: 11px;
+  color: #60a5fa;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+.aviso-titulo {
+  font-weight: 800;
+  font-size: 13px;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+.aviso-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.btn-cyber-aplicar {
+  width: 100%;
+  height: 36px;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  border: 1px solid #60a5fa;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+  transition: filter 0.2s;
+}
+.btn-cyber-aplicar:hover { filter: brightness(1.15); }
+.btn-cerrar-update {
+  background: transparent;
+  border: 0;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+}
 
 /* MARCA DE AGUA FLOTANTE EN EL MAPA */
 #mapMarcaAgua {
@@ -53,8 +206,41 @@ body.modo-consulta-manual #map { cursor: crosshair !important; }
   width: auto;
   filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.4));
 }
-body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img {
+body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo-sol #mapMarcaAgua img {
   filter: brightness(0) invert(1) drop-shadow(0px 2px 5px rgba(0,0,0,0.8));
+}
+
+/* BOTÓN FLOTANTE BRÚJULA (UBICADO A LA DERECHA DE LA PANTALLA) */
+#btnBrujula {
+  position: fixed;
+  bottom: 50px;
+  right: 12px;
+  z-index: 5000;
+  background: rgba(15, 23, 42, 0.92);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  border-radius: 30px;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+#btnBrujula.activo {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
+}
+.aguja-brujula {
+  display: inline-block;
+  transition: transform 0.1s ease-out;
+  font-size: 14px;
 }
 
 /* MODAL DE AUTENTICACIÓN */
@@ -135,31 +321,33 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img {
 
 #direccion, #buscarABInput { 
   flex: 1; 
-  height: 40px; 
+  min-height: 40px; 
   padding: 0 12px; 
   border: 1px solid #cbd5e0; 
   border-radius: 10px; 
-  font-size: 13px; 
   font-weight: 600; 
   outline: none; 
   background: #ffffff; 
   min-width: 0;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 #buscarABInput { border-color: #3b82f6; background: #f0f6ff; }
 #direccion:focus, #buscarABInput:focus { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,0.18); }
 
 .btn-input-accion { 
-  height: 40px; 
-  padding: 0 14px; 
+  min-height: 40px; 
+  padding: 0 12px; 
   border: 0; 
   border-radius: 10px; 
   font-weight: 800; 
   cursor: pointer; 
-  font-size: 12px; 
   flex-shrink: 0;
   transition: transform 0.15s ease, filter 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .btn-input-accion:hover { filter: brightness(0.92); transform: translateY(-1px); }
 
@@ -167,20 +355,21 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img {
 #buscar, #btnBuscarAB { background: #1a73e8; color: #ffffff; }
 
 .btn-accion-secundario { 
-  height: 36px; 
-  padding: 0 10px; 
+  min-height: 36px; 
+  padding: 4px 10px; 
   border: 1px solid #cbd5e0; 
   background: #f8fafc; 
   color: #334155; 
   border-radius: 10px; 
   font-weight: 800; 
   cursor: pointer; 
-  font-size: 11px; 
   flex: 1; 
   display: inline-flex; 
   align-items: center; 
   justify-content: center; 
   transition: all 0.2s ease; 
+  text-align: center;
+  white-space: nowrap;
 }
 .btn-accion-secundario:hover { background: #e2e8f0; color: #0f172a; }
 
@@ -210,11 +399,11 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img {
 }
 #sugerenciasConsulta { top: 92px; }
 #sugerenciasAB { top: 46px; }
-.sugerencia-item { padding: 9px 12px; font-size: 11px; font-weight: 600; border-bottom: 1px solid #f1f5f9; cursor: pointer; color: #1e293b; transition: background 0.15s; }
+.sugerencia-item { padding: 9px 12px; font-weight: 600; border-bottom: 1px solid #f1f5f9; cursor: pointer; color: #1e293b; transition: background 0.15s; }
 .sugerencia-item:hover { background: #e8f0fe; color: #1557b0; }
 
 /* =========================================================
-   TEMAS: MODO DARK Y MODO NOCTURNO TÁCTICO
+   TEMAS: MODO DARK, TÁCTICO Y MODO SOL (ALTO CONTRASTE)
 ========================================================= */
 body.modo-dark .panel { background: rgba(30, 41, 59, 0.94); color: #f8fafc; border-color: rgba(255,255,255,0.1); }
 body.modo-dark #direccion, body.modo-dark #buscarABInput { background: #1e293b; color: #ffffff; border-color: #475569; }
@@ -224,6 +413,12 @@ body.modo-dark .sugerencias-consulta { background: #1e293b; border-color: #47556
 body.modo-dark .sugerencia-item { border-bottom-color: #334155; color: #f8fafc; }
 body.modo-dark .sugerencia-item:hover { background: #334155; color: #60a5fa; }
 body.modo-dark .btn-toggle-panel { color: #f8fafc; }
+body.modo-dark .menu { background: #1e293b; border-color: #475569; }
+body.modo-dark .menu-header { background: #0f172a; color: #f8fafc; }
+body.modo-dark .menu-contenido { border-top-color: #334155; }
+body.modo-dark .lista-historial { border-color: #475569; }
+body.modo-dark .historial-item { background: #1e293b; color: #f8fafc; border-bottom-color: #334155; }
+body.modo-dark .historial-item:hover { background: #334155; }
 
 body.modo-tactico .panel { background: rgba(12, 12, 12, 0.96); color: #ff5252; border: 1px solid #ff1744; box-shadow: 0 0 25px rgba(255, 23, 68, 0.25); }
 body.modo-tactico #direccion, body.modo-tactico #buscarABInput { background: #000000; color: #ff1744; border-color: #b71c1c; }
@@ -233,10 +428,27 @@ body.modo-tactico .sugerencias-consulta { background: #000000; border-color: #b7
 body.modo-tactico .sugerencia-item { border-bottom-color: #262626; color: #ff5252; }
 body.modo-tactico .sugerencia-item:hover { background: #1a0000; color: #ffffff; }
 body.modo-tactico .btn-toggle-panel { color: #ff1744; }
+body.modo-tactico .menu { background: #000000; border-color: #b71c1c; }
+body.modo-tactico .menu-header { background: #1a0000; color: #ff5252; border-left-color: #ff1744; }
+body.modo-tactico .menu-contenido { border-top-color: #b71c1c; }
+body.modo-tactico .lista-historial { border-color: #b71c1c; }
+body.modo-tactico .historial-item { background: #000000; color: #ff5252; border-bottom-color: #262626; }
+body.modo-tactico .historial-item:hover { background: #1a0000; color: #ffffff; }
+
+/* MODO SOL / ALTO CONTRASTE PARA EXTERIORES */
+body.modo-sol .panel { background: #000000; color: #ffeb3b; border: 2px solid #ffeb3b; box-shadow: 0 0 20px rgba(255, 235, 59, 0.4); }
+body.modo-sol #direccion, body.modo-sol #buscarABInput { background: #ffffff; color: #000000; font-weight: 800; border: 2px solid #ffeb3b; }
+body.modo-sol .btn-accion-secundario { background: #ffeb3b; color: #000000; font-weight: 900; border: 2px solid #ffffff; }
+body.modo-sol select { background: #ffffff; color: #000000; font-weight: 800; border: 2px solid #ffeb3b; }
+body.modo-sol .menu { background: #000000; border: 2px solid #ffeb3b; }
+body.modo-sol .menu-header { background: #ffeb3b; color: #000000; font-weight: 900; }
+body.modo-sol .menu-contenido { background: #000000; color: #ffffff; }
+body.modo-sol .historial-item { background: #111111; color: #ffffff; border-bottom: 1px solid #333; }
+body.modo-sol .btn-toggle-panel { color: #ffeb3b; }
 
 /* MENÚS ACORDEÓN */
 .menu { margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 10px; overflow: hidden; background: #ffffff; }
-.menu-header { width: 100%; padding: 10px 12px; border: 0; background: #f8fafc; font-weight: 800; font-size: 12px; display: flex; justify-content: space-between; cursor: pointer; border-left: 5px solid #1a73e8; color: #334155; }
+.menu-header { width: 100%; padding: 10px 12px; border: 0; background: #f8fafc; font-weight: 800; display: flex; justify-content: space-between; cursor: pointer; border-left: 5px solid #1a73e8; color: #334155; }
 .menu.abierto .menu-header { background: #e8f0fe; color: #1557b0; }
 .menu-contenido { display: none; padding: 10px; border-top: 1px solid #e2e8f0; }
 .menu.abierto .menu-contenido { display: block; }
@@ -257,7 +469,7 @@ body.perfil-ionray .solo-admin { display: block !important; }
 .linea-alerta { stroke-dasharray: 10, 8; animation: moverGuiones 0.8s linear infinite; filter: drop-shadow(0px 0px 6px #d93025); }
 
 /* TOOLTIPS & POPUPS */
-.leaflet-tooltip.zona-tooltip { background: rgba(32, 33, 36, 0.92); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #ffffff; font-size: 11px; padding: 4px 8px; }
+.leaflet-tooltip.zona-tooltip { background: rgba(32, 33, 36, 0.92); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #ffffff; padding: 4px 8px; }
 .icono-personalizado { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; color: #fff; font-size: 16px; box-shadow: 0 3px 10px rgba(0,0,0,0.35); border: 2px solid #ffffff; }
 
 .leaflet-popup-content-wrapper { padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 35px rgba(0,0,0,0.35); }
@@ -266,20 +478,20 @@ body.perfil-ionray .solo-admin { display: block !important; }
 /* =========================================================
    BURBUJA DE FICHA TÁCTICA DE MAPA
 ========================================================= */
-.burbuja-marcacion { padding: 14px; min-width: 260px; max-width: 330px; cursor: pointer; transition: all 0.25s ease; }
-.burbuja-cabecera { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; letter-spacing: 0.2px; }
-.burbuja-sub { font-size: 12px; font-weight: 800; margin-top: 4px; }
-.burbuja-entre { font-size: 10px; font-style: italic; opacity: 0.9; margin-top: 2px; }
+.burbuja-marcacion { padding: 14px; min-width: 260px; max-width: 330px; cursor: pointer; transition: all 0.25s ease; box-sizing: border-box; }
+.burbuja-cabecera { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 0.2px; }
+.burbuja-sub { font-weight: 800; margin-top: 4px; word-break: break-word; }
+.burbuja-entre { font-style: italic; opacity: 0.9; margin-top: 2px; }
 
-.burbuja-como-llegar { margin-top: 8px; padding: 8px 10px; border-radius: 10px; font-size: 11px; text-align: left; }
+.burbuja-como-llegar { margin-top: 8px; padding: 8px 10px; border-radius: 10px; text-align: left; }
 .burbuja-como-llegar.con-datos { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.12); color: #1e293b; }
 .burbuja-como-llegar.sin-datos { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; font-weight: 800; }
 
-.card-propiedad { margin-top: 8px; padding: 10px; background: rgba(255,255,255,0.95); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); font-size: 11px; color: #334155; text-align: left; line-height: 1.5; }
-.card-propiedad-titulo { font-weight: 800; font-size: 11px; color: #1a73e8; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; text-transform: uppercase; }
+.card-propiedad { margin-top: 8px; padding: 10px; background: rgba(255,255,255,0.95); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); color: #334155; text-align: left; line-height: 1.5; }
+.card-propiedad-titulo { font-weight: 800; color: #1a73e8; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; text-transform: uppercase; }
 
-.burbuja-indicador { margin-top: 8px; font-size: 10px; font-weight: 800; color: rgba(0,0,0,0.6); display: flex; justify-content: space-between; }
-.burbuja-cuerpo { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.2); font-size: 11px; }
+.burbuja-indicador { margin-top: 8px; font-weight: 800; color: rgba(0,0,0,0.6); display: flex; justify-content: space-between; }
+.burbuja-cuerpo { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.2); }
 .burbuja-marcacion.expandida .burbuja-cuerpo { display: block; }
 
 /* ESTADOS BORDES BURBUJA */
@@ -292,7 +504,7 @@ body.perfil-ionray .solo-admin { display: block !important; }
 .burbuja-industrial { background: #fff3e0; border: 2px solid #e65100; color: #bf360c; }
 .burbuja-fuera { background: #1e293b; border: 2px solid #475569; color: #ffffff; }
 
-.card-eta { margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.9); border-radius: 10px; font-size: 10px; color: #1e293b; border: 1px solid rgba(0,0,0,0.1); }
+.card-eta { margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.9); border-radius: 10px; color: #1e293b; border: 1px solid rgba(0,0,0,0.1); }
 
 /* BOTONES NAVEGACIÓN Y COMPARTIR */
 .grupo-botones-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
@@ -305,13 +517,13 @@ body.perfil-ionray .solo-admin { display: block !important; }
   background: #ffffff; 
   border: 1px solid #cbd5e0; 
   border-radius: 10px; 
-  font-size: 10px; 
   font-weight: 800; 
   text-decoration: none; 
   color: #334155; 
   cursor: pointer; 
   box-shadow: 0 2px 4px rgba(0,0,0,0.06); 
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 .btn-nav:hover { transform: translateY(-1px); filter: brightness(0.95); }
 .btn-share { grid-column: span 2; color: #1a73e8; background: #e8f0fe; border-color: #1a73e8; }
@@ -321,19 +533,55 @@ body.perfil-ionray .solo-admin { display: block !important; }
 .btn-copiar { color: #8e24aa; background: #faf5ff; border-color: #8e24aa; }
 
 .lista-historial { max-height: 140px; overflow-y: auto; margin-top: 4px; border: 1px solid #cbd5e0; border-radius: 8px; }
-.historial-item { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9; cursor: pointer; background: #ffffff; }
+.historial-item { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; background: #ffffff; color: #1e293b; overflow: hidden; text-overflow: ellipsis; }
 .historial-item:hover { background: #f8fafc; }
 .historial-item:last-child { border-bottom: 0; }
 
 #indicadorSyncStatus {
   position: absolute; bottom: 16px; right: 12px; z-index: 1500;
-  font-size: 10px; font-weight: 800; background: rgba(255,255,255,0.95);
+  font-weight: 800; background: rgba(255,255,255,0.95);
   padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
   pointer-events: none; border: 1px solid rgba(0,0,0,0.1);
+}
+
+.btn-grupo-escala {
+  display: flex; gap: 4px; margin-top: 4px;
+}
+.btn-opcion-escala {
+  flex: 1; min-height: 32px; border: 1px solid #cbd5e0; background: #ffffff; color: #334155; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; padding: 2px 4px;
+}
+.btn-opcion-escala.activo {
+  background: #1a73e8; color: #ffffff; border-color: #1557b0;
 }
 </style>
 </head>
 <body class="perfil-invitado">
+
+<!-- PANTALLA DE CARGA ANIMADA (SPLASH SCREEN) -->
+<div id="splashScreen">
+  <div class="splash-container">
+    <img src="https://i.postimg.cc/HryFRg8G/logo.png" alt="Cargando..." class="splash-logo" onError="this.style.display='none';">
+    <div class="splash-bar-bg"><div class="splash-bar-fill"></div></div>
+    <div class="splash-txt" id="txtSplashEstado">Sincronizando coberturas...</div>
+  </div>
+</div>
+
+<!-- BOTÓN FLOTANTE BRÚJULA TÁCTICA -->
+<button id="btnBrujula" type="button" title="Activar orientación táctica">
+  <span class="aguja-brujula" id="agujaBrujula">🧭</span> 
+  <span>Orientación</span>
+</button>
+
+<!-- CARTEL FLOTANTE CYBER-GLASS DE NUEVA VERSIÓN -->
+<div id="avisoUpdateCyber">
+  <div class="aviso-cabecera">
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.0</span></span>
+    <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
+  </div>
+  <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
+  <div class="aviso-desc">Se detectó una actualización de mapa y capas con optimizaciones lista para sincronizar.</div>
+  <button class="btn-cyber-aplicar" onclick="window.location.reload(true)">🚀 APLICAR PARCHE EN VIVO</button>
+</div>
 
 <!-- MODAL SELECCIÓN / AUTENTICACIÓN DE USUARIO -->
 <div id="loginOverlay" class="oculto">
@@ -345,8 +593,8 @@ body.perfil-ionray .solo-admin { display: block !important; }
     <div style="font-weight:800; font-size:16px; margin-bottom:12px;">PERFIL DE ACCESO</div>
     
     <div style="text-align:left; margin-bottom:10px;">
-      <label style="font-size:11px; font-weight:800; color:#4a5568;">Seleccionar Perfil:</label>
-      <select id="selectPerfilLogin" style="width:100%; height:38px; border-radius:8px; border:1px solid #ccc; padding:0 8px; font-size:12px; margin-top:4px;">
+      <label style="font-weight:800; color:#4a5568;">Seleccionar Perfil:</label>
+      <select id="selectPerfilLogin" style="width:100%; height:38px; border-radius:8px; border:1px solid #ccc; padding:0 8px; margin-top:4px;">
         <option value="INVITADO">👤 Invitado (Vista Básica)</option>
         <option value="VERIFICADOR">🔎 Verificador (Sin clave - AB + Mapa)</option>
         <option value="IONRAY">👑 IONRAY (Requiere Clave - Acceso Total)</option>
@@ -355,12 +603,12 @@ body.perfil-ionray .solo-admin { display: block !important; }
 
     <form id="formLogin" autocomplete="off">
       <div id="boxClaveIonray" style="display:none; text-align:left; margin-bottom:10px;">
-        <label style="font-size:11px; font-weight:800; color:#4a5568;">Contraseña IONRAY:</label>
-        <input type="password" id="pwd" placeholder="••••••••" style="width:100%; height:38px; margin-top:4px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box; font-size:13px;" autocomplete="new-password">
+        <label style="font-weight:800; color:#4a5568;">Contraseña IONRAY:</label>
+        <input type="password" id="pwd" placeholder="••••••••" style="width:100%; height:38px; margin-top:4px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box;" autocomplete="new-password">
       </div>
 
-      <button type="submit" style="width:100%; height:40px; margin-top:8px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:8px; cursor:pointer; font-size:13px;">✔ Confirmar Perfil</button>
-      <button type="button" id="btnCerrarLogin" style="width:100%; height:34px; margin-top:6px; background:transparent; color:#5f6368; border:0; cursor:pointer; font-size:12px;">Cancelar</button>
+      <button type="submit" style="width:100%; min-height:40px; margin-top:8px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:8px; cursor:pointer;">✔ Confirmar Perfil</button>
+      <button type="button" id="btnCerrarLogin" style="width:100%; min-height:34px; margin-top:6px; background:transparent; color:#5f6368; border:0; cursor:pointer;">Cancelar</button>
     </form>
   </div>
 </div>
@@ -378,9 +626,9 @@ body.perfil-ionray .solo-admin { display: block !important; }
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
     <div style="display:flex; align-items:center; gap:6px;">
       <button id="btnToggleMinimizar" class="btn-toggle-panel" type="button" title="Minimizar / Expandir panel">🔼</button>
-      <div style="font-size:14px; font-weight:800;">🔎 Consulta Cobertura</div>
+      <div style="font-weight:800;">🔎 Consulta Cobertura</div>
     </div>
-    <button id="btnToggleAuth" type="button" style="padding:6px 10px; border-radius:8px; border:1px solid #ccc; background:#f1f3f4; font-size:11px; font-weight:bold; cursor:pointer; z-index:2100;">👤 <span id="txtUserSesion">Invitado</span></button>
+    <button id="btnToggleAuth" type="button" style="padding:6px 10px; border-radius:8px; border:1px solid #ccc; background:#f1f3f4; font-weight:bold; cursor:pointer; z-index:2100;">👤 <span id="txtUserSesion">Invitado</span></button>
   </div>
 
   <div class="busqueda">
@@ -402,22 +650,23 @@ body.perfil-ionray .solo-admin { display: block !important; }
     <div id="sugerenciasConsulta" class="sugerencias-consulta"></div>
 
     <div style="display:flex; gap:4px; margin-top:2px;">
-      <select id="mapaEstiloConsulta" style="flex:1; height:32px; font-size:11px; border-radius:8px; border:1px solid #cbd5e0;">
+      <select id="mapaEstiloConsulta" style="flex:1; height:32px; border-radius:8px; border:1px solid #cbd5e0;">
         <option value="esriStreet">🏙️ Esri Street HD</option>
         <option value="satelitalHibrido">🛰️ Satelital HD</option>
         <option value="calles">🗺️ OpenStreetMap</option>
       </select>
       
-      <select id="selectorTemaPanel" style="flex:1; height:32px; font-size:11px; border-radius:8px; border:1px solid #cbd5e0;">
+      <select id="selectorTemaPanel" style="flex:1; height:32px; border-radius:8px; border:1px solid #cbd5e0;">
         <option value="claro">☀️ Modo Claro</option>
         <option value="dark">🌙 Modo Oscuro</option>
         <option value="tactico">🚨 Modo Táctico</option>
+        <option value="sol">☀️ Modo Sol (Alto Contraste)</option>
       </select>
     </div>
 
     <!-- IR A ZONA (EXCLUSIVO IONRAY) -->
     <div class="linea-input bloque-ir-zona" style="margin-top:2px;">
-      <select id="selectZona" style="width:100%; height:32px; font-size:11px; border-radius:8px; border:1px solid #cbd5e0;">
+      <select id="selectZona" style="width:100%; height:32px; border-radius:8px; border:1px solid #cbd5e0;">
         <option value="">--Ir a zona--</option>
       </select>
     </div>
@@ -425,6 +674,26 @@ body.perfil-ionray .solo-admin { display: block !important; }
     <div style="display:flex; gap:4px; margin-top:2px;">
       <button id="btnClicMapa" class="btn-accion-secundario" type="button">🎯 Clic en Mapa</button>
       <button id="btnGPSConsulta" class="btn-accion-secundario" type="button">📍 Mi Ubicación GPS</button>
+    </div>
+  </div>
+
+  <!-- CONFIGURACIÓN DE VISUALIZACIÓN (ZOOM Y TEXTO) -->
+  <div class="menu">
+    <button class="menu-header" type="button"><span>⚙️ AJUSTES DE VISUALIZACIÓN</span><span>▼</span></button>
+    <div class="menu-contenido">
+      <label style="font-weight:bold; color:#666; display:block;">Tamaño de Texto:</label>
+      <div class="btn-grupo-escala">
+        <button type="button" class="btn-opcion-escala activo" id="btnTxtNormal" onclick="cambiarEscalaTexto('normal')">Normal</button>
+        <button type="button" class="btn-opcion-escala" id="btnTxtGrande" onclick="cambiarEscalaTexto('grande')">Grande</button>
+        <button type="button" class="btn-opcion-escala" id="btnTxtExGrande" onclick="cambiarEscalaTexto('exgrande')">Ex. Grande</button>
+      </div>
+
+      <label style="font-weight:bold; color:#666; margin-top:8px; display:block;">Zoom al Buscar:</label>
+      <div class="btn-grupo-escala">
+        <button type="button" class="btn-opcion-escala" id="btnZoom14" onclick="cambiarZoomDefault(14)">14 (Panorama)</button>
+        <button type="button" class="btn-opcion-escala activo" id="btnZoom16" onclick="cambiarZoomDefault(16)">16 (Balanceado)</button>
+        <button type="button" class="btn-opcion-escala" id="btnZoom18" onclick="cambiarZoomDefault(18)">18 (Detalle)</button>
+      </div>
     </div>
   </div>
 
@@ -439,13 +708,17 @@ body.perfil-ionray .solo-admin { display: block !important; }
 
   <!-- HERRAMIENTAS EXCLUSIVAS IONRAY -->
   <div class="solo-admin" style="margin-top:10px; border-top:1px solid #e0e4e8; padding-top:8px;">
-    <div style="font-size:11px; font-weight:800; color:#1557b0; margin-bottom:4px;">🛠️ HERRAMIENTAS DE ADMINISTRACIÓN</div>
+    <div style="font-weight:800; color:#1557b0; margin-bottom:4px;">🛠️ HERRAMIENTAS DE ADMINISTRACIÓN</div>
     <div class="menu">
         <button class="menu-header" type="button"><span>⚡ CONFIGURACIÓN FIREBASE</span><span>▼</span></button>
         <div class="menu-contenido">
-            <label style="font-size:10px; font-weight:bold; color:#666;">URL Realtime Database</label>
-            <input type="text" id="cfgFirebaseUrl" placeholder="https://mapa-ef4d1-default-rtdb.firebaseio.com/" style="width:100%; height:32px; font-size:11px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
-            <button id="btnSincronizar" type="button" style="width:100%; height:34px; margin-top:6px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:6px; cursor:pointer;">🚀 Guardar & Sincronizar</button>
+            <label style="font-weight:bold; color:#666;">URL Realtime Database</label>
+            <input type="text" id="cfgFirebaseUrl" placeholder="https://mapa-ef4d1-default-rtdb.firebaseio.com/" style="width:100%; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
+            
+            <label style="font-weight:bold; color:#666; margin-top:6px; display:block;">Versión Publicada App</label>
+            <input type="text" id="cfgVersionApp" placeholder="1.0.0" value="1.0.0" style="width:100%; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
+
+            <button id="btnSincronizar" type="button" style="width:100%; min-height:34px; margin-top:8px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:6px; cursor:pointer;">🚀 Guardar & Sincronizar</button>
         </div>
     </div>
   </div>
@@ -455,6 +728,19 @@ body.perfil-ionray .solo-admin { display: block !important; }
 <script>
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
+
+const VERSION_LOCAL = "1.0.0";
+let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
+
+function ocultarSplashScreen() {
+  const splash = document.getElementById("splashScreen");
+  if (splash && !splash.classList.contains("oculto")) {
+    splash.classList.add("oculto");
+  }
+}
+
+// Límite de seguridad: ocultar splash tras 4.5s si no responde la red
+setTimeout(ocultarSplashScreen, 4500);
 
 const map = L.map("map", { center: [-34.6486, -58.6198], zoom: 11 });
 map.createPane('panelMarcadores').style.zIndex = 650;
@@ -473,6 +759,82 @@ document.getElementById("mapaEstiloConsulta").onchange = function(){
   Object.values(capasBase).forEach(c => map.removeLayer(c));
   if(capasBase[this.value]) capasBase[this.value].addTo(map);
 };
+
+/* CONFIGURACIÓN DE BRÚJULA & ORIENTACIÓN POR GIROSCOPIO */
+let brujulaActiva = false;
+const btnBrujula = document.getElementById("btnBrujula");
+const agujaBrujula = document.getElementById("agujaBrujula");
+
+function procesarOrientacion(e) {
+  if (!brujulaActiva) return;
+  let alpha = e.alpha || e.webkitCompassHeading;
+  if (alpha !== null && alpha !== undefined) {
+    let heading = e.webkitCompassHeading ? alpha : 360 - alpha;
+    if (agujaBrujula) agujaBrujula.style.transform = "rotate(" + heading + "deg)";
+  }
+}
+
+btnBrujula?.addEventListener("click", function() {
+  if (brujulaActiva) {
+    brujulaActiva = false;
+    btnBrujula.classList.remove("activo");
+    window.removeEventListener("deviceorientation", procesarOrientacion);
+    if (agujaBrujula) agujaBrujula.style.transform = "rotate(0deg)";
+  } else {
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      DeviceOrientationEvent.requestPermission().then(state => {
+        if (state === "granted") {
+          brujulaActiva = true;
+          btnBrujula.classList.add("activo");
+          window.addEventListener("deviceorientation", procesarOrientacion, true);
+        } else {
+          alert("Permiso de sensor de orientación denegado.");
+        }
+      }).catch(() => alert("No se pudo acceder a la brújula del dispositivo."));
+    } else if (window.DeviceOrientationEvent) {
+      brujulaActiva = true;
+      btnBrujula.classList.add("activo");
+      window.addEventListener("deviceorientation", procesarOrientacion, true);
+    } else {
+      alert("Tu dispositivo no soporta sensor de orientación.");
+    }
+  }
+});
+
+/* CONFIGURACIÓN DE VISUALIZACIÓN (ZOOM Y TEXTO RECALIBRADOS) */
+window.cambiarEscalaTexto = function(tipo) {
+  let factor = 1;
+  document.querySelectorAll(".btn-opcion-escala").forEach(b => {
+    if(b.id.startsWith("btnTxt")) b.classList.remove("activo");
+  });
+
+  if (tipo === "grande") {
+    factor = 1.08;
+    document.getElementById("btnTxtGrande")?.classList.add("activo");
+  } else if (tipo === "exgrande") {
+    factor = 1.16;
+    document.getElementById("btnTxtExGrande")?.classList.add("activo");
+  } else {
+    document.getElementById("btnTxtNormal")?.classList.add("activo");
+  }
+
+  document.documentElement.style.setProperty("--factor-texto", factor);
+  localStorage.setItem("escalaTextoApp", tipo);
+};
+
+window.cambiarZoomDefault = function(level) {
+  zoomPredeterminado = level;
+  document.querySelectorAll(".btn-opcion-escala").forEach(b => {
+    if(b.id.startsWith("btnZoom")) b.classList.remove("activo");
+  });
+  document.getElementById("btnZoom" + level)?.classList.add("activo");
+  localStorage.setItem("zoomDefaultApp", level);
+};
+
+// Cargar preferencia guardada de texto
+const tipoTextoGuardado = localStorage.getItem("escalaTextoApp") || "normal";
+cambiarEscalaTexto(tipoTextoGuardado);
+cambiarZoomDefault(zoomPredeterminado);
 
 /* LÓGICA DE MINIMIZACIÓN Y EXPANSIÓN DEL PANEL FLOTANTE */
 const panelConsulta = document.getElementById("panelConsulta");
@@ -513,9 +875,10 @@ function formatearUrlFirebase(urlOriginal) {
 
 const selectorTemaPanel = document.getElementById("selectorTemaPanel");
 selectorTemaPanel.onchange = function(){
-  document.body.classList.remove("modo-dark", "modo-tactico");
+  document.body.classList.remove("modo-dark", "modo-tactico", "modo-sol");
   if(this.value === "dark") document.body.classList.add("modo-dark");
   if(this.value === "tactico") document.body.classList.add("modo-tactico");
+  if(this.value === "sol") document.body.classList.add("modo-sol");
   localStorage.setItem("temaConsultaApp", this.value);
 };
 
@@ -535,6 +898,7 @@ const txtUserSesion = document.getElementById("txtUserSesion");
 const selectPerfilLogin = document.getElementById("selectPerfilLogin");
 const boxClaveIonray = document.getElementById("boxClaveIonray");
 const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
+const cfgVersionApp = document.getElementById("cfgVersionApp");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
 
 function cambiarPerfilAcceso(nuevoPerfil) {
@@ -665,9 +1029,19 @@ function etiquetaTipo(tipo){
   return "🛡️ Zona de Cobertura";
 }
 
-window.compartirNativoFicha = function(titulo, texto) {
+/* FUNCIÓN DE COMPARTIR NATIVO UNIVERSAL (WEB Y NATIVO) */
+window.compartirNativoFicha = async function(titulo, texto) {
   if (navigator.share) {
-    navigator.share({ title: titulo, text: texto }).catch(err => {});
+    try {
+      await navigator.share({
+        title: titulo,
+        text: texto
+      });
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        window.copiarFichaMapa(texto);
+      }
+    }
   } else {
     window.copiarFichaMapa(texto);
   }
@@ -728,12 +1102,31 @@ const urlParams = new URLSearchParams(window.location.search);
 let endpointGuardado = urlParams.get("db") || localStorage.getItem("fbUrlAdmin") || "https://mapa-ef4d1-default-rtdb.firebaseio.com/";
 if (cfgFirebaseUrl) cfgFirebaseUrl.value = endpointGuardado;
 
+function cargarCopiaRespaldoOffline() {
+  const offlineData = localStorage.getItem("cacheMapaOfflineData");
+  if (offlineData) {
+    try {
+      const dataFB = JSON.parse(offlineData);
+      if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
+      if (dataFB.abonados) abonadosLocal = dataFB.abonados;
+      if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
+      if (statusSync) { statusSync.textContent = "🟠 Modo Offline (Copia Local)"; statusSync.style.color = "#e65100"; }
+      ocultarSplashScreen();
+      return true;
+    } catch(err) { return false; }
+  }
+  return false;
+}
+
 async function actualizarDesdeFirebase() {
   const urlBruta = (cfgFirebaseUrl && cfgFirebaseUrl.value.trim()) ? cfgFirebaseUrl.value.trim() : endpointGuardado;
   const fetchUrl = formatearUrlFirebase(urlBruta);
 
   if (!fetchUrl) {
-    if(statusSync) { statusSync.textContent = "🔴 Sin URL Base"; statusSync.style.color = "#d93025"; }
+    if(!cargarCopiaRespaldoOffline() && statusSync) { 
+      statusSync.textContent = "🔴 Sin URL Base"; statusSync.style.color = "#d93025"; 
+    }
+    ocultarSplashScreen();
     return;
   }
 
@@ -748,13 +1141,35 @@ async function actualizarDesdeFirebase() {
       if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
       if (dataFB.abonados) abonadosLocal = dataFB.abonados;
       if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
+      
+      // GUARDAR COPIA DE RESPALDO LOCAL PARA USO OFFLINE
+      localStorage.setItem("cacheMapaOfflineData", JSON.stringify(dataFB));
+
+      // VERIFICACIÓN DE NUEVA VERSIÓN SCRIPT/MAPA
+      if (dataFB.version_app) {
+        if (cfgVersionApp && document.activeElement !== cfgVersionApp) cfgVersionApp.value = dataFB.version_app;
+        if (dataFB.version_app !== VERSION_LOCAL) {
+          const lblVer = document.getElementById("lblNuevaVersion");
+          if (lblVer) lblVer.textContent = dataFB.version_app;
+          document.getElementById("avisoUpdateCyber")?.classList.add("visible");
+        }
+      }
+
       if(statusSync) { statusSync.textContent = "🟢 Sincronizado en Vivo"; statusSync.style.color = "#2e7d32"; }
+      ocultarSplashScreen();
     }
   } catch(e) {
     if (e.name === "AbortError") return;
-    if(statusSync && elementos.length === 0) { statusSync.textContent = "🟡 Conectando..."; statusSync.style.color = "#f29900"; }
+    const usoCopia = cargarCopiaRespaldoOffline();
+    if (!usoCopia && statusSync && elementos.length === 0) { 
+      statusSync.textContent = "🟡 Conectando..."; statusSync.style.color = "#f29900"; 
+    }
+    ocultarSplashScreen();
   }
 }
+
+window.addEventListener('online', actualizarDesdeFirebase);
+window.addEventListener('offline', cargarCopiaRespaldoOffline);
 
 function renderizarDatosMapa(datosGeo) {
   capas.forEach(l => map.removeLayer(l)); capas = [];
@@ -786,14 +1201,31 @@ function renderizarDatosMapa(datosGeo) {
   });
 }
 
+// Carga inicial al abrir la aplicación
 actualizarDesdeFirebase();
-setInterval(actualizarDesdeFirebase, 3500);
 
-document.getElementById("btnSincronizar")?.addEventListener("click", function(){
-  if (cfgFirebaseUrl.value.trim()) {
-    localStorage.setItem("fbUrlAdmin", cfgFirebaseUrl.value.trim());
+// Refresco pasivo automático cada 3 horas (10.800.000 ms) para ahorro extremo de datos y batería
+setInterval(actualizarDesdeFirebase, 10800000);
+
+document.getElementById("btnSincronizar")?.addEventListener("click", async function(){
+  const urlBruta = cfgFirebaseUrl.value.trim();
+  const numVer = cfgVersionApp ? cfgVersionApp.value.trim() : VERSION_LOCAL;
+
+  if (urlBruta) {
+    localStorage.setItem("fbUrlAdmin", urlBruta);
+    
+    // GUARDADO DIRECTO DEL CAMPO DE VERSIÓN A FIREBASE
+    const fetchUrl = formatearUrlFirebase(urlBruta);
+    try {
+      await fetch(fetchUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ version_app: numVer })
+      });
+    } catch(err) {}
+
     actualizarDesdeFirebase();
-    alert("✅ URL de Firebase guardada con éxito.");
+    alert("✅ URL y Versión v" + numVer + " guardadas con éxito en Firebase.");
   }
 });
 
@@ -1074,10 +1506,20 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
       '</div>';
   }
 
-  const urlWaze = "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
-  const urlGmaps = "https://www.google.com/maps/search/?api=1&query=" + lat + "," + lon;
+  // ENLACES OPTIMIZADOS CON PROTOCOLO NATIVO (DEEP LINKS) PARA APERTURA ÁGIL
+  const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const urlWaze = esMovil 
+    ? "waze://?ll=" + lat + "," + lon + "&navigate=yes" 
+    : "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
 
-  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5) + "\n🚙 *Waze:* " + urlWaze + "\n🗺️ *Maps:* " + urlGmaps;
+  const urlGmaps = esMovil 
+    ? "google.navigation:q=" + lat + "," + lon + "&mode=d" 
+    : "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
+
+  const urlWazeReporte = "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
+  const urlGmapsReporte = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
+
+  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5) + "\n🚙 *Waze:* " + urlWazeReporte + "\n🗺️ *Maps:* " + urlGmapsReporte;
   
   const urlWsp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(textoReporte);
 
@@ -1102,7 +1544,7 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
 
   marker = L.marker(pt).addTo(map);
   marker.bindPopup(html, { closeButton: false }).openPopup();
-  map.setView(pt, 16);
+  map.setView(pt, zoomPredeterminado);
 }
 
 document.querySelectorAll(".menu-header").forEach(h => {
