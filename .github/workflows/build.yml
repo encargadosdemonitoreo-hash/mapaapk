@@ -15,7 +15,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Crear estructura de directorio para Capacitor
         run: |
@@ -25,13 +25,42 @@ jobs:
       - name: Instalar y Configurar Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5 @capacitor/assets
+          npm install @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "IONRAY Cobertura" "com.ionray.cobertura" --web-dir www
           npx cap add android
 
-      - name: Generar Íconos Nativos de Android desde icon.png
+      - name: Reemplazar Íconos y Splash Screen Nativos
         run: |
-          npx capacitor-assets generate --android --iconBackend cordova --iconPath icon.png || npx @capacitor/assets generate --android
+          sudo apt-get update && sudo apt-get install -y imagemagick
+          RES_DIR="android/app/src/main/res"
+          
+          # Crear carpetas si no existen
+          mkdir -p $RES_DIR/mipmap-mdpi $RES_DIR/mipmap-hdpi $RES_DIR/mipmap-xhdpi $RES_DIR/mipmap-xxhdpi $RES_DIR/mipmap-xxxhdpi
+          mkdir -p $RES_DIR/drawable $RES_DIR/drawable-port-xxhdpi
+          
+          # Generar íconos estándar de aplicación
+          convert icon.png -resize 48x48 $RES_DIR/mipmap-mdpi/ic_launcher.png
+          convert icon.png -resize 72x72 $RES_DIR/mipmap-hdpi/ic_launcher.png
+          convert icon.png -resize 96x96 $RES_DIR/mipmap-xhdpi/ic_launcher.png
+          convert icon.png -resize 144x144 $RES_DIR/mipmap-xxhdpi/ic_launcher.png
+          convert icon.png -resize 192x192 $RES_DIR/mipmap-xxxhdpi/ic_launcher.png
+          
+          # Generar íconos redondos y de primer plano
+          convert icon.png -resize 48x48 $RES_DIR/mipmap-mdpi/ic_launcher_round.png
+          convert icon.png -resize 72x72 $RES_DIR/mipmap-hdpi/ic_launcher_round.png
+          convert icon.png -resize 96x96 $RES_DIR/mipmap-xhdpi/ic_launcher_round.png
+          convert icon.png -resize 144x144 $RES_DIR/mipmap-xxhdpi/ic_launcher_round.png
+          convert icon.png -resize 192x192 $RES_DIR/mipmap-xxxhdpi/ic_launcher_round.png
+          
+          convert icon.png -resize 48x48 $RES_DIR/mipmap-mdpi/ic_launcher_foreground.png
+          convert icon.png -resize 72x72 $RES_DIR/mipmap-hdpi/ic_launcher_foreground.png
+          convert icon.png -resize 96x96 $RES_DIR/mipmap-xhdpi/ic_launcher_foreground.png
+          convert icon.png -resize 144x144 $RES_DIR/mipmap-xxhdpi/ic_launcher_foreground.png
+          convert icon.png -resize 192x192 $RES_DIR/mipmap-xxxhdpi/ic_launcher_foreground.png
+
+          # Reemplazar la pantalla de splash nativa
+          convert icon.png -resize 512x512 $RES_DIR/drawable/splash.png
+          convert icon.png -resize 512x512 $RES_DIR/drawable-port-xxhdpi/splash.png
 
       - name: Inyectar Permisos Nativos de GPS y Micrófono
         run: |
