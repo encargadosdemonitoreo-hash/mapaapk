@@ -1135,7 +1135,13 @@ const btnClicMapa = document.getElementById("btnClicMapa");
 btnClicMapa.onclick = function() {
   modoConsultaClic = !modoConsultaClic;
   btnClicMapa.classList.toggle("activo", modoConsultaClic);
-  btnClicMapa.textContent = modoConsultaClic ? "🎯 Clic en el mapa..." : "🎯 Clic en Mapa";
+  
+  if (modoConsultaClic) {
+    btnClicMapa.textContent = "🎯 Clic en el mapa...";
+    colapsarPanelBusqueda(); // <--- MINIMIZA EL MENÚ AL ACTIVAR LA CONSULTA POR CLIC
+  } else {
+    btnClicMapa.textContent = "🎯 Clic en Mapa";
+  }
 };
 
 map.on("click", async function(e) {
