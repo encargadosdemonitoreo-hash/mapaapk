@@ -17,12 +17,23 @@ jobs:
         with:
           node-version: 20
 
-      - name: Instalar dependencias y Capacitor
+      - name: Crear estructura de directorio para Capacitor
+        run: |
+          mkdir -p www
+          cp index.html www/
+
+      - name: Instalar y Configurar Capacitor
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "IONRAY Cobertura" "com.ionray.cobertura" --web-dir .
+          npx cap init "IONRAY Cobertura" "com.ionray.cobertura" --web-dir www
           npx cap add android
+
+      - name: Inyectar Permisos Nativos de GPS y Micrófono
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          PERMS='<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n<uses-permission android:name="android.permission.RECORD_AUDIO" />\n<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />'
+          sed -i "/<\/manifest>/i $PERMS" $MANIFEST
           npx cap sync android
 
       - name: Configurar Java 17
