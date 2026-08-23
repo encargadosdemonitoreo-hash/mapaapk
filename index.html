@@ -299,8 +299,7 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
 }
 
 .panel.colapsado .busqueda,
-.panel.colapsado .menu,
-.panel.colapsado .solo-admin {
+.panel.colapsado .menu {
   display: none !important;
 }
 
@@ -330,8 +329,7 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
     padding: 6px 12px !important;
   }
   .panel.colapsado .busqueda,
-  .panel.colapsado .menu,
-  .panel.colapsado .solo-admin {
+  .panel.colapsado .menu {
     display: none !important;
   }
 }
@@ -477,11 +475,10 @@ body.modo-sol .btn-toggle-panel { color: #ffeb3b; }
 .menu.abierto .menu-contenido { display: block; }
 
 /* PERFILES DE ACCESO */
-.bloque-abonado, .bloque-ir-zona, .solo-admin { display: none; }
+.bloque-abonado, .bloque-ir-zona { display: none; }
 body.perfil-verificador .bloque-abonado { display: flex !important; }
 body.perfil-ionray .bloque-abonado { display: flex !important; }
 body.perfil-ionray .bloque-ir-zona { display: flex !important; }
-body.perfil-ionray .solo-admin { display: block !important; }
 
 /* EFECTOS DE LÍNEAS */
 @keyframes moverGuiones { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
@@ -728,23 +725,6 @@ body.perfil-ionray .solo-admin { display: block !important; }
       <button id="btnBorrarHistorial" class="btn-accion-secundario" type="button" style="width:100%; margin-top:6px;">🗑️ Limpiar Historial</button>
     </div>
   </div>
-
-  <!-- HERRAMIENTAS EXCLUSIVAS IONRAY -->
-  <div class="solo-admin" style="margin-top:10px; border-top:1px solid #e0e4e8; padding-top:8px;">
-    <div style="font-weight:800; color:#1557b0; margin-bottom:4px;">🛠️ HERRAMIENTAS DE ADMINISTRACIÓN</div>
-    <div class="menu">
-        <button class="menu-header" type="button"><span>⚡ CONFIGURACIÓN FIREBASE</span><span>▼</span></button>
-        <div class="menu-contenido">
-            <label style="font-weight:bold; color:#666;">URL Realtime Database</label>
-            <input type="text" id="cfgFirebaseUrl" placeholder="https://mapa-ef4d1-default-rtdb.firebaseio.com/" style="width:100%; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
-            
-            <label style="font-weight:bold; color:#666; margin-top:6px; display:block;">Versión Publicada App</label>
-            <input type="text" id="cfgVersionApp" placeholder="1.0.0" value="1.0.0" style="width:100%; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 6px; box-sizing:border-box; color:#000;">
-
-            <button id="btnSincronizar" type="button" style="width:100%; min-height:34px; margin-top:8px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:6px; cursor:pointer;">🚀 Guardar & Sincronizar</button>
-        </div>
-    </div>
-  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -964,8 +944,6 @@ const loginOverlay = document.getElementById("loginOverlay");
 const txtUserSesion = document.getElementById("txtUserSesion");
 const selectPerfilLogin = document.getElementById("selectPerfilLogin");
 const boxClaveIonray = document.getElementById("boxClaveIonray");
-const cfgFirebaseUrl = document.getElementById("cfgFirebaseUrl");
-const cfgVersionApp = document.getElementById("cfgVersionApp");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
 
 function cambiarPerfilAcceso(nuevoPerfil, guardarEnStorage = true) {
@@ -1181,7 +1159,6 @@ const statusSync = document.getElementById("indicadorSyncStatus");
 
 const urlParams = new URLSearchParams(window.location.search);
 let endpointGuardado = urlParams.get("db") || localStorage.getItem("fbUrlAdmin") || "https://mapa-ef4d1-default-rtdb.firebaseio.com/";
-if (cfgFirebaseUrl) cfgFirebaseUrl.value = endpointGuardado;
 
 function cargarCopiaRespaldoOffline() {
   const offlineData = localStorage.getItem("cacheMapaOfflineData");
@@ -1200,7 +1177,7 @@ function cargarCopiaRespaldoOffline() {
 }
 
 async function actualizarDesdeFirebase() {
-  const urlBruta = (cfgFirebaseUrl && cfgFirebaseUrl.value.trim()) ? cfgFirebaseUrl.value.trim() : endpointGuardado;
+  const urlBruta = endpointGuardado;
   const fetchUrl = formatearUrlFirebase(urlBruta);
 
   if (!fetchUrl) {
@@ -1228,7 +1205,6 @@ async function actualizarDesdeFirebase() {
 
       // VERIFICACIÓN DE NUEVA VERSIÓN SCRIPT/MAPA
       if (dataFB.version_app) {
-        if (cfgVersionApp && document.activeElement !== cfgVersionApp) cfgVersionApp.value = dataFB.version_app;
         ultimaVersionDetectada = dataFB.version_app;
         if (dataFB.version_app !== VERSION_LOCAL) {
           const lblVer = document.getElementById("lblNuevaVersion");
@@ -1300,28 +1276,6 @@ actualizarDesdeFirebase();
 
 // Refresco pasivo automático cada 3 horas (10.800.000 ms) para ahorro extremo de datos y batería
 setInterval(actualizarDesdeFirebase, 10800000);
-
-document.getElementById("btnSincronizar")?.addEventListener("click", async function(){
-  const urlBruta = cfgFirebaseUrl.value.trim();
-  const numVer = cfgVersionApp ? cfgVersionApp.value.trim() : VERSION_LOCAL;
-
-  if (urlBruta) {
-    localStorage.setItem("fbUrlAdmin", urlBruta);
-    
-    // GUARDADO DIRECTO DEL CAMPO DE VERSIÓN A FIREBASE
-    const fetchUrl = formatearUrlFirebase(urlBruta);
-    try {
-      await fetch(fetchUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ version_app: numVer })
-      });
-    } catch(err) {}
-
-    actualizarDesdeFirebase();
-    alert("✅ URL y Versión v" + numVer + " guardadas con éxito en Firebase.");
-  }
-});
 
 document.getElementById("selectZona").onchange = function(){
   const idx = this.value; if(idx === "") return;
