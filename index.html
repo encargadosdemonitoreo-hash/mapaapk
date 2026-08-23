@@ -269,7 +269,7 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
 }
 
 /* =========================================================
-   PANEL FLOTANTE GLASSMORPHIC CON MODO COLAPSADO
+   PANEL FLOTANTE BLINDADO PARA CUALQUIER PANTALLA
 ========================================================= */
 .panel {
   position: absolute; 
@@ -277,24 +277,25 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
   top: 12px; 
   left: 12px; 
   width: 380px; 
-  max-height: 85vh; 
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 75px); 
   overflow-y: auto;
-  background: rgba(255, 255, 255, 0.92); 
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  -webkit-overflow-scrolling: touch;
+  background: rgba(255, 255, 255, 0.96); 
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 18px;
   padding: 14px; 
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18); 
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.22); 
   box-sizing: border-box;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height 0.3s ease, padding 0.3s ease;
 }
 
 .panel.colapsado {
-  max-height: 52px;
-  overflow: hidden;
+  max-height: 52px !important;
+  overflow: hidden !important;
   padding-bottom: 8px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .btn-toggle-panel {
@@ -309,8 +310,18 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
 .btn-toggle-panel:hover { background: rgba(0, 0, 0, 0.06); }
 
 @media (max-width: 600px) {
-  .panel { top: 8px; left: 8px; right: 8px; width: auto; max-width: none; max-height: 80vh; padding: 12px; }
-  .panel.colapsado { max-height: 48px; }
+  .panel { 
+    top: 8px; 
+    left: 8px; 
+    right: 8px; 
+    width: auto; 
+    max-width: none; 
+    max-height: calc(100vh - 60px); 
+    padding: 12px; 
+  }
+  .panel.colapsado { 
+    max-height: 48px !important; 
+  }
 }
 
 /* =========================================================
@@ -405,7 +416,7 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
 /* =========================================================
    TEMAS: MODO DARK, TÁCTICO Y MODO SOL (ALTO CONTRASTE)
 ========================================================= */
-body.modo-dark .panel { background: rgba(30, 41, 59, 0.94); color: #f8fafc; border-color: rgba(255,255,255,0.1); }
+body.modo-dark .panel { background: rgba(30, 41, 59, 0.95); color: #f8fafc; border-color: rgba(255,255,255,0.15); }
 body.modo-dark #direccion, body.modo-dark #buscarABInput { background: #1e293b; color: #ffffff; border-color: #475569; }
 body.modo-dark .btn-accion-secundario { background: #334155; color: #f1f3f9; border-color: #475569; }
 body.modo-dark select { background: #1e293b; color: #ffffff; border-color: #475569; }
