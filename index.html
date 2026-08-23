@@ -580,7 +580,7 @@ body.perfil-ionray .solo-admin { display: block !important; }
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
   <div class="aviso-desc">Se detectó una actualización de mapa y capas con optimizaciones lista para sincronizar.</div>
-  <button class="btn-cyber-aplicar" onclick="window.location.reload(true)">🚀 APLICAR PARCHE EN VIVO</button>
+  <button class="btn-cyber-aplicar" id="btnAplicarParcheCyber">🚀 APLICAR PARCHE EN VIVO</button>
 </div>
 
 <!-- MODAL SELECCIÓN / AUTENTICACIÓN DE USUARIO -->
@@ -726,11 +726,55 @@ body.perfil-ionray .solo-admin { display: block !important; }
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+/* =========================================================
+   SISTEMA DE AUTO-ACTUALIZACIÓN EN CALIENTE (SERVICE WORKER)
+========================================================= */
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE_NAME = 'mapa-cobertura-v-dynamic';
+    self.addEventListener('install', e => { self.skipWaiting(); });
+    self.addEventListener('activate', e => {
+      e.waitUntil(
+        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => self.clients.claim())
+      );
+    });
+    self.addEventListener('fetch', e => {
+      if (e.request.method !== 'GET') return;
+      e.respondWith(
+        fetch(e.request).then(netRes => {
+          if (netRes && netRes.status === 200 && e.request.url.startsWith('http')) {
+            const clone = netRes.clone();
+            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+          }
+          return netRes;
+        }).catch(() => caches.match(e.request))
+      );
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+
+  navigator.serviceWorker.register(swUrl).then(reg => {
+    reg.onupdatefound = () => {
+      const inst = reg.installing;
+      inst.onstatechange = () => {
+        if (inst.state === 'installed' && navigator.serviceWorker.controller) {
+          const aviso = document.getElementById("avisoUpdateCyber");
+          if (aviso) aviso.classList.add("visible");
+        }
+      };
+    };
+  }).catch(() => {});
+}
+
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_LOCAL = "1.0.0";
+const VERSION_BASE = "1.0.0";
+let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
+let ultimaVersionDetectada = VERSION_LOCAL;
 
 function ocultarSplashScreen() {
   const splash = document.getElementById("splashScreen");
@@ -1148,10 +1192,13 @@ async function actualizarDesdeFirebase() {
       // VERIFICACIÓN DE NUEVA VERSIÓN SCRIPT/MAPA
       if (dataFB.version_app) {
         if (cfgVersionApp && document.activeElement !== cfgVersionApp) cfgVersionApp.value = dataFB.version_app;
+        ultimaVersionDetectada = dataFB.version_app;
         if (dataFB.version_app !== VERSION_LOCAL) {
           const lblVer = document.getElementById("lblNuevaVersion");
           if (lblVer) lblVer.textContent = dataFB.version_app;
           document.getElementById("avisoUpdateCyber")?.classList.add("visible");
+        } else {
+          document.getElementById("avisoUpdateCyber")?.classList.remove("visible");
         }
       }
 
@@ -1167,6 +1214,16 @@ async function actualizarDesdeFirebase() {
     ocultarSplashScreen();
   }
 }
+
+/* EVENTO PARA APLICAR PARCHE Y MEMORIZAR LA NUEVA VERSIÓN SANITIZANDO LA CACHÉ */
+document.getElementById("btnAplicarParcheCyber")?.addEventListener("click", async function() {
+  localStorage.setItem("versionGuardadaLocal", ultimaVersionDetectada);
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+  window.location.reload(true);
+});
 
 window.addEventListener('online', actualizarDesdeFirebase);
 window.addEventListener('offline', cargarCopiaRespaldoOffline);
