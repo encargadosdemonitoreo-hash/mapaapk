@@ -15,7 +15,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Crear estructura de directorio para Capacitor
         run: |
@@ -25,13 +25,13 @@ jobs:
       - name: Instalar y Configurar Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
+          npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5 @capacitor/assets
           npx cap init "IONRAY Cobertura" "com.ionray.cobertura" --web-dir www
           npx cap add android
 
-      - name: Generar Íconos Nativos desde icon.png
+      - name: Generar Íconos Nativos de Android desde icon.png
         run: |
-          npx @capacitor/assets generate --android
+          npx capacitor-assets generate --android --iconBackend cordova --iconPath icon.png || npx @capacitor/assets generate --android
 
       - name: Inyectar Permisos Nativos de GPS y Micrófono
         run: |
