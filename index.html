@@ -1166,7 +1166,9 @@ function cargarCopiaRespaldoOffline() {
     try {
       const dataFB = JSON.parse(offlineData);
       if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
-      if (dataFB.abonados) abonadosLocal = dataFB.abonados;
+      if (dataFB.abonados) {
+        abonadosLocal = Array.isArray(dataFB.abonados) ? dataFB.abonados : Object.values(dataFB.abonados);
+      }
       if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
       if (statusSync) { statusSync.textContent = "🟠 Modo Offline (Copia Local)"; statusSync.style.color = "#e65100"; }
       ocultarSplashScreen();
@@ -1197,7 +1199,12 @@ async function actualizarDesdeFirebase() {
     const dataFB = await res.json();
     if (dataFB) {
       if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
-      if (dataFB.abonados) abonadosLocal = dataFB.abonados;
+      
+      // AJUSTE CLAVE: Convierte el objeto de abonados en lista si Firebase lo devolvió como objeto indexado
+      if (dataFB.abonados) {
+        abonadosLocal = Array.isArray(dataFB.abonados) ? dataFB.abonados : Object.values(dataFB.abonados);
+      }
+      
       if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
       
       // GUARDAR COPIA DE RESPALDO LOCAL PARA USO OFFLINE
