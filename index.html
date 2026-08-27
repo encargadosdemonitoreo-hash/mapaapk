@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<!-- LIBERACIÓN DE PERMISOS DE RED Y RECURSOS EXTERNOS -->
+<!-- LIBERACIÓN DE PERMISOS DE RED Y RECURSOS EXTERNOS (INCLUYE FIREBASE STORAGE) -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self' 'unsafe-inline' 'unsafe-eval' data: gap: https://ssl.gstatic.com;
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.gstatic.com;
   style-src 'self' 'unsafe-inline' https://unpkg.com;
   img-src 'self' data: blob: https: http:;
-  connect-src 'self' https: wss: http:;
+  connect-src 'self' https: wss: http: https://firebasestorage.googleapis.com;
   font-src 'self' data: https:;
 ">
 
@@ -21,6 +21,10 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<!-- SDK DE FIREBASE STORAGE (COMPATIBILIDAD V8) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <!-- AJUSTES EXCLUSIVOS PARA PANTALLA COMPLETA EN APK / MÓVIL & PWA -->
 <meta name="mobile-web-app-capable" content="yes">
@@ -534,7 +538,7 @@ body.perfil-ionray #btnNuevaMarcacionFlotante {
 }
 #sugerenciasConsulta { top: 92px; }
 #sugerenciasAB { top: 46px; }
-.sugerencia-item { padding: 9px 12px; font-weight: 600; border-bottom: 1px solid #f1f3f9; cursor: pointer; color: #1e293b; transition: background 0.15s; }
+.sugerencia-item { padding: 9px 12px; font-weight: 600; border-bottom: 1px solid #f1f5f9; cursor: pointer; color: #1e293b; transition: background 0.15s; }
 .sugerencia-item:hover { background: #e8f0fe; color: #1557b0; }
 
 /* =========================================================
@@ -864,7 +868,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.4</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.5</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -922,7 +926,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
   </div>
 </div>
 
-<!-- MODAL TÁCTICO DE NUEVA MARCACIÓN EN TERRENO CON FOTO -->
+<!-- MODAL TÁCTICO DE NUEVA MARCACIÓN EN TERRENO CON FOTO TEMPORAL -->
 <div id="modalNuevaMarcacion" class="oculto">
   <div class="modal-marcacion-card">
     <div class="modal-header-tactico">
@@ -963,13 +967,11 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
         </div>
       </div>
 
-      <!-- ADJUNTO Y CAPTURA CON DOBLE ENTRADA SEPARADA -->
+      <!-- ADJUNTO Y CAPTURA DE FOTO CON ESTADO DE SUBIDA TEMPORAL -->
       <div class="form-grupo-tactico">
-        <label class="form-label-tactico">📸 Foto de Fachada / Entorno:</label>
+        <label class="form-label-tactico">📸 Foto Fachada (Enlace Temporal Cíclico):</label>
         
-        <!-- INPUT CÁMARA DIRECTA -->
         <input type="file" id="inputFotoCamaraNativa" accept="image/*" capture="environment" style="display:none;">
-        <!-- INPUT GALERÍA / ARCHIVOS -->
         <input type="file" id="inputFotoGaleria" accept="image/*" style="display:none;">
 
         <div style="display:flex; gap:6px;">
@@ -984,6 +986,9 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
         <div class="box-preview-foto" id="boxPreviewFoto">
           <span id="txtSinFoto" style="font-size:11px; color:#94a3b8; font-weight:700;">Sin foto capturada</span>
           <img id="imgPreviewMarcacion" class="img-preview-tactica" alt="Previsualización">
+        </div>
+        <div id="lblEstadoSubidaFoto" style="font-size:10px; font-weight:800; color:#059669; margin-top:2px; display:none;">
+          ⚡ Foto procesada y lista para despacho temporal
         </div>
       </div>
 
@@ -1006,7 +1011,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
         </button>
       </div>
 
-      <!-- BOTONES EXPLÍCITOS DE FINALIZAR Y CANCELAR -->
+      <!-- BOTONES EXPLÍCITOS DE CONTROL -->
       <div class="box-acciones-modal">
         <button type="button" class="btn-modal-cancelar btnCerrarModalGlobal">❌ Cancelar</button>
         <button type="button" id="btnFinalizarModal" class="btn-modal-finalizar">✔ Finalizar y Despachar</button>
@@ -1111,7 +1116,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 /* =========================================================
    SISTEMA AUTO-LIMPIEZA DE CACHÉ Y AUTO-UPDATE TRANSPARENTE
 ========================================================= */
-const APP_BUILD_VERSION = "1.0.4"; // INCREMENTAR AL PUBLICAR CAMBIOS
+const APP_BUILD_VERSION = "1.0.5"; // INCREMENTAR AL PUBLICAR CAMBIOS
 
 (async function autoLimpiezaCacheApp() {
   const versionGuardada = localStorage.getItem("app_build_version");
@@ -1171,10 +1176,24 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 
+/* CONFIGURACIÓN INICIAL DE FIREBASE STORAGE TEMPORAL */
+let firebaseStorageRef = null;
+try {
+  if (typeof firebase !== 'undefined') {
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        databaseURL: "https://mapa-ef4d1-default-rtdb.firebaseio.com",
+        storageBucket: "mapa-ef4d1.appspot.com"
+      });
+    }
+    firebaseStorageRef = firebase.storage().ref();
+  }
+} catch(e) {}
+
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.0.4";
+const VERSION_BASE = "1.0.5";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1448,8 +1467,11 @@ const inputFotoCamaraNativa = document.getElementById("inputFotoCamaraNativa");
 const inputFotoGaleria = document.getElementById("inputFotoGaleria");
 const imgPreviewMarcacion = document.getElementById("imgPreviewMarcacion");
 const txtSinFoto = document.getElementById("txtSinFoto");
+const lblEstadoSubidaFoto = document.getElementById("lblEstadoSubidaFoto");
 
 let archivoFotoBinario = null;
+let urlFotoFirebaseTemporal = "";
+let firebaseFotoRefActual = null;
 let seleccionandoPuntoEnMapaModal = false;
 
 btnNuevaMarcacionFlotante.onclick = function() {
@@ -1463,10 +1485,16 @@ function cerrarYLimpiarModal() {
   mrcLocalidad.value = "";
   mrcComoLlegar.value = "";
   mrcCoords.value = "";
+  
+  // Limpieza del archivo en memoria
   archivoFotoBinario = null;
+  urlFotoFirebaseTemporal = "";
+  firebaseFotoRefActual = null;
+  
   imgPreviewMarcacion.src = "";
   imgPreviewMarcacion.style.display = "none";
   txtSinFoto.style.display = "block";
+  if (lblEstadoSubidaFoto) lblEstadoSubidaFoto.style.display = "none";
 }
 
 document.querySelectorAll(".btnCerrarModalGlobal").forEach(btn => {
@@ -1520,6 +1548,32 @@ document.getElementById("btnAbrirGaleria").onclick = function() {
   inputFotoGaleria.click();
 };
 
+async function subirFotoTemporalFirebase(blobFoto) {
+  if (!firebaseStorageRef) return;
+  if (lblEstadoSubidaFoto) {
+    lblEstadoSubidaFoto.style.display = "block";
+    lblEstadoSubidaFoto.style.color = "#d97706";
+    lblEstadoSubidaFoto.textContent = "⏳ Subiendo foto temporal...";
+  }
+
+  const idFoto = "tmp_" + Date.now() + ".jpg";
+  firebaseFotoRefActual = firebaseStorageRef.child("fotos_temporales/" + idFoto);
+
+  try {
+    const snapshot = await firebaseFotoRefActual.put(blobFoto);
+    urlFotoFirebaseTemporal = await snapshot.ref.getDownloadURL();
+    if (lblEstadoSubidaFoto) {
+      lblEstadoSubidaFoto.style.color = "#059669";
+      lblEstadoSubidaFoto.textContent = "🟢 Foto lista para vista previa en WhatsApp";
+    }
+  } catch (err) {
+    if (lblEstadoSubidaFoto) {
+      lblEstadoSubidaFoto.style.color = "#dc2626";
+      lblEstadoSubidaFoto.textContent = "⚠️ Foto cargada localmente";
+    }
+  }
+}
+
 function procesarArchivoImagen(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -1550,6 +1604,8 @@ function procesarArchivoImagen(file) {
           imgPreviewMarcacion.src = URL.createObjectURL(blob);
           imgPreviewMarcacion.style.display = "block";
           txtSinFoto.style.display = "none";
+
+          subirFotoTemporalFirebase(blob);
         }
       }, "image/jpeg", 0.82);
     };
@@ -1579,14 +1635,27 @@ function generarTextoReporteMarcacion() {
     urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + cLat + "," + cLon + "&travelmode=driving";
   }
 
+  let txtFotoLink = urlFotoFirebaseTemporal ? "\n🖼️ *Foto Fachada:* " + urlFotoFirebaseTemporal + "\n" : "";
+
   return "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
          "🏢 *N° AB:* " + ab + "\n" +
          "📍 *Dirección:* " + dir + "\n" +
          "🏙️ *Localidad:* " + loc + "\n" +
-         "🗺️ *Cómo Llegar:* " + lleg + "\n\n" +
+         "🗺️ *Cómo Llegar:* " + lleg + "\n" +
+         txtFotoLink + "\n" +
          "🌐 *Coordenadas:* " + coords + "\n" +
          "🚙 *Waze:* " + urlWaze + "\n" +
          "🗺️ *Maps:* " + urlMaps;
+}
+
+// PROGRAMA EL BORRADO AUTOMÁTICO EN FIREBASE LUEGO DE ENVIAR (LUEGO DE 5 MINUTOS)
+function programarBorradoFotoTemporalFirebase() {
+  if (firebaseFotoRefActual) {
+    const refAEliminar = firebaseFotoRefActual;
+    setTimeout(() => {
+      try { refAEliminar.delete(); } catch(e) {}
+    }, 300000); // 5 Minutos (da tiempo suficiente a WhatsApp/Telegram para generar vista previa)
+  }
 }
 
 /* DESPACHO MULTICANAL CON COMPARTIR NATIVO OPTIMIZADO */
@@ -1604,6 +1673,7 @@ document.getElementById("btnDespacharShare").onclick = async function() {
       }
       
       await navigator.share(shareData);
+      programarBorradoFotoTemporalFirebase();
     } catch (err) {
       if (err.name !== "AbortError") window.copiarFichaMapa(texto);
     }
@@ -1614,23 +1684,20 @@ document.getElementById("btnDespacharShare").onclick = async function() {
 
 document.getElementById("btnDespacharWsp").onclick = function() {
   const texto = generarTextoReporteMarcacion();
-  
-  if (archivoFotoBinario) {
-    window.copiarFichaMapa(texto);
-    alert("📋 Ficha copiada al portapapeles. Al abrirse WhatsApp, adjuntá la foto y pegá el texto.");
-  }
-  
   window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
+  programarBorradoFotoTemporalFirebase();
 };
 
 document.getElementById("btnDespacharTg").onclick = function() {
   const texto = generarTextoReporteMarcacion();
   window.open("https://t.me/share/url?url=" + encodeURIComponent("https://mapa.local") + "&text=" + encodeURIComponent(texto), "_blank");
+  programarBorradoFotoTemporalFirebase();
 };
 
 document.getElementById("btnDespacharSms").onclick = function() {
   const texto = generarTextoReporteMarcacion();
   window.open("sms:?body=" + encodeURIComponent(texto), "_blank");
+  programarBorradoFotoTemporalFirebase();
 };
 
 document.getElementById("btnDespacharCopy").onclick = function() {
