@@ -1,0 +1,15 @@
+# =========================================================
+# CONFIGURACIÓN REMOTA CENTRALIZADA (ADMIN Y APP)
+# =========================================================
+
+# URL de la base de datos principal en Firebase
+url_firebase=https:https://mapa-ef4d1-default-rtdb.firebaseio.com/mapa
+
+# URLs de servidores secundarios / Webhooks (Opcional a futuro)
+url_webhook=https://api.tuempresa.com/v1/mapa
+
+# Tokens o Claves de API de servidores
+api_key=IONRAY
+
+# Versión activa del sistema / App
+version_app=1.0.8
