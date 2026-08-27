@@ -863,7 +863,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.8</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.9</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -1108,7 +1108,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 /* =========================================================
    SISTEMA AUTO-LIMPIEZA DE CACHÉ Y AUTO-UPDATE TRANSPARENTE
 ========================================================= */
-const APP_BUILD_VERSION = "1.0.8"; 
+const APP_BUILD_VERSION = "1.0.9"; 
 
 (async function autoLimpiezaCacheApp() {
   const versionGuardada = localStorage.getItem("app_build_version");
@@ -1174,7 +1174,7 @@ const API_KEY_IMGBB = "80c7820682f7f0afce5eab1c5df38c33";
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.0.8";
+const VERSION_BASE = "1.0.9";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1596,41 +1596,25 @@ function procesarArchivoImagen(file) {
 inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
-function generarTextoReporteMarcacion(incluirFotoLink = true) {
+// TEXTO TÁCTICO LIMPIO SIN ENLACES URLS REDUNDANTES
+function generarTextoReporteMarcacion() {
   const ab = mrcNumAB.value.trim() || "S/D";
   const dir = mrcDireccion.value.trim() || "S/D";
   const loc = mrcLocalidad.value.trim() || "S/D";
   const lleg = mrcComoLlegar.value.trim() || "Sin observaciones adicionales";
   const coords = mrcCoords.value.trim() || "S/D";
 
-  let urlWaze = "https://waze.com/ul?navigate=yes";
-  let urlMaps = "https://www.google.com/maps";
-
-  if (coords !== "S/D" && coords.includes(",")) {
-    const p = coords.split(",");
-    const cLat = p[0].trim();
-    const cLon = p[1].trim();
-    urlWaze = "https://waze.com/ul?ll=" + cLat + "," + cLon + "&navigate=yes";
-    urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + cLat + "," + cLon + "&travelmode=driving";
-  }
-
-  let txtFotoLink = (incluirFotoLink && urlFotoDirectaImgBB) ? "📸 *FOTO FACHADA:* " + urlFotoDirectaImgBB + "\n\n" : "";
-
-  return txtFotoLink +
-         "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
+  return "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
          "🏢 *N° AB:* " + ab + "\n" +
          "📍 *Dirección:* " + dir + "\n" +
          "🏙️ *Localidad:* " + loc + "\n" +
          "🗺️ *Cómo Llegar:* " + lleg + "\n\n" +
-         "🌐 *Coordenadas:* " + coords + "\n" +
-         "🚙 *Waze:* " + urlWaze + "\n" +
-         "🗺️ *Maps:* " + urlMaps;
+         "🌐 *Coordenadas GPS:* " + coords;
 }
 
 /* ENVÍO PRINCIPAL POR WHATSAPP (ADJUNTO NATIVO CON FOTO Y PIE DE TEXTO) */
 document.getElementById("btnDespacharWsp").onclick = async function() {
-  const textoLimpio = generarTextoReporteMarcacion(false);
-  const textoConLink = generarTextoReporteMarcacion(true);
+  const textoLimpio = generarTextoReporteMarcacion();
 
   if (navigator.share && archivoFotoBinario) {
     try {
@@ -1647,24 +1631,24 @@ document.getElementById("btnDespacharWsp").onclick = async function() {
     }
   }
 
-  // Respaldo Web API si no se usa compartir nativo
-  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(textoConLink), "_blank");
+  // Respaldo Web API si no hay soporte de compartir archivos
+  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(textoLimpio), "_blank");
 };
 
 document.getElementById("btnDespacharTg").onclick = function() {
-  const texto = generarTextoReporteMarcacion(true);
+  const texto = generarTextoReporteMarcacion();
   window.open("https://t.me/share/url?url=" + encodeURIComponent("https://mapa.local") + "&text=" + encodeURIComponent(texto), "_blank");
 };
 
 document.getElementById("btnDespacharMail").onclick = function() {
   const ab = mrcNumAB.value.trim() || "S/D";
   const asunto = encodeURIComponent("🚨 Reporte de Marcación / AB " + ab);
-  const cuerpo = encodeURIComponent(generarTextoReporteMarcacion(true));
+  const cuerpo = encodeURIComponent(generarTextoReporteMarcacion());
   window.location.href = "mailto:?subject=" + asunto + "&body=" + cuerpo;
 };
 
 document.getElementById("btnDespacharCopy").onclick = function() {
-  const texto = generarTextoReporteMarcacion(true);
+  const texto = generarTextoReporteMarcacion();
   window.copiarFichaMapa(texto);
 };
 
@@ -2266,10 +2250,7 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
     ? "google.navigation:q=" + lat + "," + lon + "&mode=d" 
     : "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
 
-  const urlWazeReporte = "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
-  const urlGmapsReporte = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
-
-  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5) + "\n🚙 *Waze:* " + urlWazeReporte + "\n🗺️ *Maps:* " + urlGmapsReporte;
+  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5);
   
   const urlWsp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(textoReporte);
 
