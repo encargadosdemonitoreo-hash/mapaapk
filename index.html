@@ -10,7 +10,7 @@
   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.gstatic.com;
   style-src 'self' 'unsafe-inline' https://unpkg.com;
   img-src 'self' data: blob: https: http:;
-  connect-src 'self' https: wss: http: https://logos-87508-default-rtdb.firebaseio.com https://mapa-ef4d1-default-rtdb.firebaseio.com;
+  connect-src 'self' https: wss: http: https://api.imgbb.com https://i.ibb.co https://logos-87508-default-rtdb.firebaseio.com https://mapa-ef4d1-default-rtdb.firebaseio.com;
   font-src 'self' data: https:;
 ">
 
@@ -864,7 +864,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.6</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.7</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -965,7 +965,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 
       <!-- ADJUNTO Y CAPTURA DE FOTO CON ESTADO DE SUBIDA TEMPORAL -->
       <div class="form-grupo-tactico">
-        <label class="form-label-tactico">📸 Foto Fachada (Servidor de Imágenes):</label>
+        <label class="form-label-tactico">📸 Foto Fachada (Nube ImgBB):</label>
         
         <input type="file" id="inputFotoCamaraNativa" accept="image/*" capture="environment" style="display:none;">
         <input type="file" id="inputFotoGaleria" accept="image/*" style="display:none;">
@@ -1112,7 +1112,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 /* =========================================================
    SISTEMA AUTO-LIMPIEZA DE CACHÉ Y AUTO-UPDATE TRANSPARENTE
 ========================================================= */
-const APP_BUILD_VERSION = "1.0.6"; 
+const APP_BUILD_VERSION = "1.0.7"; 
 
 (async function autoLimpiezaCacheApp() {
   const versionGuardada = localStorage.getItem("app_build_version");
@@ -1172,39 +1172,13 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 
-/* CONFIGURACIÓN Y AUTOLIMPIEZA EN FIREBASE RTDB LOGOS (RETENCIÓN DE 7 DÍAS) */
-const URL_DATABASE_FOTOS = "https://logos-87508-default-rtdb.firebaseio.com/";
-
-async function ejecutarLimpiezaCiclica7Dias() {
-  try {
-    const fetchUrl = URL_DATABASE_FOTOS.endsWith("/") ? URL_DATABASE_FOTOS + "fotos_temporales.json" : URL_DATABASE_FOTOS + "/fotos_temporales.json";
-    const res = await fetch(fetchUrl);
-    if (!res.ok) return;
-    const data = await res.json();
-    if (!data) return;
-
-    const limite7DiasMs = 7 * 24 * 60 * 60 * 1000;
-    const ahora = Date.now();
-
-    Object.keys(data).forEach(async idFoto => {
-      const registro = data[idFoto];
-      if (registro && registro.timestamp) {
-        if (ahora - registro.timestamp > limite7DiasMs) {
-          const deleteUrl = URL_DATABASE_FOTOS.endsWith("/") ? URL_DATABASE_FOTOS + "fotos_temporales/" + idFoto + ".json" : URL_DATABASE_FOTOS + "/fotos_temporales/" + idFoto + ".json";
-          await fetch(deleteUrl, { method: "DELETE" });
-        }
-      }
-    });
-  } catch (e) {}
-}
-
-// Lanza la autolimpieza silenciosa en segundo plano al iniciar
-ejecutarLimpiezaCiclica7Dias();
+/* CONFIGURACIÓN IMGBB API */
+const API_KEY_IMGBB = "80c7820682f7f0afce5eab1c5df38c33";
 
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.0.6";
+const VERSION_BASE = "1.0.7";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1464,7 +1438,7 @@ document.getElementById("formLogin").onsubmit = function(e){
   }
 };
 
-/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO CON SUBIDA A FIREBASE LOGOS */
+/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO CON SUBIDA A IMGBB */
 const modalNuevaMarcacion = document.getElementById("modalNuevaMarcacion");
 const btnNuevaMarcacionFlotante = document.getElementById("btnNuevaMarcacionFlotante");
 
@@ -1481,7 +1455,7 @@ const txtSinFoto = document.getElementById("txtSinFoto");
 const lblEstadoSubidaFoto = document.getElementById("lblEstadoSubidaFoto");
 
 let archivoFotoBinario = null;
-let urlFotoFirebaseTemporal = "";
+let urlFotoDirectaImgBB = "";
 let seleccionandoPuntoEnMapaModal = false;
 
 btnNuevaMarcacionFlotante.onclick = function() {
@@ -1497,7 +1471,7 @@ function cerrarYLimpiarModal() {
   mrcCoords.value = "";
   
   archivoFotoBinario = null;
-  urlFotoFirebaseTemporal = "";
+  urlFotoDirectaImgBB = "";
   
   imgPreviewMarcacion.src = "";
   imgPreviewMarcacion.style.display = "none";
@@ -1550,31 +1524,30 @@ map.on("click", async function(e) {
 document.getElementById("btnTomarFotoDirecta").onclick = function() { inputFotoCamaraNativa.click(); };
 document.getElementById("btnAbrirGaleria").onclick = function() { inputFotoGaleria.click(); };
 
-async function subirFotoADataBaseLogos(base64Data) {
+async function subirFotoAImgBB(base64Pure) {
   if (lblEstadoSubidaFoto) {
     lblEstadoSubidaFoto.style.display = "block";
     lblEstadoSubidaFoto.style.color = "#d97706";
-    lblEstadoSubidaFoto.textContent = "⏳ Subiendo foto a Firebase Logos...";
+    lblEstadoSubidaFoto.textContent = "⏳ Subiendo foto a la nube ImgBB...";
   }
 
-  const idFoto = "foto_" + Date.now();
-  const putUrl = URL_DATABASE_FOTOS.endsWith("/") ? URL_DATABASE_FOTOS + "fotos_temporales/" + idFoto + ".json" : URL_DATABASE_FOTOS + "/fotos_temporales/" + idFoto + ".json";
+  const formData = new FormData();
+  formData.append("key", API_KEY_IMGBB);
+  formData.append("image", base64Pure);
 
   try {
-    const res = await fetch(putUrl, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        imagen: base64Data,
-        timestamp: Date.now()
-      })
+    const res = await fetch("https://api.imgbb.com/1/upload", {
+      method: "POST",
+      body: formData
     });
 
-    if (res.ok) {
-      urlFotoFirebaseTemporal = putUrl;
+    const data = await res.json();
+
+    if (data && data.success) {
+      urlFotoDirectaImgBB = data.data.url; // Enlace .jpg directo
       if (lblEstadoSubidaFoto) {
         lblEstadoSubidaFoto.style.color = "#059669";
-        lblEstadoSubidaFoto.textContent = "🟢 Foto lista para vista previa en WhatsApp";
+        lblEstadoSubidaFoto.textContent = "🟢 Foto lista con vista previa para WhatsApp";
       }
     } else {
       throw new Error();
@@ -1582,7 +1555,7 @@ async function subirFotoADataBaseLogos(base64Data) {
   } catch (err) {
     if (lblEstadoSubidaFoto) {
       lblEstadoSubidaFoto.style.color = "#dc2626";
-      lblEstadoSubidaFoto.textContent = "⚠️ Foto en memoria local";
+      lblEstadoSubidaFoto.textContent = "⚠️ Error al subir foto. Se enviará sin adjunto";
     }
   }
 }
@@ -1594,25 +1567,22 @@ function procesarArchivoImagen(file) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const maxDim = 800; // Máxima dimensión para compresión ágil (~50-80 KB)
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height && width > maxDim) {
-        height = Math.round((height * maxDim) / width);
-        width = maxDim;
-      } else if (height > maxDim) {
-        width = Math.round((width * maxDim) / height);
-        height = maxDim;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
+      // Formato cuadrado (1:1) optimizado para previsualizaciones de WhatsApp sin recortes
+      const size = 800;
+      canvas.width = size;
+      canvas.height = size;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, width, height);
 
-      const base64Comprimido = canvas.toDataURL("image/jpeg", 0.70);
-      
+      // Recorte centrado (crop-to-fit 1:1)
+      let minDim = Math.min(img.width, img.height);
+      let sx = (img.width - minDim) / 2;
+      let sy = (img.height - minDim) / 2;
+
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const base64Pure = dataUrl.split(",")[1];
+
       canvas.toBlob(function(blob) {
         if (blob) {
           archivoFotoBinario = new File([blob], "foto_fachada.jpg", { type: "image/jpeg" });
@@ -1620,9 +1590,9 @@ function procesarArchivoImagen(file) {
           imgPreviewMarcacion.style.display = "block";
           txtSinFoto.style.display = "none";
 
-          subirFotoADataBaseLogos(base64Comprimido);
+          subirFotoAImgBB(base64Pure);
         }
-      }, "image/jpeg", 0.70);
+      }, "image/jpeg", 0.85);
     };
     img.src = evt.target.result;
   };
@@ -1632,7 +1602,7 @@ function procesarArchivoImagen(file) {
 inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
-// REORGANIZACIÓN TÁCTICA DEL TEXTO: FOTO ARRIBA DEL TODO PARA PRIORIDAD DE VISTA PREVIA
+// REORGANIZACIÓN TÁCTICA DEL TEXTO: FOTO ARRIBA DEL TODO EN PRIMERA LÍNEA
 function generarTextoReporteMarcacion() {
   const ab = mrcNumAB.value.trim() || "S/D";
   const dir = mrcDireccion.value.trim() || "S/D";
@@ -1651,7 +1621,7 @@ function generarTextoReporteMarcacion() {
     urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + cLat + "," + cLon + "&travelmode=driving";
   }
 
-  let txtFotoLink = urlFotoFirebaseTemporal ? "📸 *FOTO FACHADA:* " + urlFotoFirebaseTemporal + "\n\n" : "";
+  let txtFotoLink = urlFotoDirectaImgBB ? "📸 *FOTO FACHADA:* " + urlFotoDirectaImgBB + "\n\n" : "";
 
   return txtFotoLink +
          "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
