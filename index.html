@@ -836,7 +836,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.1</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.2</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -935,10 +935,11 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
         </div>
       </div>
 
-      <!-- ADJUNTO Y CAPTURA DE FOTO EN VIVO -->
+      <!-- ADJUNTO Y CAPTURA DE FOTO EN VIVO O GALERÍA -->
       <div class="form-grupo-tactico">
         <label class="form-label-tactico">📸 Foto de Fachada / Entorno:</label>
-        <input type="file" id="inputFotoCamara" accept="image/*" capture="environment" style="display:none;">
+        <!-- Se quita capture="environment" para permitir cámara y galería -->
+        <input type="file" id="inputFotoCamara" accept="image/*" style="display:none;">
         <button type="button" id="btnTomarFoto" class="btn-accion-secundario" style="width:100%; min-height:38px; background:#eff6ff; border-color:#93c5fd; color:#1d4ed8;">
           📷 Tomar / Adjuntar Foto
         </button>
@@ -1067,7 +1068,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 /* =========================================================
    SISTEMA AUTO-LIMPIEZA DE CACHÉ Y AUTO-UPDATE TRANSPARENTE
 ========================================================= */
-const APP_BUILD_VERSION = "1.0.1"; // INCREMENTAR AL PUBLICAR CAMBIOS
+const APP_BUILD_VERSION = "1.0.2"; // INCREMENTAR AL PUBLICAR CAMBIOS
 
 (async function autoLimpiezaCacheApp() {
   const versionGuardada = localStorage.getItem("app_build_version");
@@ -1130,7 +1131,7 @@ if ('serviceWorker' in navigator) {
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.0.1";
+const VERSION_BASE = "1.0.2";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1501,15 +1502,19 @@ function generarTextoReporteMarcacion() {
          "🗺️ *Maps:* " + urlMaps;
 }
 
-/* DESPACHO MULTICANAL */
+/* DESPACHO MULTICANAL CON COMPARTIR NATIVO MEJORADO */
 document.getElementById("btnDespacharShare").onclick = async function() {
   const texto = generarTextoReporteMarcacion();
+  
   if (navigator.share) {
     try {
       const shareData = { title: "Marcación en Terreno", text: texto };
-      if (archivoFotoBinario) {
+      
+      // Chequea si el navegador soporta compartir archivos antes de adjuntar la foto
+      if (archivoFotoBinario && navigator.canShare && navigator.canShare({ files: [archivoFotoBinario] })) {
         shareData.files = [archivoFotoBinario];
       }
+      
       await navigator.share(shareData);
     } catch (err) {
       if (err.name !== "AbortError") window.copiarFichaMapa(texto);
@@ -1521,6 +1526,13 @@ document.getElementById("btnDespacharShare").onclick = async function() {
 
 document.getElementById("btnDespacharWsp").onclick = function() {
   const texto = generarTextoReporteMarcacion();
+  
+  // Si hay foto adjunta, copia primero el texto al portapapeles para facilitar el pegado
+  if (archivoFotoBinario) {
+    window.copiarFichaMapa(texto);
+    alert("📋 Ficha copiada al portapapeles. Al abrirse WhatsApp, adjuntá la foto y pegá el texto.");
+  }
+  
   window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
 };
 
