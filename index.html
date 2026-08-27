@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<!-- LIBERACIÓN DE PERMISOS DE RED Y RECURSOS EXTERNOS (INCLUYE FIREBASE STORAGE) -->
+<!-- LIBERACIÓN DE PERMISOS DE RED Y RECURSOS EXTERNOS -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self' 'unsafe-inline' 'unsafe-eval' data: gap: https://ssl.gstatic.com;
   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.gstatic.com;
   style-src 'self' 'unsafe-inline' https://unpkg.com;
   img-src 'self' data: blob: https: http:;
-  connect-src 'self' https: wss: http: https://firebasestorage.googleapis.com;
+  connect-src 'self' https: wss: http: https://logos-87508-default-rtdb.firebaseio.com https://mapa-ef4d1-default-rtdb.firebaseio.com;
   font-src 'self' data: https:;
 ">
 
@@ -21,10 +21,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-<!-- SDK DE FIREBASE STORAGE (COMPATIBILIDAD V8) -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <!-- AJUSTES EXCLUSIVOS PARA PANTALLA COMPLETA EN APK / MÓVIL & PWA -->
 <meta name="mobile-web-app-capable" content="yes">
@@ -868,7 +864,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.5</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.6</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -926,7 +922,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
   </div>
 </div>
 
-<!-- MODAL TÁCTICO DE NUEVA MARCACIÓN EN TERRENO CON FOTO TEMPORAL -->
+<!-- MODAL TÁCTICO DE NUEVA MARCACIÓN EN TERRENO CON FOTO -->
 <div id="modalNuevaMarcacion" class="oculto">
   <div class="modal-marcacion-card">
     <div class="modal-header-tactico">
@@ -969,7 +965,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 
       <!-- ADJUNTO Y CAPTURA DE FOTO CON ESTADO DE SUBIDA TEMPORAL -->
       <div class="form-grupo-tactico">
-        <label class="form-label-tactico">📸 Foto Fachada (Enlace Temporal Cíclico):</label>
+        <label class="form-label-tactico">📸 Foto Fachada (Servidor de Imágenes):</label>
         
         <input type="file" id="inputFotoCamaraNativa" accept="image/*" capture="environment" style="display:none;">
         <input type="file" id="inputFotoGaleria" accept="image/*" style="display:none;">
@@ -988,7 +984,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
           <img id="imgPreviewMarcacion" class="img-preview-tactica" alt="Previsualización">
         </div>
         <div id="lblEstadoSubidaFoto" style="font-size:10px; font-weight:800; color:#059669; margin-top:2px; display:none;">
-          ⚡ Foto procesada y lista para despacho temporal
+          ⚡ Foto procesada y lista para despacho
         </div>
       </div>
 
@@ -1116,7 +1112,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 /* =========================================================
    SISTEMA AUTO-LIMPIEZA DE CACHÉ Y AUTO-UPDATE TRANSPARENTE
 ========================================================= */
-const APP_BUILD_VERSION = "1.0.5"; // INCREMENTAR AL PUBLICAR CAMBIOS
+const APP_BUILD_VERSION = "1.0.6"; 
 
 (async function autoLimpiezaCacheApp() {
   const versionGuardada = localStorage.getItem("app_build_version");
@@ -1176,24 +1172,39 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 
-/* CONFIGURACIÓN INICIAL DE FIREBASE STORAGE TEMPORAL */
-let firebaseStorageRef = null;
-try {
-  if (typeof firebase !== 'undefined') {
-    if (!firebase.apps.length) {
-      firebase.initializeApp({
-        databaseURL: "https://mapa-ef4d1-default-rtdb.firebaseio.com",
-        storageBucket: "mapa-ef4d1.appspot.com"
-      });
-    }
-    firebaseStorageRef = firebase.storage().ref();
-  }
-} catch(e) {}
+/* CONFIGURACIÓN Y AUTOLIMPIEZA EN FIREBASE RTDB LOGOS (RETENCIÓN DE 7 DÍAS) */
+const URL_DATABASE_FOTOS = "https://logos-87508-default-rtdb.firebaseio.com/";
+
+async function ejecutarLimpiezaCiclica7Dias() {
+  try {
+    const fetchUrl = URL_DATABASE_FOTOS.endsWith("/") ? URL_DATABASE_FOTOS + "fotos_temporales.json" : URL_DATABASE_FOTOS + "/fotos_temporales.json";
+    const res = await fetch(fetchUrl);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data) return;
+
+    const limite7DiasMs = 7 * 24 * 60 * 60 * 1000;
+    const ahora = Date.now();
+
+    Object.keys(data).forEach(async idFoto => {
+      const registro = data[idFoto];
+      if (registro && registro.timestamp) {
+        if (ahora - registro.timestamp > limite7DiasMs) {
+          const deleteUrl = URL_DATABASE_FOTOS.endsWith("/") ? URL_DATABASE_FOTOS + "fotos_temporales/" + idFoto + ".json" : URL_DATABASE_FOTOS + "/fotos_temporales/" + idFoto + ".json";
+          await fetch(deleteUrl, { method: "DELETE" });
+        }
+      }
+    });
+  } catch (e) {}
+}
+
+// Lanza la autolimpieza silenciosa en segundo plano al iniciar
+ejecutarLimpiezaCiclica7Dias();
 
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.0.5";
+const VERSION_BASE = "1.0.6";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1453,7 +1464,7 @@ document.getElementById("formLogin").onsubmit = function(e){
   }
 };
 
-/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO */
+/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO CON SUBIDA A FIREBASE LOGOS */
 const modalNuevaMarcacion = document.getElementById("modalNuevaMarcacion");
 const btnNuevaMarcacionFlotante = document.getElementById("btnNuevaMarcacionFlotante");
 
@@ -1471,7 +1482,6 @@ const lblEstadoSubidaFoto = document.getElementById("lblEstadoSubidaFoto");
 
 let archivoFotoBinario = null;
 let urlFotoFirebaseTemporal = "";
-let firebaseFotoRefActual = null;
 let seleccionandoPuntoEnMapaModal = false;
 
 btnNuevaMarcacionFlotante.onclick = function() {
@@ -1486,10 +1496,8 @@ function cerrarYLimpiarModal() {
   mrcComoLlegar.value = "";
   mrcCoords.value = "";
   
-  // Limpieza del archivo en memoria
   archivoFotoBinario = null;
   urlFotoFirebaseTemporal = "";
-  firebaseFotoRefActual = null;
   
   imgPreviewMarcacion.src = "";
   imgPreviewMarcacion.style.display = "none";
@@ -1539,37 +1547,42 @@ map.on("click", async function(e) {
   }
 });
 
-// EVENTOS DE BOTONES SEPARADOS DE CÁMARA Y GALERÍA
-document.getElementById("btnTomarFotoDirecta").onclick = function() {
-  inputFotoCamaraNativa.click();
-};
+document.getElementById("btnTomarFotoDirecta").onclick = function() { inputFotoCamaraNativa.click(); };
+document.getElementById("btnAbrirGaleria").onclick = function() { inputFotoGaleria.click(); };
 
-document.getElementById("btnAbrirGaleria").onclick = function() {
-  inputFotoGaleria.click();
-};
-
-async function subirFotoTemporalFirebase(blobFoto) {
-  if (!firebaseStorageRef) return;
+async function subirFotoADataBaseLogos(base64Data) {
   if (lblEstadoSubidaFoto) {
     lblEstadoSubidaFoto.style.display = "block";
     lblEstadoSubidaFoto.style.color = "#d97706";
-    lblEstadoSubidaFoto.textContent = "⏳ Subiendo foto temporal...";
+    lblEstadoSubidaFoto.textContent = "⏳ Subiendo foto a Firebase Logos...";
   }
 
-  const idFoto = "tmp_" + Date.now() + ".jpg";
-  firebaseFotoRefActual = firebaseStorageRef.child("fotos_temporales/" + idFoto);
+  const idFoto = "foto_" + Date.now();
+  const putUrl = URL_DATABASE_FOTOS.endsWith("/") ? URL_DATABASE_FOTOS + "fotos_temporales/" + idFoto + ".json" : URL_DATABASE_FOTOS + "/fotos_temporales/" + idFoto + ".json";
 
   try {
-    const snapshot = await firebaseFotoRefActual.put(blobFoto);
-    urlFotoFirebaseTemporal = await snapshot.ref.getDownloadURL();
-    if (lblEstadoSubidaFoto) {
-      lblEstadoSubidaFoto.style.color = "#059669";
-      lblEstadoSubidaFoto.textContent = "🟢 Foto lista para vista previa en WhatsApp";
+    const res = await fetch(putUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        imagen: base64Data,
+        timestamp: Date.now()
+      })
+    });
+
+    if (res.ok) {
+      urlFotoFirebaseTemporal = putUrl;
+      if (lblEstadoSubidaFoto) {
+        lblEstadoSubidaFoto.style.color = "#059669";
+        lblEstadoSubidaFoto.textContent = "🟢 Foto lista para vista previa en WhatsApp";
+      }
+    } else {
+      throw new Error();
     }
   } catch (err) {
     if (lblEstadoSubidaFoto) {
       lblEstadoSubidaFoto.style.color = "#dc2626";
-      lblEstadoSubidaFoto.textContent = "⚠️ Foto cargada localmente";
+      lblEstadoSubidaFoto.textContent = "⚠️ Foto en memoria local";
     }
   }
 }
@@ -1581,7 +1594,7 @@ function procesarArchivoImagen(file) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const maxDim = 1200;
+      const maxDim = 800; // Máxima dimensión para compresión ágil (~50-80 KB)
       let width = img.width;
       let height = img.height;
 
@@ -1598,6 +1611,8 @@ function procesarArchivoImagen(file) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
+      const base64Comprimido = canvas.toDataURL("image/jpeg", 0.70);
+      
       canvas.toBlob(function(blob) {
         if (blob) {
           archivoFotoBinario = new File([blob], "foto_fachada.jpg", { type: "image/jpeg" });
@@ -1605,9 +1620,9 @@ function procesarArchivoImagen(file) {
           imgPreviewMarcacion.style.display = "block";
           txtSinFoto.style.display = "none";
 
-          subirFotoTemporalFirebase(blob);
+          subirFotoADataBaseLogos(base64Comprimido);
         }
-      }, "image/jpeg", 0.82);
+      }, "image/jpeg", 0.70);
     };
     img.src = evt.target.result;
   };
@@ -1617,6 +1632,7 @@ function procesarArchivoImagen(file) {
 inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
+// REORGANIZACIÓN TÁCTICA DEL TEXTO: FOTO ARRIBA DEL TODO PARA PRIORIDAD DE VISTA PREVIA
 function generarTextoReporteMarcacion() {
   const ab = mrcNumAB.value.trim() || "S/D";
   const dir = mrcDireccion.value.trim() || "S/D";
@@ -1635,27 +1651,17 @@ function generarTextoReporteMarcacion() {
     urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + cLat + "," + cLon + "&travelmode=driving";
   }
 
-  let txtFotoLink = urlFotoFirebaseTemporal ? "\n🖼️ *Foto Fachada:* " + urlFotoFirebaseTemporal + "\n" : "";
+  let txtFotoLink = urlFotoFirebaseTemporal ? "📸 *FOTO FACHADA:* " + urlFotoFirebaseTemporal + "\n\n" : "";
 
-  return "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
+  return txtFotoLink +
+         "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
          "🏢 *N° AB:* " + ab + "\n" +
          "📍 *Dirección:* " + dir + "\n" +
          "🏙️ *Localidad:* " + loc + "\n" +
-         "🗺️ *Cómo Llegar:* " + lleg + "\n" +
-         txtFotoLink + "\n" +
+         "🗺️ *Cómo Llegar:* " + lleg + "\n\n" +
          "🌐 *Coordenadas:* " + coords + "\n" +
          "🚙 *Waze:* " + urlWaze + "\n" +
          "🗺️ *Maps:* " + urlMaps;
-}
-
-// PROGRAMA EL BORRADO AUTOMÁTICO EN FIREBASE LUEGO DE ENVIAR (LUEGO DE 5 MINUTOS)
-function programarBorradoFotoTemporalFirebase() {
-  if (firebaseFotoRefActual) {
-    const refAEliminar = firebaseFotoRefActual;
-    setTimeout(() => {
-      try { refAEliminar.delete(); } catch(e) {}
-    }, 300000); // 5 Minutos (da tiempo suficiente a WhatsApp/Telegram para generar vista previa)
-  }
 }
 
 /* DESPACHO MULTICANAL CON COMPARTIR NATIVO OPTIMIZADO */
@@ -1673,7 +1679,6 @@ document.getElementById("btnDespacharShare").onclick = async function() {
       }
       
       await navigator.share(shareData);
-      programarBorradoFotoTemporalFirebase();
     } catch (err) {
       if (err.name !== "AbortError") window.copiarFichaMapa(texto);
     }
@@ -1685,19 +1690,16 @@ document.getElementById("btnDespacharShare").onclick = async function() {
 document.getElementById("btnDespacharWsp").onclick = function() {
   const texto = generarTextoReporteMarcacion();
   window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
-  programarBorradoFotoTemporalFirebase();
 };
 
 document.getElementById("btnDespacharTg").onclick = function() {
   const texto = generarTextoReporteMarcacion();
   window.open("https://t.me/share/url?url=" + encodeURIComponent("https://mapa.local") + "&text=" + encodeURIComponent(texto), "_blank");
-  programarBorradoFotoTemporalFirebase();
 };
 
 document.getElementById("btnDespacharSms").onclick = function() {
   const texto = generarTextoReporteMarcacion();
   window.open("sms:?body=" + encodeURIComponent(texto), "_blank");
-  programarBorradoFotoTemporalFirebase();
 };
 
 document.getElementById("btnDespacharCopy").onclick = function() {
@@ -1848,7 +1850,6 @@ const statusSync = document.getElementById("indicadorSyncStatus");
 const urlParams = new URLSearchParams(window.location.search);
 let endpointGuardado = urlParams.get("db") || localStorage.getItem("fbUrlAdmin") || "https://mapa-ef4d1-default-rtdb.firebaseio.com/";
 
-// FUNCIÓN PARA DIBUJAR MARCADORES SI EXISTE EL GRUPO DE CLUSTER
 function renderizarClusterAbonados(lista) {
   if (!clusterAbonadosIndex) return;
   clusterAbonadosIndex.clearLayers();
