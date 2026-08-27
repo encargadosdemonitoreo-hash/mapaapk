@@ -12,4 +12,4 @@ url_webhook=https://api.tuempresa.com/v1/mapa
 api_key=IONRAY
 
 # Versión activa del sistema / App
-version_app=1.0.11
+version_app=1.0.12
