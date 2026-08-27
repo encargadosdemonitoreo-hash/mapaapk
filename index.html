@@ -58,7 +58,7 @@ body {
 body.modo-consulta-manual #map { cursor: crosshair !important; }
 
 /* ESCALADO DINÁMICO CONTROLADO DE TEXTO */
-.panel, .login-card, .burbuja-marcacion, .leaflet-popup-content, .sugerencia-item, .historial-item, input, select, button {
+.panel, .login-card, .burbuja-marcacion, .leaflet-popup-content, .sugerencia-item, .historial-item, input, select, button, .modal-marcacion-card {
   font-size: calc(1em * var(--factor-texto)) !important;
 }
 
@@ -215,7 +215,7 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
   filter: brightness(0) invert(1) drop-shadow(0px 2px 5px rgba(0,0,0,0.8));
 }
 
-/* BOTÓN FLOTANTE BRÚJULA */
+/* BOTÓN FLOTANTE BRÚJULA Y BARRAS FLOTANTES */
 #btnBrujula {
   position: fixed;
   bottom: 50px;
@@ -246,6 +246,36 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
   display: inline-block;
   transition: transform 0.1s ease-out;
   font-size: 14px;
+}
+
+/* BOTÓN FLOTANTE DE NUEVA MARCACIÓN (EXCLUSIVO PARA VERIFICADOR Y ADMIN) */
+#btnNuevaMarcacionFlotante {
+  position: fixed;
+  bottom: 95px;
+  right: 12px;
+  z-index: 5000;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  border: 1px solid #34d399;
+  border-radius: 30px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+#btnNuevaMarcacionFlotante:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.65);
+}
+body.perfil-verificador #btnNuevaMarcacionFlotante,
+body.perfil-ionray #btnNuevaMarcacionFlotante {
+  display: flex !important;
 }
 
 /* =========================================================
@@ -650,6 +680,135 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 .btn-opcion-escala.activo {
   background: #1a73e8; color: #ffffff; border-color: #1557b0;
 }
+
+/* =========================================================
+   MODAL TÁCTICO DE NUEVA MARCACIÓN CON FOTO
+========================================================= */
+#modalNuevaMarcacion {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+#modalNuevaMarcacion.oculto { display: none !important; }
+
+.modal-marcacion-card {
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.modal-header-tactico {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+.modal-titulo-tactico {
+  font-weight: 800;
+  font-size: 15px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-grupo-tactico {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+.form-label-tactico {
+  font-weight: 800;
+  font-size: 11px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-control-tactico {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 10px;
+  font-weight: 600;
+  outline: none;
+  box-sizing: border-box;
+  background: #f8fafc;
+}
+.form-control-tactico:focus {
+  border-color: #10b981;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.box-preview-foto {
+  width: 100%;
+  max-height: 180px;
+  border-radius: 12px;
+  border: 2px dashed #cbd5e0;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-top: 4px;
+  position: relative;
+}
+.img-preview-tactica {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.grid-despacho-multicanal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+.btn-despacho {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 11px;
+  border: 0;
+  cursor: pointer;
+  color: #ffffff;
+  transition: transform 0.15s, filter 0.15s;
+}
+.btn-despacho:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-despacho-share { grid-column: span 2; background: linear-gradient(135deg, #10b981, #059669); }
+.btn-despacho-wsp { background: #25D366; }
+.btn-despacho-tg { background: #0088cc; }
+.btn-despacho-sms { background: #475569; }
+.btn-despacho-copy { background: #8e24aa; }
 </style>
 </head>
 <body class="perfil-invitado">
@@ -667,6 +826,11 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <button id="btnBrujula" type="button" title="Activar orientación táctica">
   <span class="aguja-brujula" id="agujaBrujula">🧭</span> 
   <span>Orientación</span>
+</button>
+
+<!-- BOTÓN FLOTANTE NUEVA MARCACIÓN DESDE TERRENO -->
+<button id="btnNuevaMarcacionFlotante" type="button" title="Registrar marcación en terreno">
+  <span>➕ Nueva Marcación / AB</span>
 </button>
 
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
@@ -726,6 +890,83 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 
       <button type="submit" style="width:100%; min-height:42px; background:linear-gradient(135deg, #1d4ed8, #2563eb); color:#fff; font-weight:800; border:0; border-radius:12px; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.35);">✔ Confirmar Perfil</button>
       <button type="button" id="btnCerrarLogin" style="width:100%; min-height:34px; margin-top:6px; background:transparent; color:#64748b; font-weight:700; border:0; cursor:pointer;">Cancelar</button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL TÁCTICO DE NUEVA MARCACIÓN EN TERRENO CON FOTO -->
+<div id="modalNuevaMarcacion" class="oculto">
+  <div class="modal-marcacion-card">
+    <div class="modal-header-tactico">
+      <div class="modal-titulo-tactico">
+        <span>📍</span>
+        <span>NUEVA MARCACIÓN EN TERRENO</span>
+      </div>
+      <button type="button" id="btnCerrarModalMarcacion" style="background:transparent; border:0; font-size:18px; cursor:pointer; color:#64748b;">✕</button>
+    </div>
+
+    <form id="formMarcacionTerreno" onsubmit="return false;">
+      <div class="form-grupo-tactico">
+        <label class="form-label-tactico">🏢 N° de Abonado / Identificador:</label>
+        <input type="text" id="mrcNumAB" class="form-control-tactico" placeholder="Ej: 1045 u Opcional">
+      </div>
+
+      <div class="form-grupo-tactico">
+        <label class="form-label-tactico">📍 Dirección / Esquina:</label>
+        <input type="text" id="mrcDireccion" class="form-control-tactico" placeholder="Calle y altura o intersección">
+      </div>
+
+      <div class="form-grupo-tactico">
+        <label class="form-label-tactico">🏙️ Localidad / Partido:</label>
+        <input type="text" id="mrcLocalidad" class="form-control-tactico" placeholder="Ej: Morón, San Justo, etc.">
+      </div>
+
+      <div class="form-grupo-tactico">
+        <label class="form-label-tactico">🗺️ Observaciones / Cómo Llegar:</label>
+        <textarea id="mrcComoLlegar" class="form-control-tactico" style="min-height:55px; resize:vertical;" placeholder="Portón azul, timbre 2B, perro en el patio..."></textarea>
+      </div>
+
+      <div class="form-grupo-tactico">
+        <label class="form-label-tactico">🌐 Coordenadas GPS:</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="mrcCoords" class="form-control-tactico" placeholder="Latitud, Longitud" readonly style="background:#e2e8f0; flex:1;">
+          <button type="button" id="btnCapturarGPSModal" class="btn-input-accion" style="background:#10b981; color:#fff; font-size:11px;" title="Capturar GPS actual">📍 GPS</button>
+          <button type="button" id="btnMarcarMapaModal" class="btn-input-accion" style="background:#3b82f6; color:#fff; font-size:11px;" title="Elegir en mapa">🎯 Mapa</button>
+        </div>
+      </div>
+
+      <!-- ADJUNTO Y CAPTURA DE FOTO EN VIVO -->
+      <div class="form-grupo-tactico">
+        <label class="form-label-tactico">📸 Foto de Fachada / Entorno:</label>
+        <input type="file" id="inputFotoCamara" accept="image/*" capture="environment" style="display:none;">
+        <button type="button" id="btnTomarFoto" class="btn-accion-secundario" style="width:100%; min-height:38px; background:#eff6ff; border-color:#93c5fd; color:#1d4ed8;">
+          📷 Tomar / Adjuntar Foto
+        </button>
+        
+        <div class="box-preview-foto" id="boxPreviewFoto">
+          <span id="txtSinFoto" style="font-size:11px; color:#94a3b8; font-weight:700;">Sin foto capturada</span>
+          <img id="imgPreviewMarcacion" class="img-preview-tactica" alt="Previsualización">
+        </div>
+      </div>
+
+      <!-- BOTONERA DE DESPACHO DIRECTO MULTICANAL -->
+      <div class="grid-despacho-multicanal">
+        <button type="button" id="btnDespacharShare" class="btn-despacho btn-despacho-share">
+          📲 Enviar Nativo (Foto + Datos)
+        </button>
+        <button type="button" id="btnDespacharWsp" class="btn-despacho btn-despacho-wsp">
+          💬 WhatsApp
+        </button>
+        <button type="button" id="btnDespacharTg" class="btn-despacho btn-despacho-tg">
+          ✈️ Telegram
+        </button>
+        <button type="button" id="btnDespacharSms" class="btn-despacho btn-despacho-sms">
+          📱 SMS Texto
+        </button>
+        <button type="button" id="btnDespacharCopy" class="btn-despacho btn-despacho-copy">
+          📋 Copiar Ficha
+        </button>
+      </div>
     </form>
   </div>
 </div>
@@ -1126,6 +1367,155 @@ document.getElementById("formLogin").onsubmit = function(e){
     loginOverlay.classList.add("oculto");
     if (inputPwd) inputPwd.value = "";
   }
+};
+
+/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO */
+const modalNuevaMarcacion = document.getElementById("modalNuevaMarcacion");
+const btnNuevaMarcacionFlotante = document.getElementById("btnNuevaMarcacionFlotante");
+const btnCerrarModalMarcacion = document.getElementById("btnCerrarModalMarcacion");
+
+const mrcNumAB = document.getElementById("mrcNumAB");
+const mrcDireccion = document.getElementById("mrcDireccion");
+const mrcLocalidad = document.getElementById("mrcLocalidad");
+const mrcComoLlegar = document.getElementById("mrcComoLlegar");
+const mrcCoords = document.getElementById("mrcCoords");
+
+const inputFotoCamara = document.getElementById("inputFotoCamara");
+const btnTomarFoto = document.getElementById("btnTomarFoto");
+const imgPreviewMarcacion = document.getElementById("imgPreviewMarcacion");
+const txtSinFoto = document.getElementById("txtSinFoto");
+
+let archivoFotoBinario = null;
+let seleccionandoPuntoEnMapaModal = false;
+
+btnNuevaMarcacionFlotante.onclick = function() {
+  modalNuevaMarcacion.classList.remove("oculto");
+};
+
+btnCerrarModalMarcacion.onclick = function() {
+  modalNuevaMarcacion.classList.add("oculto");
+};
+
+document.getElementById("btnCapturarGPSModal").onclick = function() {
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+    mrcCoords.value = lat.toFixed(5) + ", " + lon.toFixed(5);
+    
+    if (!mrcDireccion.value.trim()) {
+      const resData = await resolverDireccionYAltura(lat, lon);
+      mrcDireccion.value = resData.direccion || "";
+      if (resData.entreCalles && !mrcLocalidad.value.trim()) {
+        mrcLocalidad.value = resData.entreCalles;
+      }
+    }
+  }, () => alert("No se pudo obtener la posición GPS."));
+};
+
+document.getElementById("btnMarcarMapaModal").onclick = function() {
+  modalNuevaMarcacion.classList.add("oculto");
+  seleccionandoPuntoEnMapaModal = true;
+  alert("🎯 Tocá cualquier punto del mapa para establecer las coordenadas.");
+};
+
+map.on("click", async function(e) {
+  if (seleccionandoPuntoEnMapaModal) {
+    seleccionandoPuntoEnMapaModal = false;
+    const lat = e.latlng.lat;
+    const lon = e.latlng.lng;
+    mrcCoords.value = lat.toFixed(5) + ", " + lon.toFixed(5);
+    
+    const resData = await resolverDireccionYAltura(lat, lon);
+    mrcDireccion.value = resData.direccion || "";
+    if (resData.entreCalles && !mrcLocalidad.value.trim()) {
+      mrcLocalidad.value = resData.entreCalles;
+    }
+    modalNuevaMarcacion.classList.remove("oculto");
+  }
+});
+
+btnTomarFoto.onclick = function() {
+  inputFotoCamara.click();
+};
+
+inputFotoCamara.onchange = function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    archivoFotoBinario = file;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      imgPreviewMarcacion.src = evt.target.result;
+      imgPreviewMarcacion.style.display = "block";
+      txtSinFoto.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+function generarTextoReporteMarcacion() {
+  const ab = mrcNumAB.value.trim() || "S/D";
+  const dir = mrcDireccion.value.trim() || "S/D";
+  const loc = mrcLocalidad.value.trim() || "S/D";
+  const lleg = mrcComoLlegar.value.trim() || "Sin observaciones adicionales";
+  const coords = mrcCoords.value.trim() || "S/D";
+
+  let urlWaze = "https://waze.com/ul?navigate=yes";
+  let urlMaps = "https://www.google.com/maps";
+
+  if (coords !== "S/D" && coords.includes(",")) {
+    const p = coords.split(",");
+    const cLat = p[0].trim();
+    const cLon = p[1].trim();
+    urlWaze = "https://waze.com/ul?ll=" + cLat + "," + cLon + "&navigate=yes";
+    urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + cLat + "," + cLon + "&travelmode=driving";
+  }
+
+  return "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
+         "🏢 *N° AB:* " + ab + "\n" +
+         "📍 *Dirección:* " + dir + "\n" +
+         "🏙️ *Localidad:* " + loc + "\n" +
+         "🗺️ *Cómo Llegar:* " + lleg + "\n\n" +
+         "🌐 *Coordenadas:* " + coords + "\n" +
+         "🚙 *Waze:* " + urlWaze + "\n" +
+         "🗺️ *Maps:* " + urlMaps;
+}
+
+/* DESPACHO MULTICANAL */
+document.getElementById("btnDespacharShare").onclick = async function() {
+  const texto = generarTextoReporteMarcacion();
+  if (navigator.share) {
+    try {
+      const shareData = { title: "Marcación en Terreno", text: texto };
+      if (archivoFotoBinario) {
+        shareData.files = [archivoFotoBinario];
+      }
+      await navigator.share(shareData);
+    } catch (err) {
+      if (err.name !== "AbortError") window.copiarFichaMapa(texto);
+    }
+  } else {
+    window.copiarFichaMapa(texto);
+  }
+};
+
+document.getElementById("btnDespacharWsp").onclick = function() {
+  const texto = generarTextoReporteMarcacion();
+  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
+};
+
+document.getElementById("btnDespacharTg").onclick = function() {
+  const texto = generarTextoReporteMarcacion();
+  window.open("https://t.me/share/url?url=" + encodeURIComponent("https://mapa.local") + "&text=" + encodeURIComponent(texto), "_blank");
+};
+
+document.getElementById("btnDespacharSms").onclick = function() {
+  const texto = generarTextoReporteMarcacion();
+  window.open("sms:?body=" + encodeURIComponent(texto), "_blank");
+};
+
+document.getElementById("btnDespacharCopy").onclick = function() {
+  const texto = generarTextoReporteMarcacion();
+  window.copiarFichaMapa(texto);
 };
 
 /* HISTORIAL */
