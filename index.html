@@ -804,11 +804,10 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
   transition: transform 0.15s, filter 0.15s;
 }
 .btn-despacho:hover { filter: brightness(1.1); transform: translateY(-1px); }
-.btn-despacho-share { grid-column: span 2; background: linear-gradient(135deg, #10b981, #059669); }
-.btn-despacho-wsp { background: #25D366; }
+.btn-despacho-wsp { grid-column: span 2; background: #25D366; font-size: 12px; }
 .btn-despacho-tg { background: #0088cc; }
-.btn-despacho-sms { background: #475569; }
-.btn-despacho-copy { background: #8e24aa; }
+.btn-despacho-mail { background: #ea4335; }
+.btn-despacho-copy { grid-column: span 2; background: #8e24aa; }
 
 .box-acciones-modal {
   display: flex;
@@ -864,7 +863,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.7</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.8</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -988,22 +987,19 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
         </div>
       </div>
 
-      <!-- BOTONERA DE DESPACHO DIRECTO MULTICANAL -->
+      <!-- BOTONERA DE DESPACHO LIMPIA (WHATSAPP, TELEGRAM, MAIL, COPIAR) -->
       <div class="grid-despacho-multicanal">
-        <button type="button" id="btnDespacharShare" class="btn-despacho btn-despacho-share">
-          📲 Enviar Nativo (Foto + Datos)
-        </button>
         <button type="button" id="btnDespacharWsp" class="btn-despacho btn-despacho-wsp">
-          💬 WhatsApp
+          💬 Enviar por WhatsApp (con Foto)
         </button>
         <button type="button" id="btnDespacharTg" class="btn-despacho btn-despacho-tg">
           ✈️ Telegram
         </button>
-        <button type="button" id="btnDespacharSms" class="btn-despacho btn-despacho-sms">
-          📱 SMS Texto
+        <button type="button" id="btnDespacharMail" class="btn-despacho btn-despacho-mail">
+          ✉️ Correo Email
         </button>
         <button type="button" id="btnDespacharCopy" class="btn-despacho btn-despacho-copy">
-          📋 Copiar Ficha
+          📋 Copiar Ficha de Texto
         </button>
       </div>
 
@@ -1112,7 +1108,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 /* =========================================================
    SISTEMA AUTO-LIMPIEZA DE CACHÉ Y AUTO-UPDATE TRANSPARENTE
 ========================================================= */
-const APP_BUILD_VERSION = "1.0.7"; 
+const APP_BUILD_VERSION = "1.0.8"; 
 
 (async function autoLimpiezaCacheApp() {
   const versionGuardada = localStorage.getItem("app_build_version");
@@ -1178,7 +1174,7 @@ const API_KEY_IMGBB = "80c7820682f7f0afce5eab1c5df38c33";
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.0.7";
+const VERSION_BASE = "1.0.8";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1544,10 +1540,10 @@ async function subirFotoAImgBB(base64Pure) {
     const data = await res.json();
 
     if (data && data.success) {
-      urlFotoDirectaImgBB = data.data.url; // Enlace .jpg directo
+      urlFotoDirectaImgBB = data.data.url;
       if (lblEstadoSubidaFoto) {
         lblEstadoSubidaFoto.style.color = "#059669";
-        lblEstadoSubidaFoto.textContent = "🟢 Foto lista con vista previa para WhatsApp";
+        lblEstadoSubidaFoto.textContent = "🟢 Foto procesada y lista para despacho";
       }
     } else {
       throw new Error();
@@ -1567,13 +1563,11 @@ function procesarArchivoImagen(file) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      // Formato cuadrado (1:1) optimizado para previsualizaciones de WhatsApp sin recortes
       const size = 800;
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext("2d");
 
-      // Recorte centrado (crop-to-fit 1:1)
       let minDim = Math.min(img.width, img.height);
       let sx = (img.width - minDim) / 2;
       let sy = (img.height - minDim) / 2;
@@ -1602,8 +1596,7 @@ function procesarArchivoImagen(file) {
 inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
-// REORGANIZACIÓN TÁCTICA DEL TEXTO: FOTO ARRIBA DEL TODO EN PRIMERA LÍNEA
-function generarTextoReporteMarcacion() {
+function generarTextoReporteMarcacion(incluirFotoLink = true) {
   const ab = mrcNumAB.value.trim() || "S/D";
   const dir = mrcDireccion.value.trim() || "S/D";
   const loc = mrcLocalidad.value.trim() || "S/D";
@@ -1621,7 +1614,7 @@ function generarTextoReporteMarcacion() {
     urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + cLat + "," + cLon + "&travelmode=driving";
   }
 
-  let txtFotoLink = urlFotoDirectaImgBB ? "📸 *FOTO FACHADA:* " + urlFotoDirectaImgBB + "\n\n" : "";
+  let txtFotoLink = (incluirFotoLink && urlFotoDirectaImgBB) ? "📸 *FOTO FACHADA:* " + urlFotoDirectaImgBB + "\n\n" : "";
 
   return txtFotoLink +
          "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
@@ -1634,51 +1627,49 @@ function generarTextoReporteMarcacion() {
          "🗺️ *Maps:* " + urlMaps;
 }
 
-/* DESPACHO MULTICANAL CON COMPARTIR NATIVO OPTIMIZADO */
-document.getElementById("btnDespacharShare").onclick = async function() {
-  const texto = generarTextoReporteMarcacion();
-  
-  if (navigator.share) {
-    try {
-      const shareData = { title: "Marcación en Terreno", text: texto };
-      
-      if (archivoFotoBinario) {
-        if (navigator.canShare && navigator.canShare({ files: [archivoFotoBinario] })) {
-          shareData.files = [archivoFotoBinario];
-        }
-      }
-      
-      await navigator.share(shareData);
-    } catch (err) {
-      if (err.name !== "AbortError") window.copiarFichaMapa(texto);
-    }
-  } else {
-    window.copiarFichaMapa(texto);
-  }
-};
+/* ENVÍO PRINCIPAL POR WHATSAPP (ADJUNTO NATIVO CON FOTO Y PIE DE TEXTO) */
+document.getElementById("btnDespacharWsp").onclick = async function() {
+  const textoLimpio = generarTextoReporteMarcacion(false);
+  const textoConLink = generarTextoReporteMarcacion(true);
 
-document.getElementById("btnDespacharWsp").onclick = function() {
-  const texto = generarTextoReporteMarcacion();
-  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
+  if (navigator.share && archivoFotoBinario) {
+    try {
+      const shareData = {
+        text: textoLimpio,
+        files: [archivoFotoBinario]
+      };
+      if (navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (err) {
+      if (err.name === "AbortError") return;
+    }
+  }
+
+  // Respaldo Web API si no se usa compartir nativo
+  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(textoConLink), "_blank");
 };
 
 document.getElementById("btnDespacharTg").onclick = function() {
-  const texto = generarTextoReporteMarcacion();
+  const texto = generarTextoReporteMarcacion(true);
   window.open("https://t.me/share/url?url=" + encodeURIComponent("https://mapa.local") + "&text=" + encodeURIComponent(texto), "_blank");
 };
 
-document.getElementById("btnDespacharSms").onclick = function() {
-  const texto = generarTextoReporteMarcacion();
-  window.open("sms:?body=" + encodeURIComponent(texto), "_blank");
+document.getElementById("btnDespacharMail").onclick = function() {
+  const ab = mrcNumAB.value.trim() || "S/D";
+  const asunto = encodeURIComponent("🚨 Reporte de Marcación / AB " + ab);
+  const cuerpo = encodeURIComponent(generarTextoReporteMarcacion(true));
+  window.location.href = "mailto:?subject=" + asunto + "&body=" + cuerpo;
 };
 
 document.getElementById("btnDespacharCopy").onclick = function() {
-  const texto = generarTextoReporteMarcacion();
+  const texto = generarTextoReporteMarcacion(true);
   window.copiarFichaMapa(texto);
 };
 
 document.getElementById("btnFinalizarModal").onclick = function() {
-  document.getElementById("btnDespacharShare").click();
+  document.getElementById("btnDespacharWsp").click();
   setTimeout(cerrarYLimpiarModal, 800);
 };
 
