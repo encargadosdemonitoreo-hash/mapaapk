@@ -861,7 +861,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.1.0</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.1.1</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -1099,7 +1099,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.1.0";
+const VERSION_BASE = "1.1.1";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1141,6 +1141,20 @@ document.getElementById("mapaEstiloConsulta").onchange = function(){
   Object.values(capasBase).forEach(c => map.removeLayer(c));
   if(capasBase[this.value]) capasBase[this.value].addTo(map);
 };
+
+/* FUNCIÓN DE REVERSE GEOCODING PARA CONVERTIR COORDENADAS A DIRECCIÓN */
+async function resolverDireccionYAltura(lat, lon) {
+  try {
+    const url = "https://nominatim.openstreetmap.org/reverse?" + new URLSearchParams({ lat: lat, lon: lon, format: "json", addressdetails: "1", zoom: "18", "accept-language": "es" });
+    const r = await fetch(url, { headers: { "User-Agent": "MapaConsultaZoneApp/3.0" } });
+    const data = await r.json();
+    if(!data || !data.address) return { direccion: lat.toFixed(5) + ", " + lon.toFixed(5), entreCalles: "" };
+    const a = data.address, calle = a.road || a.pedestrian || "Ubicación táctica", num = a.house_number || "s/n";
+    let dirTexto = calle + " " + num;
+    if (a.city || a.town) dirTexto += ", " + (a.city || a.town);
+    return { direccion: dirTexto, entreCalles: a.neighbourhood || a.suburb || "" };
+  } catch(err) { return { direccion: lat.toFixed(5) + ", " + lon.toFixed(5), entreCalles: "" }; }
+}
 
 /* BRÚJULA */
 let brujulaActiva = false;
@@ -1358,7 +1372,7 @@ document.getElementById("formLogin").onsubmit = function(e){
   }
 };
 
-/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO */
+/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO CON CAPTURA DE GPS */
 const modalNuevaMarcacion = document.getElementById("modalNuevaMarcacion");
 const btnNuevaMarcacionFlotante = document.getElementById("btnNuevaMarcacionFlotante");
 
@@ -1401,6 +1415,7 @@ document.querySelectorAll(".btnCerrarModalGlobal").forEach(btn => {
   btn.onclick = cerrarYLimpiarModal;
 });
 
+/* CAPTURA DE GPS RESTAURADA EN EL MODAL DE NUEVA MARCACIÓN */
 document.getElementById("btnCapturarGPSModal").onclick = function() {
   navigator.geolocation.getCurrentPosition(async pos => {
     const lat = pos.coords.latitude;
@@ -1414,7 +1429,7 @@ document.getElementById("btnCapturarGPSModal").onclick = function() {
         mrcLocalidad.value = resData.entreCalles;
       }
     }
-  }, () => alert("No se pudo obtener la posición GPS."));
+  }, () => alert("No se pudo obtener la posición GPS. Asegurate de otorgar permisos de ubicación."));
 };
 
 document.getElementById("btnMarcarMapaModal").onclick = function() {
@@ -1869,19 +1884,6 @@ document.getElementById("btnLimpiarAB").onclick = () => {
 /* DIRECCIONES */
 const input = document.getElementById("direccion");
 const sugBox = document.getElementById("sugerenciasConsulta");
-
-async function resolverDireccionYAltura(lat, lon) {
-  try {
-    const url = "https://nominatim.openstreetmap.org/reverse?" + new URLSearchParams({ lat: lat, lon: lon, format: "json", addressdetails: "1", zoom: "18", "accept-language": "es" });
-    const r = await fetch(url, { headers: { "User-Agent": "MapaConsultaZoneApp/3.0" } });
-    const data = await r.json();
-    if(!data || !data.address) return { direccion: lat.toFixed(5) + ", " + lon.toFixed(5), entreCalles: "" };
-    const a = data.address, calle = a.road || a.pedestrian || "Ubicación táctica", num = a.house_number || "s/n";
-    let dirTexto = calle + " " + num;
-    if (a.city || a.town) dirTexto += ", " + (a.city || a.town);
-    return { direccion: dirTexto, entreCalles: a.neighbourhood || a.suburb || "" };
-  } catch(err) { return { direccion: lat.toFixed(5) + ", " + lon.toFixed(5), entreCalles: "" }; }
-}
 
 input.oninput = function() {
   const q = input.value.trim().toUpperCase();
