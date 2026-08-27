@@ -10,7 +10,7 @@
   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.gstatic.com;
   style-src 'self' 'unsafe-inline' https://unpkg.com;
   img-src 'self' data: blob: https: http:;
-  connect-src 'self' https: wss: http: https://api.imgbb.com https://i.ibb.co https://logos-87508-default-rtdb.firebaseio.com https://mapa-ef4d1-default-rtdb.firebaseio.com;
+  connect-src 'self' https: wss: http: https://logos-87508-default-rtdb.firebaseio.com https://mapa-ef4d1-default-rtdb.firebaseio.com;
   font-src 'self' data: https:;
 ">
 
@@ -32,7 +32,6 @@
 <!-- ÍCONO EMPRESARIAL Y MANIFEST EMBEBIDO -->
 <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/HryFRg8G/logo.png">
 <link rel="apple-touch-icon" href="https://i.postimg.cc/HryFRg8G/logo.png">
-<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1lc2EgZGUgQ29uc3VsdGEgZGUgQ29iZXJ0dXJhIiwKICAic2hvcnRfbmFtZSI6ICJDb2JlcnR1cmEiLAogICJzdGFydF91cmwiOiAiaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFhNzNlOCIsCiAgInRoZW1lX2NvbG9yIjogIiMxYTczZTgiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2kucG9zdGltZy5jYy9IcnlGUmc4Ry9sb2dvLnBuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIogICAgfQogIF0KfQ==">
 
 <style>
 /* =========================================================
@@ -794,7 +793,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 42px;
+  min-height: 44px;
   border-radius: 12px;
   font-weight: 800;
   font-size: 11px;
@@ -806,8 +805,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 .btn-despacho:hover { filter: brightness(1.1); transform: translateY(-1px); }
 .btn-despacho-wsp { grid-column: span 2; background: #25D366; font-size: 12px; }
 .btn-despacho-tg { background: #0088cc; }
-.btn-despacho-mail { background: #ea4335; }
-.btn-despacho-copy { grid-column: span 2; background: #8e24aa; }
+.btn-despacho-copy { background: #8e24aa; }
 
 .box-acciones-modal {
   display: flex;
@@ -838,14 +836,14 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 }
 </style>
 </head>
-<body class="perfil-invitado">
+<body class="perfil-verificador">
 
 <!-- PANTALLA DE CARGA ANIMADA -->
 <div id="splashScreen">
   <div class="splash-container">
     <img src="https://i.postimg.cc/HryFRg8G/logo.png" alt="Cargando..." class="splash-logo" onError="this.style.display='none';">
     <div class="splash-bar-bg"><div class="splash-bar-fill"></div></div>
-    <div class="splash-txt" id="txtSplashEstado">Sincronizando coberturas...</div>
+    <div class="splash-txt">Cargando Mapa...</div>
   </div>
 </div>
 
@@ -863,7 +861,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.0.9</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.1.0</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -962,18 +960,16 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
         </div>
       </div>
 
-      <!-- ADJUNTO Y CAPTURA DE FOTO CON ESTADO DE SUBIDA TEMPORAL -->
       <div class="form-grupo-tactico">
-        <label class="form-label-tactico">📸 Foto Fachada (Nube ImgBB):</label>
-        
+        <label class="form-label-tactico">📸 Foto Fachada:</label>
         <input type="file" id="inputFotoCamaraNativa" accept="image/*" capture="environment" style="display:none;">
         <input type="file" id="inputFotoGaleria" accept="image/*" style="display:none;">
 
         <div style="display:flex; gap:6px;">
-          <button type="button" id="btnTomarFotoDirecta" class="btn-accion-secundario" style="background:#eff6ff; border-color:#93c5fd; color:#1d4ed8;">
-            📸 Tomar Foto
+          <button type="button" id="btnTomarFotoDirecta" class="btn-accion-secundario" style="background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; flex:1; height:36px; font-weight:800; border-radius:8px;">
+            📸 Cámara
           </button>
-          <button type="button" id="btnAbrirGaleria" class="btn-accion-secundario" style="background:#f8fafc; border-color:#cbd5e0; color:#334155;">
+          <button type="button" id="btnAbrirGaleria" class="btn-accion-secundario" style="background:#f8fafc; border-color:#cbd5e0; color:#334155; flex:1; height:36px; font-weight:800; border-radius:8px;">
             📁 Galería
           </button>
         </div>
@@ -982,28 +978,23 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
           <span id="txtSinFoto" style="font-size:11px; color:#94a3b8; font-weight:700;">Sin foto capturada</span>
           <img id="imgPreviewMarcacion" class="img-preview-tactica" alt="Previsualización">
         </div>
-        <div id="lblEstadoSubidaFoto" style="font-size:10px; font-weight:800; color:#059669; margin-top:2px; display:none;">
-          ⚡ Foto procesada y lista para despacho
+        <div id="lblEstadoSubidaFoto" style="font-size:10px; font-weight:800; color:#059669; margin-top:4px; display:none;">
+          🟢 Foto lista para adjuntar en WhatsApp
         </div>
       </div>
 
-      <!-- BOTONERA DE DESPACHO LIMPIA (WHATSAPP, TELEGRAM, MAIL, COPIAR) -->
       <div class="grid-despacho-multicanal">
         <button type="button" id="btnDespacharWsp" class="btn-despacho btn-despacho-wsp">
-          💬 Enviar por WhatsApp (con Foto)
+          💬 Enviar por WhatsApp (Foto + Datos)
         </button>
         <button type="button" id="btnDespacharTg" class="btn-despacho btn-despacho-tg">
           ✈️ Telegram
-        </button>
-        <button type="button" id="btnDespacharMail" class="btn-despacho btn-despacho-mail">
-          ✉️ Correo Email
         </button>
         <button type="button" id="btnDespacharCopy" class="btn-despacho btn-despacho-copy">
           📋 Copiar Ficha de Texto
         </button>
       </div>
 
-      <!-- BOTONES EXPLÍCITOS DE CONTROL -->
       <div class="box-acciones-modal">
         <button type="button" class="btn-modal-cancelar btnCerrarModalGlobal">❌ Cancelar</button>
         <button type="button" id="btnFinalizarModal" class="btn-modal-finalizar">✔ Finalizar y Despachar</button>
@@ -1105,76 +1096,10 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* =========================================================
-   SISTEMA AUTO-LIMPIEZA DE CACHÉ Y AUTO-UPDATE TRANSPARENTE
-========================================================= */
-const APP_BUILD_VERSION = "1.0.9"; 
-
-(async function autoLimpiezaCacheApp() {
-  const versionGuardada = localStorage.getItem("app_build_version");
-  if (versionGuardada !== APP_BUILD_VERSION) {
-    if ('caches' in window) {
-      try {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(key => caches.delete(key)));
-      } catch(e) {}
-    }
-    localStorage.setItem("app_build_version", APP_BUILD_VERSION);
-    if (versionGuardada) {
-      window.location.reload(true);
-    }
-  }
-})();
-
-if ('serviceWorker' in navigator) {
-  const swCode = `
-    const CACHE_NAME = 'mapa-cobertura-v-` + APP_BUILD_VERSION + `';
-    self.addEventListener('install', e => { self.skipWaiting(); });
-    self.addEventListener('activate', e => {
-      e.waitUntil(
-        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-        .then(() => self.clients.claim())
-      );
-    });
-    self.addEventListener('fetch', e => {
-      if (e.request.method !== 'GET') return;
-      e.respondWith(
-        fetch(e.request).then(netRes => {
-          if (netRes && netRes.status === 200 && e.request.url.startsWith('http')) {
-            const clone = netRes.clone();
-            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-          }
-          return netRes;
-        }).catch(() => caches.match(e.request))
-      );
-    });
-  `;
-  const blob = new Blob([swCode], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(blob);
-
-  navigator.serviceWorker.register(swUrl + '?v=' + Date.now()).then(reg => {
-    reg.update();
-    reg.onupdatefound = () => {
-      const inst = reg.installing;
-      inst.onstatechange = () => {
-        if (inst.state === 'installed' && navigator.serviceWorker.controller) {
-          if ('caches' in window) {
-            caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-            .then(() => window.location.reload(true));
-          }
-        }
-      };
-    };
-  }).catch(() => {});
-}
-
-/* CONFIGURACIÓN IMGBB API */
-const API_KEY_IMGBB = "80c7820682f7f0afce5eab1c5df38c33";
-
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.0.9";
+const VERSION_BASE = "1.1.0";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
@@ -1186,7 +1111,7 @@ function ocultarSplashScreen() {
   }
 }
 
-setTimeout(ocultarSplashScreen, 4500);
+setTimeout(ocultarSplashScreen, 3000);
 
 const map = L.map("map", { center: [-34.6486, -58.6198], zoom: 11 });
 map.createPane('panelMarcadores').style.zIndex = 650;
@@ -1201,7 +1126,6 @@ const capasBase = {
 };
 capasBase.esriStreet.addTo(map);
 
-// CAPAS Y GRUPO DE CLUSTER SEGURO
 let clusterAbonadosIndex = null;
 if (typeof L.markerClusterGroup === "function") {
   clusterAbonadosIndex = L.markerClusterGroup({
@@ -1434,7 +1358,7 @@ document.getElementById("formLogin").onsubmit = function(e){
   }
 };
 
-/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO CON SUBIDA A IMGBB */
+/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO */
 const modalNuevaMarcacion = document.getElementById("modalNuevaMarcacion");
 const btnNuevaMarcacionFlotante = document.getElementById("btnNuevaMarcacionFlotante");
 
@@ -1451,7 +1375,6 @@ const txtSinFoto = document.getElementById("txtSinFoto");
 const lblEstadoSubidaFoto = document.getElementById("lblEstadoSubidaFoto");
 
 let archivoFotoBinario = null;
-let urlFotoDirectaImgBB = "";
 let seleccionandoPuntoEnMapaModal = false;
 
 btnNuevaMarcacionFlotante.onclick = function() {
@@ -1467,7 +1390,6 @@ function cerrarYLimpiarModal() {
   mrcCoords.value = "";
   
   archivoFotoBinario = null;
-  urlFotoDirectaImgBB = "";
   
   imgPreviewMarcacion.src = "";
   imgPreviewMarcacion.style.display = "none";
@@ -1520,42 +1442,6 @@ map.on("click", async function(e) {
 document.getElementById("btnTomarFotoDirecta").onclick = function() { inputFotoCamaraNativa.click(); };
 document.getElementById("btnAbrirGaleria").onclick = function() { inputFotoGaleria.click(); };
 
-async function subirFotoAImgBB(base64Pure) {
-  if (lblEstadoSubidaFoto) {
-    lblEstadoSubidaFoto.style.display = "block";
-    lblEstadoSubidaFoto.style.color = "#d97706";
-    lblEstadoSubidaFoto.textContent = "⏳ Subiendo foto a la nube ImgBB...";
-  }
-
-  const formData = new FormData();
-  formData.append("key", API_KEY_IMGBB);
-  formData.append("image", base64Pure);
-
-  try {
-    const res = await fetch("https://api.imgbb.com/1/upload", {
-      method: "POST",
-      body: formData
-    });
-
-    const data = await res.json();
-
-    if (data && data.success) {
-      urlFotoDirectaImgBB = data.data.url;
-      if (lblEstadoSubidaFoto) {
-        lblEstadoSubidaFoto.style.color = "#059669";
-        lblEstadoSubidaFoto.textContent = "🟢 Foto procesada y lista para despacho";
-      }
-    } else {
-      throw new Error();
-    }
-  } catch (err) {
-    if (lblEstadoSubidaFoto) {
-      lblEstadoSubidaFoto.style.color = "#dc2626";
-      lblEstadoSubidaFoto.textContent = "⚠️ Error al subir foto. Se enviará sin adjunto";
-    }
-  }
-}
-
 function procesarArchivoImagen(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -1574,17 +1460,13 @@ function procesarArchivoImagen(file) {
 
       ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
 
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-      const base64Pure = dataUrl.split(",")[1];
-
       canvas.toBlob(function(blob) {
         if (blob) {
           archivoFotoBinario = new File([blob], "foto_fachada.jpg", { type: "image/jpeg" });
           imgPreviewMarcacion.src = URL.createObjectURL(blob);
           imgPreviewMarcacion.style.display = "block";
           txtSinFoto.style.display = "none";
-
-          subirFotoAImgBB(base64Pure);
+          if (lblEstadoSubidaFoto) lblEstadoSubidaFoto.style.display = "block";
         }
       }, "image/jpeg", 0.85);
     };
@@ -1596,7 +1478,7 @@ function procesarArchivoImagen(file) {
 inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
-// TEXTO TÁCTICO LIMPIO SIN ENLACES URLS REDUNDANTES
+// TEXTO TÁCTICO LIMPIO SIN ENLACES URL
 function generarTextoReporteMarcacion() {
   const ab = mrcNumAB.value.trim() || "S/D";
   const dir = mrcDireccion.value.trim() || "S/D";
@@ -1612,14 +1494,14 @@ function generarTextoReporteMarcacion() {
          "🌐 *Coordenadas GPS:* " + coords;
 }
 
-/* ENVÍO PRINCIPAL POR WHATSAPP (ADJUNTO NATIVO CON FOTO Y PIE DE TEXTO) */
+/* ENVÍO DIRECTO NATIVO A WHATSAPP CON FICHERO BINARIO VIA NAVIGATOR.SHARE */
 document.getElementById("btnDespacharWsp").onclick = async function() {
-  const textoLimpio = generarTextoReporteMarcacion();
+  const texto = generarTextoReporteMarcacion();
 
-  if (navigator.share && archivoFotoBinario) {
+  if (archivoFotoBinario && navigator.share) {
     try {
       const shareData = {
-        text: textoLimpio,
+        text: texto,
         files: [archivoFotoBinario]
       };
       if (navigator.canShare && navigator.canShare(shareData)) {
@@ -1631,8 +1513,7 @@ document.getElementById("btnDespacharWsp").onclick = async function() {
     }
   }
 
-  // Respaldo Web API si no hay soporte de compartir archivos
-  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(textoLimpio), "_blank");
+  alert("⚠️ Este navegador o sistema operativo no permite compartir archivos directamente con aplicaciones externas. Por favor, usá el botón '📋 Copiar Ficha' para pegar el texto junto a la foto.");
 };
 
 document.getElementById("btnDespacharTg").onclick = function() {
@@ -1640,21 +1521,13 @@ document.getElementById("btnDespacharTg").onclick = function() {
   window.open("https://t.me/share/url?url=" + encodeURIComponent("https://mapa.local") + "&text=" + encodeURIComponent(texto), "_blank");
 };
 
-document.getElementById("btnDespacharMail").onclick = function() {
-  const ab = mrcNumAB.value.trim() || "S/D";
-  const asunto = encodeURIComponent("🚨 Reporte de Marcación / AB " + ab);
-  const cuerpo = encodeURIComponent(generarTextoReporteMarcacion());
-  window.location.href = "mailto:?subject=" + asunto + "&body=" + cuerpo;
-};
-
 document.getElementById("btnDespacharCopy").onclick = function() {
   const texto = generarTextoReporteMarcacion();
-  window.copiarFichaMapa(texto);
+  navigator.clipboard.writeText(texto).then(() => alert("📋 Ficha copiada al portapapeles."));
 };
 
 document.getElementById("btnFinalizarModal").onclick = function() {
   document.getElementById("btnDespacharWsp").click();
-  setTimeout(cerrarYLimpiarModal, 800);
 };
 
 /* HISTORIAL */
@@ -2250,7 +2123,10 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
     ? "google.navigation:q=" + lat + "," + lon + "&mode=d" 
     : "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
 
-  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5);
+  const urlWazeReporte = "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
+  const urlGmapsReporte = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
+
+  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5) + "\n🚙 *Waze:* " + urlWazeReporte + "\n🗺️ *Maps:* " + urlGmapsReporte;
   
   const urlWsp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(textoReporte);
 
