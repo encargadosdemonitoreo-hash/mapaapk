@@ -243,29 +243,113 @@ body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo
   font-size: 14px;
 }
 
-/* MODAL DE AUTENTICACIÓN */
+/* =========================================================
+   MODAL DE AUTENTICACIÓN CON BOTONERA TÁCTICA DE TARJETAS
+========================================================= */
 #loginOverlay { 
   position: fixed; 
   top: 0; 
   left: 0; 
   width: 100vw; 
   height: 100vh; 
-  background: rgba(15, 23, 42, 0.85); 
-  backdrop-filter: blur(12px); 
+  background: rgba(15, 23, 42, 0.88); 
+  backdrop-filter: blur(14px); 
   z-index: 10000 !important; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
 }
 #loginOverlay.oculto { display: none !important; }
+
 .login-card { 
-  width: 320px; 
+  width: 340px; 
+  max-width: 90vw;
   background: #ffffff; 
-  border-radius: 20px; 
-  padding: 24px; 
+  border-radius: 24px; 
+  padding: 24px 20px; 
   text-align: center; 
-  box-shadow: 0 20px 50px rgba(0,0,0,0.4); 
+  box-shadow: 0 25px 60px rgba(0,0,0,0.45); 
   color: #1e293b; 
+}
+
+/* BOTONERA DE PERFILES DE ACCESO */
+.grid-perfiles-tacticos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.tarjeta-perfil-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.tarjeta-perfil-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e0;
+}
+
+.tarjeta-perfil-btn.seleccionada {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.tarjeta-icono {
+  font-size: 24px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.tarjeta-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.tarjeta-titulo {
+  font-weight: 800;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.tarjeta-desc {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* BADGE INTERACTIVO EN CABECERA */
+.badge-perfil-activo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: #1a73e8;
+  color: #ffffff;
+  font-weight: 800;
+  border: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+  transition: transform 0.15s ease;
+}
+.badge-perfil-activo:hover {
+  transform: translateY(-1px);
 }
 
 /* =========================================================
@@ -603,32 +687,53 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
   <button class="btn-cyber-aplicar" id="btnAplicarParcheCyber">🚀 APLICAR PARCHE EN VIVO</button>
 </div>
 
-<!-- MODAL SELECCIÓN / AUTENTICACIÓN DE USUARIO -->
+<!-- MODAL SELECCIÓN / AUTENTICACIÓN DE USUARIO (REDISEÑO BOTONERA TÁCTICA) -->
 <div id="loginOverlay" class="oculto">
   <div class="login-card">
-    <div style="margin-bottom:12px;">
+    <div style="margin-bottom:8px;">
       <img src="https://i.postimg.cc/HryFRg8G/logo.png" alt="Logo Empresa" id="imgLogoLogin" style="max-width: 170px; max-height: 75px; object-fit: contain;" onError="this.style.display='none'; document.getElementById('fallbackLogo').style.display='block';">
       <div id="fallbackLogo" style="display:none; font-size:36px;">🛡️</div>
     </div>
-    <div style="font-weight:800; font-size:16px; margin-bottom:12px;">PERFIL DE ACCESO</div>
-    
-    <div style="text-align:left; margin-bottom:10px;">
-      <label style="font-weight:800; color:#4a5568;">Seleccionar Perfil:</label>
-      <select id="selectPerfilLogin" style="width:100%; height:38px; border-radius:8px; border:1px solid #ccc; padding:0 8px; margin-top:4px;">
-        <option value="INVITADO">👤 Invitado (Vista Básica)</option>
-        <option value="VERIFICADOR">🔎 Verificador (Sin clave - AB + Mapa)</option>
-        <option value="IONRAY">👑 IONRAY (Requiere Clave - Acceso Total)</option>
-      </select>
-    </div>
+    <div style="font-weight:800; font-size:15px; color:#0f172a;">PERFIL DE ACCESO</div>
+    <div style="font-size:11px; color:#64748b; margin-top:2px;">Seleccioná la modalidad operativa:</div>
 
     <form id="formLogin" autocomplete="off">
-      <div id="boxClaveIonray" style="display:none; text-align:left; margin-bottom:10px;">
-        <label style="font-weight:800; color:#4a5568;">Contraseña IONRAY:</label>
-        <input type="password" id="pwd" placeholder="••••••••" style="width:100%; height:38px; margin-top:4px; border-radius:8px; border:1px solid #ccc; padding:0 8px; box-sizing:border-box;" autocomplete="new-password">
+      <div class="grid-perfiles-tacticos">
+        <div class="tarjeta-perfil-btn seleccionada" id="cardPerfilINVITADO" onclick="seleccionarPerfilBotonera('INVITADO')">
+          <div class="tarjeta-icono">👤</div>
+          <div class="tarjeta-info">
+            <span class="tarjeta-titulo">INVITADO</span>
+            <span class="tarjeta-desc">Consulta general de mapa y zonas</span>
+          </div>
+        </div>
+
+        <div class="tarjeta-perfil-btn" id="cardPerfilVERIFICADOR" onclick="seleccionarPerfilBotonera('VERIFICADOR')">
+          <div class="tarjeta-icono">🔎</div>
+          <div class="tarjeta-info">
+            <span class="tarjeta-titulo">VERIFICADOR</span>
+            <span class="tarjeta-desc">Búsqueda por Abonado (AB) + Mapa</span>
+          </div>
+        </div>
+
+        <div class="tarjeta-perfil-btn" id="cardPerfilIONRAY" onclick="seleccionarPerfilBotonera('IONRAY')">
+          <div class="tarjeta-icono">👑</div>
+          <div class="tarjeta-info">
+            <span class="tarjeta-titulo">IONRAY (ADMIN)</span>
+            <span class="tarjeta-desc">Acceso Total e Ir a Zona</span>
+          </div>
+        </div>
       </div>
 
-      <button type="submit" style="width:100%; min-height:40px; margin-top:8px; background:#1a73e8; color:#fff; font-weight:bold; border:0; border-radius:8px; cursor:pointer;">✔ Confirmar Perfil</button>
-      <button type="button" id="btnCerrarLogin" style="width:100%; min-height:34px; margin-top:6px; background:transparent; color:#5f6368; border:0; cursor:pointer;">Cancelar</button>
+      <!-- INPUT OCULTO PARA MANTENER LA LÓGICA DE SELECCIÓN -->
+      <input type="hidden" id="selectPerfilLogin" value="INVITADO">
+
+      <div id="boxClaveIonray" style="display:none; text-align:left; margin-bottom:12px;">
+        <label style="font-weight:800; color:#4a5568; font-size:11px;">Contraseña IONRAY:</label>
+        <input type="password" id="pwd" placeholder="••••••••" style="width:100%; height:38px; margin-top:4px; border-radius:10px; border:1px solid #cbd5e0; padding:0 10px; box-sizing:border-box;" autocomplete="new-password">
+      </div>
+
+      <button type="submit" style="width:100%; min-height:42px; background:linear-gradient(135deg, #1d4ed8, #2563eb); color:#fff; font-weight:800; border:0; border-radius:12px; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.35);">✔ Confirmar Perfil</button>
+      <button type="button" id="btnCerrarLogin" style="width:100%; min-height:34px; margin-top:6px; background:transparent; color:#64748b; font-weight:700; border:0; cursor:pointer;">Cancelar</button>
     </form>
   </div>
 </div>
@@ -648,7 +753,11 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
       <button id="btnToggleMinimizar" class="btn-toggle-panel" type="button" title="Minimizar / Expandir panel">🔼</button>
       <div style="font-weight:800;">🔎 Consulta Cobertura</div>
     </div>
-    <button id="btnToggleAuth" type="button" style="padding:6px 10px; border-radius:8px; border:1px solid #ccc; background:#f1f3f4; font-weight:bold; cursor:pointer; z-index:2100;">👤 <span id="txtUserSesion">Invitado</span></button>
+    <!-- INSIGNIA / BADGE INTERACTIVO DE SESIÓN DE USUARIO -->
+    <button id="btnToggleAuth" type="button" class="badge-perfil-activo">
+      <span id="icoUserSesion">👤</span>
+      <span id="txtUserSesion">Invitado</span>
+    </button>
   </div>
 
   <div class="busqueda">
@@ -935,16 +1044,31 @@ if (temaGuardado) {
   selectorTemaPanel.dispatchEvent(new Event("change"));
 }
 
-/* GESTIÓN DE PERFILES DE USUARIO CON MEMORIA DE SESIÓN */
+/* GESTIÓN DE PERFILES DE USUARIO CON BOTONERA TÁCTICA */
 let perfilActual = "INVITADO";
 let usuariosLocal = [];
 let historialBusquedas = [];
 
 const loginOverlay = document.getElementById("loginOverlay");
 const txtUserSesion = document.getElementById("txtUserSesion");
+const icoUserSesion = document.getElementById("icoUserSesion");
 const selectPerfilLogin = document.getElementById("selectPerfilLogin");
 const boxClaveIonray = document.getElementById("boxClaveIonray");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
+
+window.seleccionarPerfilBotonera = function(perfil) {
+  document.querySelectorAll('.tarjeta-perfil-btn').forEach(card => card.classList.remove('seleccionada'));
+  const cardSelect = document.getElementById('cardPerfil' + perfil);
+  if (cardSelect) cardSelect.classList.add('seleccionada');
+  
+  if (selectPerfilLogin) selectPerfilLogin.value = perfil;
+
+  if (perfil === "IONRAY") {
+    if (boxClaveIonray) boxClaveIonray.style.display = "block";
+  } else {
+    if (boxClaveIonray) boxClaveIonray.style.display = "none";
+  }
+};
 
 function cambiarPerfilAcceso(nuevoPerfil, guardarEnStorage = true) {
   perfilActual = nuevoPerfil;
@@ -952,13 +1076,16 @@ function cambiarPerfilAcceso(nuevoPerfil, guardarEnStorage = true) {
 
   if (nuevoPerfil === "VERIFICADOR") {
     document.body.classList.add("perfil-verificador");
-    txtUserSesion.textContent = "Verificador";
+    if (txtUserSesion) txtUserSesion.textContent = "Verificador";
+    if (icoUserSesion) icoUserSesion.textContent = "🔎";
   } else if (nuevoPerfil === "IONRAY") {
     document.body.classList.add("perfil-ionray");
-    txtUserSesion.textContent = "IONRAY (Admin)";
+    if (txtUserSesion) txtUserSesion.textContent = "IONRAY (Admin)";
+    if (icoUserSesion) icoUserSesion.textContent = "👑";
   } else {
     document.body.classList.add("perfil-invitado");
-    txtUserSesion.textContent = "Invitado";
+    if (txtUserSesion) txtUserSesion.textContent = "Invitado";
+    if (icoUserSesion) icoUserSesion.textContent = "👤";
   }
 
   if (guardarEnStorage) {
@@ -975,18 +1102,9 @@ if (perfilGuardadoMemoria) {
   loginOverlay.classList.remove("oculto");
 }
 
-selectPerfilLogin.onchange = function() {
-  if (this.value === "IONRAY") {
-    boxClaveIonray.style.display = "block";
-  } else {
-    boxClaveIonray.style.display = "none";
-  }
-};
-
 document.getElementById("btnToggleAuth").onclick = function(e){
   e.stopPropagation();
-  selectPerfilLogin.value = perfilActual;
-  selectPerfilLogin.dispatchEvent(new Event("change"));
+  seleccionarPerfilBotonera(perfilActual);
   loginOverlay.classList.remove("oculto");
 };
 
@@ -1200,7 +1318,6 @@ async function actualizarDesdeFirebase() {
     if (dataFB) {
       if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
       
-      // AJUSTE CLAVE: Convierte el objeto de abonados en lista si Firebase lo devolvió como objeto indexado
       if (dataFB.abonados) {
         abonadosLocal = Array.isArray(dataFB.abonados) ? dataFB.abonados : Object.values(dataFB.abonados);
       }
@@ -1309,6 +1426,7 @@ inputAB.oninput = function() {
         const nomAB = "AB " + ab.ab + " - " + (ab.direccion || "");
         inputAB.value = "";
         sugAB.style.display = "none";
+        colapsarPanelBusqueda();
         verificarPunto(ab.lat, ab.lon, nomAB, ab.localidad || "", ab.comoLlegar || "", ab);
       };
       sugAB.appendChild(div);
@@ -1326,6 +1444,7 @@ document.getElementById("btnBuscarAB").onclick = function() {
     const nomAB = "AB " + encontrado.ab + " - " + (encontrado.direccion || "");
     inputAB.value = "";
     sugAB.style.display = "none";
+    colapsarPanelBusqueda();
     verificarPunto(encontrado.lat, encontrado.lon, nomAB, encontrado.localidad || "", encontrado.comoLlegar || "", encontrado);
   } else {
     alert("Abonado N° " + q + " no encontrado.");
@@ -1368,6 +1487,7 @@ input.oninput = function() {
           div.onclick = async () => {
             const nomDir = c.address;
             input.value = ""; sugBox.style.display = "none";
+            colapsarPanelBusqueda();
             const resData = await resolverDireccionYAltura(c.location.y, c.location.x);
             verificarPunto(c.location.y, c.location.x, nomDir, resData.entreCalles);
           };
@@ -1378,8 +1498,32 @@ input.oninput = function() {
     }).catch(e => {});
 };
 
+document.getElementById("buscar").onclick = async function() {
+  const q = input.value.trim();
+  if (!q) return;
+  sugBox.style.display = "none";
+  colapsarPanelBusqueda();
+  
+  try {
+    const r = await fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=" + encodeURIComponent(q + ", Buenos Aires") + "&maxLocations=1");
+    const d = await r.json();
+    if (d && d.candidates && d.candidates.length > 0) {
+      const c = d.candidates[0];
+      const resData = await resolverDireccionYAltura(c.location.y, c.location.x);
+      input.value = "";
+      verificarPunto(c.location.y, c.location.x, c.address, resData.entreCalles);
+    } else {
+      alert("No se encontró la dirección especificada.");
+    }
+  } catch(e) {
+    alert("Error al realizar la búsqueda de dirección.");
+  }
+};
+
 document.getElementById("btnLimpiarInput").onclick = () => { input.value = ""; sugBox.style.display = "none"; if(marker) map.removeLayer(marker); };
+
 document.getElementById("btnGPSConsulta").onclick = function() {
+  colapsarPanelBusqueda();
   navigator.geolocation.getCurrentPosition(async pos => {
     const resData = await resolverDireccionYAltura(pos.coords.latitude, pos.coords.longitude);
     input.value = "";
@@ -1424,6 +1568,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     setTimeout(() => {
       const btnBuscar = document.getElementById("buscar");
       if (btnBuscar && inputDir.value.length > 3) {
+        colapsarPanelBusqueda();
         btnBuscar.click();
       }
     }, 1200);
