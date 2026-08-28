@@ -1404,6 +1404,13 @@ function cerrarYLimpiarModal() {
   mrcCoords.value = "";
   
   archivoFotoBinario = null;
+  window._fotoOriginal = null;
+
+  // Liberar objectURL de la preview
+  if (imgPreviewMarcacion.dataset.objectUrl) {
+    try { URL.revokeObjectURL(imgPreviewMarcacion.dataset.objectUrl); } catch(e){}
+    delete imgPreviewMarcacion.dataset.objectUrl;
+  }
   
   imgPreviewMarcacion.src = "";
   imgPreviewMarcacion.style.display = "none";
@@ -1459,33 +1466,68 @@ document.getElementById("btnAbrirGaleria").onclick = function() { inputFotoGaler
 
 function procesarArchivoImagen(file) {
   if (!file) return;
+
+  // Guardamos también el archivo original por si el share prefiere ese
+  window._fotoOriginal = file;
+
   const reader = new FileReader();
   reader.onload = function(evt) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const size = 800;
-      canvas.width = size;
-      canvas.height = size;
+      // Tamaño un poco más chico y limpio para mejor compatibilidad con share
+      const maxSize = 1024;
+      let w = img.width;
+      let h = img.height;
+
+      // Redimensionamos manteniendo proporción (mejor que forzar cuadrado para WhatsApp)
+      if (w > maxSize || h > maxSize) {
+        if (w > h) {
+          h = Math.round(h * (maxSize / w));
+          w = maxSize;
+        } else {
+          w = Math.round(w * (maxSize / h));
+          h = maxSize;
+        }
+      }
+
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext("2d");
-
-      let minDim = Math.min(img.width, img.height);
-      let sx = (img.width - minDim) / 2;
-      let sy = (img.height - minDim) / 2;
-
-      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+      ctx.drawImage(img, 0, 0, w, h);
 
       canvas.toBlob(function(blob) {
-        if (blob) {
-          archivoFotoBinario = new File([blob], "foto_fachada.jpg", { type: "image/jpeg" });
-          imgPreviewMarcacion.src = URL.createObjectURL(blob);
-          imgPreviewMarcacion.style.display = "block";
-          txtSinFoto.style.display = "none";
-          if (lblEstadoSubidaFoto) lblEstadoSubidaFoto.style.display = "block";
+        if (!blob) return;
+
+        // Creamos el File de la forma más compatible posible
+        const nombre = "foto_fachada_" + Date.now() + ".jpg";
+        archivoFotoBinario = new File([blob], nombre, {
+          type: "image/jpeg",
+          lastModified: Date.now()
+        });
+
+        // Limpiamos objectURLs anteriores si existían
+        if (imgPreviewMarcacion.dataset.objectUrl) {
+          try { URL.revokeObjectURL(imgPreviewMarcacion.dataset.objectUrl); } catch(e){}
         }
-      }, "image/jpeg", 0.85);
+        const previewUrl = URL.createObjectURL(blob);
+        imgPreviewMarcacion.dataset.objectUrl = previewUrl;
+        imgPreviewMarcacion.src = previewUrl;
+        imgPreviewMarcacion.style.display = "block";
+        txtSinFoto.style.display = "none";
+        if (lblEstadoSubidaFoto) {
+          lblEstadoSubidaFoto.style.display = "block";
+          lblEstadoSubidaFoto.textContent = "🟢 Foto lista (" + Math.round(blob.size/1024) + " KB)";
+        }
+      }, "image/jpeg", 0.82);
+    };
+    img.onerror = function() {
+      alert("No se pudo procesar la imagen. Probá con otra foto.");
     };
     img.src = evt.target.result;
+  };
+  reader.onerror = function() {
+    alert("Error al leer la foto.");
   };
   reader.readAsDataURL(file);
 }
@@ -1549,55 +1591,83 @@ document.getElementById("btnDespacharWsp").onclick = async function() {
   btn.innerHTML = "⏳ Preparando...";
   btn.disabled = true;
 
-  // 1) Intento principal: Web Share API con archivo (funciona bien en Chrome Android)
+  // ---------- INTENTO 1: Share nativo con FOTO + TEXTO ----------
   if (archivoFotoBinario && navigator.share) {
     try {
-      const shareData = {
+      const dataConFoto = {
+        files: [archivoFotoBinario],
         title: "Marcación en Terreno",
-        text: texto,
-        files: [archivoFotoBinario]
+        text: texto
       };
 
-      // Algunos navegadores no implementan canShare bien, por eso también intentamos directo
-      let sePuede = true;
-      if (navigator.canShare) {
-        sePuede = navigator.canShare(shareData);
+      // Verificamos si el sistema acepta este archivo
+      let aceptaArchivo = true;
+      if (typeof navigator.canShare === "function") {
+        aceptaArchivo = navigator.canShare({ files: [archivoFotoBinario] });
       }
 
-      if (sePuede) {
-        await navigator.share(shareData);
+      if (aceptaArchivo) {
+        await navigator.share(dataConFoto);
+        // Si llegó acá, el usuario eligió una app y se compartió
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
-        return; // Éxito, salimos
+        return;
       }
     } catch (err) {
-      // Si el usuario cancela, no mostramos error
+      if (err.name === "AbortError") {
+        // Usuario canceló el menú de compartir
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+        return;
+      }
+      console.warn("Share con archivo falló:", err.message || err);
+    }
+  }
+
+  // ---------- INTENTO 2: Share solo con el archivo (algunos Android lo prefieren) ----------
+  if (archivoFotoBinario && navigator.share) {
+    try {
+      await navigator.share({
+        files: [archivoFotoBinario],
+        title: "Foto Fachada"
+      });
+      // Si compartió solo la foto, al menos copiamos el texto para que lo pegue
+      await copiarTextoSeguro(texto);
+      btn.innerHTML = textoOriginal;
+      btn.disabled = false;
+      alert("📷 Foto compartida.\n\nEl texto de la marcación quedó copiado en el portapapeles.\nPegalo en el chat de WhatsApp.");
+      return;
+    } catch (err) {
       if (err.name === "AbortError") {
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
         return;
       }
-      // Si falla por otra razón, seguimos al plan B
-      console.warn("Share con archivo falló:", err);
     }
   }
 
-  // 2) Plan B: copiar texto + abrir WhatsApp + descargar foto para que el usuario la adjunte fácil
+  // ---------- PLAN B: No se pudo adjuntar automáticamente ----------
   await copiarTextoSeguro(texto);
-
-  // Abrimos WhatsApp con el texto ya listo
   const urlWsp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
   window.open(urlWsp, "_blank");
 
-  // Si hay foto, la descargamos automáticamente para que esté fácil de adjuntar
   if (archivoFotoBinario) {
     descargarFotoLocal();
     setTimeout(() => {
-      alert("✅ Texto copiado y WhatsApp abierto.\n\n📷 La foto se descargó en tu dispositivo.\n\nAhora en WhatsApp:\n1. Pegá el texto (ya está copiado)\n2. Adjuntá la foto que se descargó");
-    }, 600);
+      alert(
+        "⚠️ Este dispositivo no permitió adjuntar la foto automáticamente.\n\n" +
+        "✅ Se hizo lo siguiente:\n" +
+        "• Texto copiado al portapapeles\n" +
+        "• WhatsApp abierto\n" +
+        "• Foto descargada en el celular\n\n" +
+        "Ahora en WhatsApp:\n" +
+        "1. Pegá el texto\n" +
+        "2. Adjuntá la foto que se acaba de descargar"
+      );
+    }, 700);
   } else {
     setTimeout(() => {
-      alert("✅ Texto copiado y WhatsApp abierto.\n\nNo había foto para adjuntar.");
+      alert("✅ Texto copiado y WhatsApp abierto.\nNo había foto para adjuntar.");
     }, 400);
   }
 
