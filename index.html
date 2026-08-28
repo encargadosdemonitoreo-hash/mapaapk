@@ -1,2239 +1,265 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<!-- LIBERACIÓN DE PERMISOS DE RED Y RECURSOS EXTERNOS -->
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'self' 'unsafe-inline' 'unsafe-eval' data: gap: https://ssl.gstatic.com;
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.gstatic.com https://cdnjs.cloudflare.com;
-  style-src 'self' 'unsafe-inline' https://unpkg.com;
-  img-src 'self' data: blob: https: http:;
-  connect-src 'self' https: wss: http: https://logos-87508-default-rtdb.firebaseio.com https://mapa-ef4d1-default-rtdb.firebaseio.com;
-  font-src 'self' data: https:;
-">
-
-<title>Mesa de Consulta de Cobertura</title>
-
-<!-- LIBRERÍA JSPDF PARA GENERACIÓN DE FICHAS PDF EN DISPOSITIVO -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<!-- VINCULACIÓN DE ARCHIVO MANIFEST -->
-<link rel="manifest" href="manifest.json">
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-
-<!-- LIBRERÍA MARKERCLUSTER PARA MAPAS FLUIDOS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-<!-- AJUSTES EXCLUSIVOS PARA PANTALLA COMPLETA EN APK / MÓVIL & PWA -->
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cobertura">
-<meta name="theme-color" content="#1a73e8">
-
-<!-- ÍCONO EMPRESARIAL REVISADO -->
-<link rel="icon" type="image/png" sizes="192x192" href="./icono-192.png">
-<link rel="apple-touch-icon" href="./icono-192.png">
-
-<style>
+```javascript
 /* =========================================================
-   ESTILOS BASE & TIPOGRAFÍA MODERNIZADA CON ESCALADO
+   DESPACHO: FOTO JPG + TEXTO REAL
+   La APK podrá utilizar window.Android.compartirFotoYTexto()
+   cuando implementemos el puente nativo Android.
 ========================================================= */
-:root {
-  --factor-texto: 1;
-}
 
-html, body, #map { 
-  width: 100%; 
-  height: 100%; 
-  margin: 0; 
-  padding: 0; 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-  transition: background 0.3s, color 0.3s; 
-}
-
-body {
-  font-size: calc(13px * var(--factor-texto));
-}
-
-body.modo-consulta-manual #map { cursor: crosshair !important; }
-
-/* ESCALADO DINÁMICO CONTROLADO DE TEXTO */
-.panel, .login-card, .burbuja-marcacion, .leaflet-popup-content, .sugerencia-item, .historial-item, input, select, button, .modal-marcacion-card {
-  font-size: calc(1em * var(--factor-texto)) !important;
-}
-
-/* =========================================================
-   PANTALLA DE CARGA (SPLASH SCREEN CON LOGO ANIMADO)
-========================================================= */
-#splashScreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: #0f172a;
-  z-index: 20000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.5s ease, visibility 0.5s ease;
-}
-#splashScreen.oculto {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-.splash-container {
-  text-align: center;
-  padding: 20px;
-}
-.splash-logo {
-  max-width: 210px;
-  max-height: 95px;
-  object-fit: contain;
-  animation: logoGlowPulse 2s ease-in-out infinite;
-}
-@keyframes logoGlowPulse {
-  0% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)); }
-  50% { transform: scale(1.06); filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.85)); }
-  100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)); }
-}
-.splash-bar-bg {
-  width: 180px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  margin: 20px auto 10px auto;
-  overflow: hidden;
-  position: relative;
-}
-.splash-bar-fill {
-  width: 40%;
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border-radius: 4px;
-  position: absolute;
-  animation: barraInfinita 1.5s infinite ease-in-out;
-}
-@keyframes barraInfinita {
-  0% { left: -40%; }
-  100% { left: 100%; }
-}
-.splash-txt {
-  font-size: 11px;
-  font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 0.5px;
-}
-
-/* CARTEL CYBER-GLASS DE ACTUALIZACIÓN */
-#avisoUpdateCyber {
-  position: fixed;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-150%);
-  width: 90%;
-  max-width: 380px;
-  background: rgba(10, 15, 30, 0.95);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(59, 130, 246, 0.6);
-  border-radius: 16px;
-  padding: 14px 18px;
-  color: #f8fafc;
-  box-shadow: 0 0 25px rgba(59, 130, 246, 0.35), inset 0 0 15px rgba(59, 130, 246, 0.1);
-  z-index: 10001;
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-#avisoUpdateCyber.visible {
-  transform: translateX(-50%) translateY(0);
-}
-.aviso-cabecera {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-family: monospace;
-  font-size: 11px;
-  color: #60a5fa;
-  letter-spacing: 1px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 6px;
-  margin-bottom: 8px;
-}
-.aviso-titulo {
-  font-weight: 800;
-  font-size: 13px;
-  color: #ffffff;
-  margin-bottom: 2px;
-}
-.aviso-desc {
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.4;
-  margin-bottom: 12px;
-}
-.btn-cyber-aplicar {
-  width: 100%;
-  height: 36px;
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
-  border: 1px solid #60a5fa;
-  border-radius: 8px;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
-  transition: filter 0.2s;
-}
-.btn-cyber-aplicar:hover { filter: brightness(1.15); }
-.btn-cerrar-update {
-  background: transparent;
-  border: 0;
-  color: #64748b;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 0 4px;
-}
-
-/* MARCA DE AGUA FLOTANTE EN EL MAPA */
-#mapMarcaAgua {
-  position: absolute;
-  bottom: 16px;
-  left: 12px;
-  z-index: 1000;
-  pointer-events: none;
-  opacity: 0.45;
-  transition: opacity 0.2s ease, filter 0.3s ease;
-}
-#mapMarcaAgua img {
-  height: 38px;
-  width: auto;
-  filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.4));
-}
-body.modo-dark #mapMarcaAgua img, body.modo-tactico #mapMarcaAgua img, body.modo-sol #mapMarcaAgua img {
-  filter: brightness(0) invert(1) drop-shadow(0px 2px 5px rgba(0,0,0,0.8));
-}
-
-/* BOTÓN FLOTANTE BRÚJULA Y BARRAS FLOTANTES */
-#btnBrujula {
-  position: fixed;
-  bottom: 50px;
-  right: 12px;
-  z-index: 5000;
-  background: rgba(15, 23, 42, 0.92);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.6);
-  border-radius: 30px;
-  padding: 8px 14px;
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
-}
-#btnBrujula.activo {
-  background: #0284c7;
-  color: #ffffff;
-  border-color: #38bdf8;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
-}
-.aguja-brujula {
-  display: inline-block;
-  transition: transform 0.1s ease-out;
-  font-size: 14px;
-}
-
-/* BOTÓN FLOTANTE DE NUEVA MARCACIÓN (EXCLUSIVO PARA VERIFICADOR Y ADMIN) */
-#btnNuevaMarcacionFlotante {
-  position: fixed;
-  bottom: 95px;
-  right: 12px;
-  z-index: 5000;
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: #ffffff;
-  border: 1px solid #34d399;
-  border-radius: 30px;
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
-  display: none;
-  align-items: center;
-  gap: 8px;
-  backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
-}
-#btnNuevaMarcacionFlotante:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.65);
-}
-body.perfil-verificador #btnNuevaMarcacionFlotante,
-body.perfil-ionray #btnNuevaMarcacionFlotante {
-  display: flex !important;
-}
-
-/* =========================================================
-   MODAL DE AUTENTICACIÓN
-========================================================= */
-#loginOverlay { 
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  width: 100vw; 
-  height: 100vh; 
-  background: rgba(15, 23, 42, 0.88); 
-  backdrop-filter: blur(14px); 
-  z-index: 10000 !important; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-}
-#loginOverlay.oculto { display: none !important; }
-
-.login-card { 
-  width: 340px; 
-  max-width: 90vw;
-  background: #ffffff; 
-  border-radius: 24px; 
-  padding: 24px 20px; 
-  text-align: center; 
-  box-shadow: 0 25px 60px rgba(0,0,0,0.45); 
-  color: #1e293b; 
-}
-
-.grid-perfiles-tacticos {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 16px 0;
-}
-
-.tarjeta-perfil-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 14px;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s ease;
-}
-
-.tarjeta-perfil-btn:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e0;
-}
-
-.tarjeta-perfil-btn.seleccionada {
-  background: #eff6ff;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
-.tarjeta-icono {
-  font-size: 24px;
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-}
-
-.tarjeta-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.tarjeta-titulo {
-  font-weight: 800;
-  font-size: 13px;
-  color: #0f172a;
-}
-
-.tarjeta-desc {
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.badge-perfil-activo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: #1a73e8;
-  color: #ffffff;
-  font-weight: 800;
-  border: 0;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(26,115,232,0.3);
-  transition: transform 0.15s ease;
-}
-.badge-perfil-activo:hover {
-  transform: translateY(-1px);
-}
-
-/* =========================================================
-   PANEL FLOTANTE
-========================================================= */
-.panel {
-  position: absolute; 
-  z-index: 2000; 
-  top: 12px; 
-  left: 12px; 
-  width: 380px; 
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 75px); 
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  background: rgba(255, 255, 255, 0.96); 
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 18px;
-  padding: 14px; 
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.22); 
-  box-sizing: border-box;
-  transition: max-height 0.3s ease, padding 0.3s ease;
-}
-
-.panel.colapsado {
-  max-height: 48px !important;
-  overflow: hidden !important;
-  padding: 8px 14px !important;
-  background: rgba(255, 255, 255, 0.98);
-}
-
-.panel.colapsado .busqueda,
-.panel.colapsado .menu {
-  display: none !important;
-}
-
-.btn-toggle-panel {
-  background: transparent;
-  border: 0;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-.btn-toggle-panel:hover { background: rgba(0, 0, 0, 0.06); }
-
-@media (max-width: 600px) {
-  .panel { 
-    top: 8px; 
-    left: 8px; 
-    right: 8px; 
-    width: auto; 
-    max-width: none; 
-    max-height: calc(100vh - 60px); 
-    padding: 12px; 
-  }
-  .panel.colapsado { 
-    max-height: 44px !important; 
-    padding: 6px 12px !important;
-  }
-  .panel.colapsado .busqueda,
-  .panel.colapsado .menu {
-    display: none !important;
-  }
-}
-
-/* =========================================================
-   CAMPOS DE BÚSQUEDA Y BOTONES
-========================================================= */
-.busqueda { display: flex; flex-direction: column; gap: 8px; position: relative; margin-top: 8px; }
-.linea-input { display: flex; gap: 6px; align-items: center; }
-
-#direccion, #buscarABInput { 
-  flex: 1; 
-  min-height: 40px; 
-  padding: 0 12px; 
-  border: 1px solid #cbd5e0; 
-  border-radius: 10px; 
-  font-weight: 600; 
-  outline: none; 
-  background: #ffffff; 
-  min-width: 0;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-#buscarABInput { border-color: #3b82f6; background: #f0f6ff; }
-#direccion:focus, #buscarABInput:focus { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,0.18); }
-
-.btn-input-accion { 
-  min-height: 40px; 
-  padding: 0 12px; 
-  border: 0; 
-  border-radius: 10px; 
-  font-weight: 800; 
-  cursor: pointer; 
-  flex-shrink: 0;
-  transition: transform 0.15s ease, filter 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-input-accion:hover { filter: brightness(0.92); transform: translateY(-1px); }
-
-#btnLimpiarInput, #btnLimpiarAB, #btnVozInput { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e0; width: 40px; padding: 0; }
-#buscar, #btnBuscarAB { background: #1a73e8; color: #ffffff; }
-
-.btn-accion-secundario { 
-  min-height: 36px; 
-  padding: 4px 10px; 
-  border: 1px solid #cbd5e0; 
-  background: #f8fafc; 
-  color: #334155; 
-  border-radius: 10px; 
-  font-weight: 800; 
-  cursor: pointer; 
-  flex: 1; 
-  display: inline-flex; 
-  align-items: center; 
-  justify-content: center; 
-  transition: all 0.2s ease; 
-  text-align: center;
-  white-space: nowrap;
-}
-.btn-accion-secundario:hover { background: #e2e8f0; color: #0f172a; }
-
-#btnClicMapa.activo {
-  background: #1a73e8 !important;
-  color: #ffffff !important;
-  border-color: #0d47a1 !important;
-  animation: pulsoBoton 1.5s infinite;
-}
-@keyframes pulsoBoton { 0% { box-shadow: 0 0 0 0 rgba(26,115,232,0.5); } 70% { box-shadow: 0 0 0 10px rgba(26,115,232,0); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0); } }
-
-.sugerencias-consulta { 
-  display: none; 
-  position: absolute; 
-  left: 0; 
-  right: 0; 
-  z-index: 2010; 
-  background: #ffffff; 
-  border: 1px solid #cbd5e0; 
-  border-radius: 12px; 
-  max-height: 170px; 
-  overflow-y: auto; 
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-}
-#sugerenciasConsulta { top: 92px; }
-#sugerenciasAB { top: 46px; }
-.sugerencia-item { padding: 9px 12px; font-weight: 600; border-bottom: 1px solid #f1f5f9; cursor: pointer; color: #1e293b; transition: background 0.15s; }
-.sugerencia-item:hover { background: #e8f0fe; color: #1557b0; }
-
-/* =========================================================
-   TEMAS
-========================================================= */
-body.modo-dark .panel { background: rgba(30, 41, 59, 0.95); color: #f8fafc; border-color: rgba(255,255,255,0.15); }
-body.modo-dark #direccion, body.modo-dark #buscarABInput { background: #1e293b; color: #ffffff; border-color: #475569; }
-body.modo-dark .btn-accion-secundario { background: #334155; color: #f1f3f9; border-color: #475569; }
-body.modo-dark select { background: #1e293b; color: #ffffff; border-color: #475569; }
-body.modo-dark .sugerencias-consulta { background: #1e293b; border-color: #475569; }
-body.modo-dark .sugerencia-item { border-bottom-color: #334155; color: #f8fafc; }
-body.modo-dark .sugerencia-item:hover { background: #334155; color: #60a5fa; }
-body.modo-dark .btn-toggle-panel { color: #f8fafc; }
-body.modo-dark .menu { background: #1e293b; border-color: #475569; }
-body.modo-dark .menu-header { background: #0f172a; color: #f8fafc; }
-body.modo-dark .menu-contenido { border-top-color: #334155; }
-body.modo-dark .lista-historial { border-color: #475569; }
-body.modo-dark .historial-item { background: #1e293b; color: #f8fafc; border-bottom-color: #334155; }
-body.modo-dark .historial-item:hover { background: #334155; }
-
-body.modo-tactico .panel { background: rgba(12, 12, 12, 0.96); color: #ff5252; border: 1px solid #ff1744; box-shadow: 0 0 25px rgba(255, 23, 68, 0.25); }
-body.modo-tactico #direccion, body.modo-tactico #buscarABInput { background: #000000; color: #ff1744; border-color: #b71c1c; }
-body.modo-tactico .btn-accion-secundario { background: #1f1f1f; color: #ff5252; border-color: #b71c1c; }
-body.modo-tactico select { background: #000000; color: #ff1744; border-color: #b71c1c; }
-body.modo-tactico .sugerencias-consulta { background: #000000; border-color: #b71c1c; }
-body.modo-tactico .sugerencia-item { border-bottom-color: #262626; color: #ff5252; }
-body.modo-tactico .sugerencia-item:hover { background: #1a0000; color: #ffffff; }
-body.modo-tactico .btn-toggle-panel { color: #ff1744; }
-body.modo-tactico .menu { background: #000000; border-color: #b71c1c; }
-body.modo-tactico .menu-header { background: #1a0000; color: #ff5252; border-left-color: #ff1744; }
-body.modo-tactico .menu-contenido { border-top-color: #b71c1c; }
-body.modo-tactico .lista-historial { border-color: #b71c1c; }
-body.modo-tactico .historial-item { background: #000000; color: #ff5252; border-bottom-color: #262626; }
-body.modo-tactico .historial-item:hover { background: #1a0000; color: #ffffff; }
-
-body.modo-sol .panel { background: #000000; color: #ffeb3b; border: 2px solid #ffeb3b; box-shadow: 0 0 20px rgba(255, 235, 59, 0.4); }
-body.modo-sol #direccion, body.modo-sol #buscarABInput { background: #ffffff; color: #000000; font-weight: 800; border: 2px solid #ffeb3b; }
-body.modo-sol .btn-accion-secundario { background: #ffeb3b; color: #000000; font-weight: 900; border: 2px solid #ffffff; }
-body.modo-sol select { background: #ffffff; color: #000000; font-weight: 800; border: 2px solid #ffeb3b; }
-body.modo-sol .menu { background: #000000; border: 2px solid #ffeb3b; }
-body.modo-sol .menu-header { background: #ffeb3b; color: #000000; font-weight: 900; }
-body.modo-sol .menu-contenido { background: #000000; color: #ffffff; }
-body.modo-sol .historial-item { background: #111111; color: #ffffff; border-bottom: 1px solid #333; }
-body.modo-sol .btn-toggle-panel { color: #ffeb3b; }
-
-.menu { margin-top: 8px; border: 1px solid #cbd5e0; border-radius: 10px; overflow: hidden; background: #ffffff; }
-.menu-header { width: 100%; padding: 10px 12px; border: 0; background: #f8fafc; font-weight: 800; display: flex; justify-content: space-between; cursor: pointer; border-left: 5px solid #1a73e8; color: #334155; }
-.menu.abierto .menu-header { background: #e8f0fe; color: #1557b0; }
-.menu-contenido { display: none; padding: 10px; border-top: 1px solid #e2e8f0; }
-.menu.abierto .menu-contenido { display: block; }
-
-.bloque-abonado, .bloque-ir-zona { display: none; }
-body.perfil-verificador .bloque-abonado { display: flex !important; }
-body.perfil-ionray .bloque-abonado { display: flex !important; }
-body.perfil-ionray .bloque-ir-zona { display: flex !important; }
-
-@keyframes moverGuiones { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
-@keyframes pulsoLinea { 0% { stroke-opacity: 0.4; stroke-width: 3px; } 50% { stroke-opacity: 1; stroke-width: 6px; } 100% { stroke-opacity: 0.4; stroke-width: 3px; } }
-.linea-animada { stroke-dasharray: 12, 12; animation: moverGuiones 1.2s linear infinite; }
-.linea-glow { filter: drop-shadow(0px 0px 8px currentColor); stroke-width: 4px; }
-.linea-pulso { animation: pulsoLinea 1.5s ease-in-out infinite; }
-.linea-alerta { stroke-dasharray: 10, 8; animation: moverGuiones 0.8s linear infinite; filter: drop-shadow(0px 0px 6px #d93025); }
-
-.leaflet-tooltip.zona-tooltip { background: rgba(32, 33, 36, 0.92); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #ffffff; padding: 4px 8px; }
-.icono-personalizado { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; color: #fff; font-size: 16px; box-shadow: 0 3px 10px rgba(0,0,0,0.35); border: 2px solid #ffffff; }
-
-.leaflet-popup-content-wrapper { padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 35px rgba(0,0,0,0.35); }
-.leaflet-popup-content { margin: 0 !important; line-height: 1.35; }
-
-/* =========================================================
-   BURBUJA DE FICHA TÁCTICA
-========================================================= */
-.burbuja-marcacion { padding: 14px; min-width: 260px; max-width: 330px; cursor: pointer; transition: all 0.25s ease; box-sizing: border-box; }
-.burbuja-cabecera { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 0.2px; }
-.burbuja-sub { font-weight: 800; margin-top: 4px; word-break: break-word; }
-.burbuja-entre { font-style: italic; opacity: 0.9; margin-top: 2px; }
-
-.burbuja-como-llegar { margin-top: 8px; padding: 8px 10px; border-radius: 10px; text-align: left; }
-.burbuja-como-llegar.con-datos { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.12); color: #1e293b; }
-.burbuja-como-llegar.sin-datos { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; font-weight: 800; }
-
-.card-propiedad { margin-top: 8px; padding: 10px; background: rgba(255,255,255,0.95); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); color: #334155; text-align: left; line-height: 1.5; }
-.card-propiedad-titulo { font-weight: 800; color: #1a73e8; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; text-transform: uppercase; }
-
-.burbuja-indicador { margin-top: 8px; font-weight: 800; color: rgba(0,0,0,0.6); display: flex; justify-content: space-between; }
-.burbuja-cuerpo { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.2); }
-.burbuja-marcacion.expandida .burbuja-cuerpo { display: block; }
-
-.burbuja-cobertura { background: #e6f4ea; border: 2px solid #34a853; color: #137333; }
-.burbuja-peligrosa { background: #fce8e6; border: 2px solid #ea4335; color: #c5221f; }
-.burbuja-nomovil { background: #f3e5f5; border: 2px solid #8e24aa; color: #4a148c; }
-.burbuja-alerta { background: #fff4e5; border: 2px solid #fbbc04; color: #b76e00; }
-.burbuja-informativa { background: #e8f0fe; border: 2px solid #4285f4; color: #1a73e8; }
-.burbuja-barrio { background: #f3e5f5; border: 2px solid #8e24aa; color: #4a148c; }
-.burbuja-industrial { background: #fff3e0; border: 2px solid #e65100; color: #bf360c; }
-.burbuja-fuera { background: #1e293b; border: 2px solid #475569; color: #ffffff; }
-
-.card-eta { margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.9); border-radius: 10px; color: #1e293b; border: 1px solid rgba(0,0,0,0.1); }
-
-.grupo-botones-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
-.btn-nav { 
-  display: inline-flex; 
-  align-items: center; 
-  justify-content: center;
-  gap: 4px; 
-  padding: 6px 8px; 
-  background: #ffffff; 
-  border: 1px solid #cbd5e0; 
-  border-radius: 10px; 
-  font-weight: 800; 
-  text-decoration: none; 
-  color: #334155; 
-  cursor: pointer; 
-  box-shadow: 0 2px 4px rgba(0,0,0,0.06); 
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-.btn-nav:hover { transform: translateY(-1px); filter: brightness(0.95); }
-.btn-share { grid-column: span 2; color: #1a73e8; background: #e8f0fe; border-color: #1a73e8; }
-.btn-wsp { color: #25D366; background: #f0fdf4; border-color: #25D366; }
-.btn-waze { color: #00b0ff; background: #f0f9ff; border-color: #00b0ff; }
-.btn-gmaps { color: #1a73e8; background: #f0f6ff; border-color: #1a73e8; }
-.btn-copiar { color: #8e24aa; background: #faf5ff; border-color: #8e24aa; }
-
-.lista-historial { max-height: 140px; overflow-y: auto; margin-top: 4px; border: 1px solid #cbd5e0; border-radius: 8px; }
-.historial-item { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; background: #ffffff; color: #1e293b; overflow: hidden; text-overflow: ellipsis; }
-.historial-item:hover { background: #f8fafc; }
-.historial-item:last-child { border-bottom: 0; }
-
-#indicadorSyncStatus {
-  position: absolute; bottom: 16px; right: 12px; z-index: 1500;
-  font-weight: 800; background: rgba(255,255,255,0.95);
-  padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-  pointer-events: none; border: 1px solid rgba(0,0,0,0.1);
-}
-
-.btn-grupo-escala {
-  display: flex; gap: 4px; margin-top: 4px;
-}
-.btn-opcion-escala {
-  flex: 1; min-height: 32px; border: 1px solid #cbd5e0; background: #ffffff; color: #334155; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; padding: 2px 4px;
-}
-.btn-opcion-escala.activo {
-  background: #1a73e8; color: #ffffff; border-color: #1557b0;
-}
-
-/* =========================================================
-   MODAL TÁCTICO DE NUEVA MARCACIÓN CON FOTO
-========================================================= */
-#modalNuevaMarcacion {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  z-index: 12000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  box-sizing: border-box;
-}
-#modalNuevaMarcacion.oculto { display: none !important; }
-
-.modal-marcacion-card {
-  width: 100%;
-  max-width: 440px;
-  max-height: 90vh;
-  overflow-y: auto;
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-  color: #0f172a;
-  box-sizing: border-box;
-}
-
-.modal-header-tactico {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 2px solid #f1f5f9;
-  padding-bottom: 10px;
-  margin-bottom: 14px;
-}
-.modal-titulo-tactico {
-  font-weight: 800;
-  font-size: 15px;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.form-grupo-tactico {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
-  text-align: left;
-}
-.form-label-tactico {
-  font-weight: 800;
-  font-size: 11px;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.form-control-tactico {
-  width: 100%;
-  min-height: 38px;
-  padding: 8px 12px;
-  border: 1px solid #cbd5e0;
-  border-radius: 10px;
-  font-weight: 600;
-  outline: none;
-  box-sizing: border-box;
-  background: #f8fafc;
-}
-.form-control-tactico:focus {
-  border-color: #10b981;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
-}
-
-.box-preview-foto {
-  width: 100%;
-  max-height: 180px;
-  border-radius: 12px;
-  border: 2px dashed #cbd5e0;
-  background: #f1f5f9;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  margin-top: 4px;
-  position: relative;
-}
-.img-preview-tactica {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
-}
-
-.grid-despacho-multicanal {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 14px;
-}
-.btn-despacho {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 12px;
-  border: 0;
-  cursor: pointer;
-  color: #ffffff;
-  transition: transform 0.15s, filter 0.15s;
-}
-.btn-despacho:hover { filter: brightness(1.1); transform: translateY(-1px); }
-.btn-despacho-share { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
-
-.box-acciones-modal {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 10px;
-  border-top: 1px solid #e2e8f0;
-}
-.btn-modal-cancelar {
-  flex: 1;
-  height: 40px;
-  background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #cbd5e0;
-  border-radius: 10px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.btn-modal-finalizar {
-  flex: 2;
-  height: 40px;
-  background: #10b981;
-  color: #ffffff;
-  border: 0;
-  border-radius: 10px;
-  font-weight: 800;
-  cursor: pointer;
-}
-</style>
-</head>
-<body class="perfil-verificador">
-
-<!-- PANTALLA DE CARGA ANIMADA -->
-<div id="splashScreen">
-  <div class="splash-container">
-    <img src="./icono-192.png" alt="Cargando..." class="splash-logo" onError="this.style.display='none';">
-    <div class="splash-bar-bg"><div class="splash-bar-fill"></div></div>
-    <div class="splash-txt">Cargando Mapa...</div>
-  </div>
-</div>
-
-<!-- BOTÓN FLOTANTE BRÚJULA -->
-<button id="btnBrujula" type="button" title="Activar orientación táctica">
-  <span class="aguja-brujula" id="agujaBrujula">🧭</span> 
-  <span>Orientación</span>
-</button>
-
-<!-- BOTÓN FLOTANTE NUEVA MARCACIÓN DESDE TERRENO -->
-<button id="btnNuevaMarcacionFlotante" type="button" title="Registrar marcación en terreno">
-  <span>➕ Nueva Marcación / AB</span>
-</button>
-
-<!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
-<div id="avisoUpdateCyber">
-  <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.1.1</span></span>
-    <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
-  </div>
-  <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
-  <div class="aviso-desc">Se detectó una actualización de mapa y capas con optimizaciones lista para sincronizar.</div>
-  <button class="btn-cyber-aplicar" id="btnAplicarParcheCyber">🚀 APLICAR PARCHE EN VIVO</button>
-</div>
-
-<!-- MODAL SELECCIÓN / AUTENTICACIÓN DE USUARIO -->
-<div id="loginOverlay" class="oculto">
-  <div class="login-card">
-    <div style="margin-bottom:8px;">
-      <img src="./icono-192.png" alt="Logo Empresa" id="imgLogoLogin" style="max-width: 170px; max-height: 75px; object-fit: contain;" onError="this.style.display='none'; document.getElementById('fallbackLogo').style.display='block';">
-      <div id="fallbackLogo" style="display:none; font-size:36px;">🛡️</div>
-    </div>
-    <div style="font-weight:800; font-size:15px; color:#0f172a;">PERFIL DE ACCESO</div>
-    <div style="font-size:11px; color:#64748b; margin-top:2px;">Seleccioná la modalidad operativa:</div>
-
-    <form id="formLogin" autocomplete="off">
-      <div class="grid-perfiles-tacticos">
-        <div class="tarjeta-perfil-btn seleccionada" id="cardPerfilINVITADO" onclick="seleccionarPerfilBotonera('INVITADO')">
-          <div class="tarjeta-icono">👤</div>
-          <div class="tarjeta-info">
-            <span class="tarjeta-titulo">INVITADO</span>
-            <span class="tarjeta-desc">Consulta general de mapa y zonas</span>
-          </div>
-        </div>
-
-        <div class="tarjeta-perfil-btn" id="cardPerfilVERIFICADOR" onclick="seleccionarPerfilBotonera('VERIFICADOR')">
-          <div class="tarjeta-icono">🔎</div>
-          <div class="tarjeta-info">
-            <span class="tarjeta-titulo">VERIFICADOR</span>
-            <span class="tarjeta-desc">Búsqueda por Abonado (AB) + Mapa</span>
-          </div>
-        </div>
-
-        <div class="tarjeta-perfil-btn" id="cardPerfilIONRAY" onclick="seleccionarPerfilBotonera('IONRAY')">
-          <div class="tarjeta-icono">👑</div>
-          <div class="tarjeta-info">
-            <span class="tarjeta-titulo">IONRAY (ADMIN)</span>
-            <span class="tarjeta-desc">Acceso Total e Ir a Zona</span>
-          </div>
-        </div>
-      </div>
-
-      <input type="hidden" id="selectPerfilLogin" value="INVITADO">
-
-      <div id="boxClaveIonray" style="display:none; text-align:left; margin-bottom:12px;">
-        <label style="font-weight:800; color:#4a5568; font-size:11px;">Contraseña IONRAY:</label>
-        <input type="password" id="pwd" placeholder="••••••••" style="width:100%; height:38px; margin-top:4px; border-radius:10px; border:1px solid #cbd5e0; padding:0 10px; box-sizing:border-box;" autocomplete="new-password">
-      </div>
-
-      <button type="submit" style="width:100%; min-height:42px; background:linear-gradient(135deg, #1d4ed8, #2563eb); color:#fff; font-weight:800; border:0; border-radius:12px; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.35);">✔ Confirmar Perfil</button>
-      <button type="button" id="btnCerrarLogin" style="width:100%; min-height:34px; margin-top:6px; background:transparent; color:#64748b; font-weight:700; border:0; cursor:pointer;">Cancelar</button>
-    </form>
-  </div>
-</div>
-
-<!-- MODAL TÁCTICO DE NUEVA MARCACIÓN EN TERRENO CON FOTO -->
-<div id="modalNuevaMarcacion" class="oculto">
-  <div class="modal-marcacion-card">
-    <div class="modal-header-tactico">
-      <div class="modal-titulo-tactico">
-        <span>📍</span>
-        <span>NUEVA MARCACIÓN EN TERRENO</span>
-      </div>
-      <button type="button" class="btnCerrarModalGlobal" style="background:transparent; border:0; font-size:18px; cursor:pointer; color:#64748b;">✕</button>
-    </div>
-
-    <form id="formMarcacionTerreno" onsubmit="return false;">
-      <div class="form-grupo-tactico">
-        <label class="form-label-tactico">🏢 N° de Abonado / Identificador:</label>
-        <input type="text" id="mrcNumAB" class="form-control-tactico" placeholder="Ej: 1045 u Opcional">
-      </div>
-
-      <div class="form-grupo-tactico">
-        <label class="form-label-tactico">📍 Dirección / Esquina:</label>
-        <input type="text" id="mrcDireccion" class="form-control-tactico" placeholder="Calle y altura o intersección">
-      </div>
-
-      <div class="form-grupo-tactico">
-        <label class="form-label-tactico">🏙️ Localidad / Partido:</label>
-        <input type="text" id="mrcLocalidad" class="form-control-tactico" placeholder="Ej: Morón, San Justo, etc.">
-      </div>
-
-      <div class="form-grupo-tactico">
-        <label class="form-label-tactico">🗺️ Observaciones / Cómo Llegar:</label>
-        <textarea id="mrcComoLlegar" class="form-control-tactico" style="min-height:55px; resize:vertical;" placeholder="Portón azul, timbre 2B, perro en el patio..."></textarea>
-      </div>
-
-      <div class="form-grupo-tactico">
-        <label class="form-label-tactico">🌐 Coordenadas GPS:</label>
-        <div style="display:flex; gap:6px;">
-          <input type="text" id="mrcCoords" class="form-control-tactico" placeholder="Latitud, Longitud" readonly style="background:#e2e8f0; flex:1;">
-          <button type="button" id="btnCapturarGPSModal" class="btn-input-accion" style="background:#10b981; color:#fff; font-size:11px;" title="Capturar GPS actual">📍 GPS</button>
-          <button type="button" id="btnMarcarMapaModal" class="btn-input-accion" style="background:#3b82f6; color:#fff; font-size:11px;" title="Elegir en mapa">🎯 Mapa</button>
-        </div>
-      </div>
-
-      <div class="form-grupo-tactico">
-        <label class="form-label-tactico">📸 Foto Fachada:</label>
-        <input type="file" id="inputFotoCamaraNativa" accept="image/*" capture="environment" style="display:none;">
-        <input type="file" id="inputFotoGaleria" accept="image/*" style="display:none;">
-
-        <div style="display:flex; gap:6px;">
-          <button type="button" id="btnTomarFotoDirecta" class="btn-accion-secundario" style="background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; flex:1; height:36px; font-weight:800; border-radius:8px;">
-            📸 Cámara
-          </button>
-          <button type="button" id="btnAbrirGaleria" class="btn-accion-secundario" style="background:#f8fafc; border-color:#cbd5e0; color:#334155; flex:1; height:36px; font-weight:800; border-radius:8px;">
-            📁 Galería
-          </button>
-        </div>
-        
-        <div class="box-preview-foto" id="boxPreviewFoto">
-          <span id="txtSinFoto" style="font-size:11px; color:#94a3b8; font-weight:700;">Sin foto capturada</span>
-          <img id="imgPreviewMarcacion" class="img-preview-tactica" alt="Previsualización">
-        </div>
-        <div id="lblEstadoSubidaFoto" style="font-size:10px; font-weight:800; color:#059669; margin-top:4px; display:none;">
-          🟢 Foto lista para Ficha PDF
-        </div>
-      </div>
-
-      <div class="grid-despacho-multicanal">
-        <button type="button" id="btnCompartirNativoPDF" class="btn-despacho btn-despacho-share">
-          📤 Compartir Ficha PDF (Foto + Datos)
-        </button>
-      </div>
-
-      <div class="box-acciones-modal">
-        <button type="button" class="btn-modal-cancelar btnCerrarModalGlobal">❌ Cancelar</button>
-        <button type="button" id="btnFinalizarModal" class="btn-modal-finalizar">✔ Finalizar y Despachar</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div id="map"></div>
-
-<div id="mapMarcaAgua">
-  <img src="./icono-192.png" alt="Sello de Agua" onError="this.style.display='none';">
-</div>
-
-<div id="indicadorSyncStatus">🟢 Conectado</div>
-
-<div class="panel" id="panelConsulta">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-    <div style="display:flex; align-items:center; gap:6px;">
-      <button id="btnToggleMinimizar" class="btn-toggle-panel" type="button" title="Minimizar / Expandir panel">🔼</button>
-      <div style="font-weight:800;">🔎 Consulta Cobertura</div>
-    </div>
-    <button id="btnToggleAuth" type="button" class="badge-perfil-activo">
-      <span id="icoUserSesion">👤</span>
-      <span id="txtUserSesion">Invitado</span>
-    </button>
-  </div>
-
-  <div class="busqueda">
-    <div class="linea-input bloque-abonado">
-      <input id="buscarABInput" autocomplete="off" placeholder="🏢 Buscar Abonado por N° (AB)...">
-      <button id="btnLimpiarAB" class="btn-input-accion" type="button">❌</button>
-      <button id="btnBuscarAB" class="btn-input-accion" type="button">Buscar AB</button>
-    </div>
-    <div id="sugerenciasAB" class="sugerencias-consulta"></div>
-
-    <div class="linea-input">
-      <input id="direccion" autocomplete="off" placeholder="Calle, esquina o altura...">
-      <button id="btnVozInput" class="btn-input-accion" type="button" title="Dictar por voz">🎙️</button>
-      <button id="btnLimpiarInput" class="btn-input-accion" type="button">❌</button>
-      <button id="buscar" class="btn-input-accion">Buscar</button>
-    </div>
-    <div id="sugerenciasConsulta" class="sugerencias-consulta"></div>
-
-    <div style="display:flex; gap:4px; margin-top:2px;">
-      <select id="mapaEstiloConsulta" style="flex:1; height:32px; border-radius:8px; border:1px solid #cbd5e0;">
-        <option value="esriStreet">🏙️ Esri Street HD</option>
-        <option value="satelitalHibrido">🛰️ Satelital HD</option>
-        <option value="calles">🗺️ OpenStreetMap</option>
-      </select>
-      
-      <select id="selectorTemaPanel" style="flex:1; height:32px; border-radius:8px; border:1px solid #cbd5e0;">
-        <option value="claro">☀️ Modo Claro</option>
-        <option value="dark">🌙 Modo Oscuro</option>
-        <option value="tactico">🚨 Modo Táctico</option>
-        <option value="sol">☀️ Modo Sol (Alto Contraste)</option>
-      </select>
-    </div>
-
-    <div class="linea-input bloque-ir-zona" style="margin-top:2px;">
-      <select id="selectZona" style="width:100%; height:32px; border-radius:8px; border:1px solid #cbd5e0;">
-        <option value="">--Ir a zona--</option>
-      </select>
-    </div>
-
-    <div style="display:flex; gap:4px; margin-top:2px;">
-      <button id="btnClicMapa" class="btn-accion-secundario" type="button">🎯 Clic en Mapa</button>
-      <button id="btnGPSConsulta" class="btn-accion-secundario" type="button">📍 Mi Ubicación GPS</button>
-    </div>
-  </div>
-
-  <div class="menu">
-    <button class="menu-header" type="button"><span>⚙️ AJUSTES DE VISUALIZACIÓN</span><span>▼</span></button>
-    <div class="menu-contenido">
-      <label style="font-weight:bold; color:#666; display:block;">Tamaño de Texto:</label>
-      <div class="btn-grupo-escala">
-        <button type="button" class="btn-opcion-escala activo" id="btnTxtNormal" onclick="cambiarEscalaTexto('normal')">Normal</button>
-        <button type="button" class="btn-opcion-escala" id="btnTxtGrande" onclick="cambiarEscalaTexto('grande')">Grande</button>
-        <button type="button" class="btn-opcion-escala" id="btnTxtExGrande" onclick="cambiarEscalaTexto('exgrande')">Ex. Grande</button>
-      </div>
-
-      <label style="font-weight:bold; color:#666; margin-top:8px; display:block;">Zoom al Buscar:</label>
-      <div class="btn-grupo-escala">
-        <button type="button" class="btn-opcion-escala" id="btnZoom14" onclick="cambiarZoomDefault(14)">14 (Panorama)</button>
-        <button type="button" class="btn-opcion-escala activo" id="btnZoom16" onclick="cambiarZoomDefault(16)">16 (Balanceado)</button>
-        <button type="button" class="btn-opcion-escala" id="btnZoom18" onclick="cambiarZoomDefault(18)">18 (Detalle)</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="menu">
-    <button class="menu-header" type="button"><span>📜 HISTORIAL DE BÚSQUEDAS</span><span>▼</span></button>
-    <div class="menu-contenido">
-      <div id="listaHistorialBusquedas" class="lista-historial"></div>
-      <button id="btnBorrarHistorial" class="btn-accion-secundario" type="button" style="width:100%; margin-top:6px;">🗑️ Limpiar Historial</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-"use strict";
-
-const VERSION_BASE = "1.1.1";
-let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
-let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
-let ultimaVersionDetectada = VERSION_LOCAL;
-
-function ocultarSplashScreen() {
-  const splash = document.getElementById("splashScreen");
-  if (splash && !splash.classList.contains("oculto")) {
-    splash.classList.add("oculto");
-  }
-}
-
-setTimeout(ocultarSplashScreen, 3000);
-
-const map = L.map("map", { center: [-34.6486, -58.6198], zoom: 11 });
-map.createPane('panelMarcadores').style.zIndex = 650;
-
-const satelitalFoto = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
-const satelitalRutas = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
-
-const capasBase = {
-  esriStreet: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }),
-  satelitalHibrido: L.layerGroup([satelitalFoto, satelitalRutas]),
-  calles: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 })
-};
-capasBase.esriStreet.addTo(map);
-
-let clusterAbonadosIndex = null;
-if (typeof L.markerClusterGroup === "function") {
-  clusterAbonadosIndex = L.markerClusterGroup({
-    chunkedLoading: true,
-    maxClusterRadius: 45,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false
-  });
-  map.addLayer(clusterAbonadosIndex);
-}
-
-document.getElementById("mapaEstiloConsulta").onchange = function(){
-  Object.values(capasBase).forEach(c => map.removeLayer(c));
-  if(capasBase[this.value]) capasBase[this.value].addTo(map);
-};
-
-/* FUNCIÓN DE REVERSE GEOCODING PARA CONVERTIR COORDENADAS A DIRECCIÓN */
-async function resolverDireccionYAltura(lat, lon) {
-  try {
-    const url = "https://nominatim.openstreetmap.org/reverse?" + new URLSearchParams({ lat: lat, lon: lon, format: "json", addressdetails: "1", zoom: "18", "accept-language": "es" });
-    const r = await fetch(url, { headers: { "User-Agent": "MapaConsultaZoneApp/3.0" } });
-    const data = await r.json();
-    if(!data || !data.address) return { direccion: lat.toFixed(5) + ", " + lon.toFixed(5), entreCalles: "" };
-    const a = data.address, calle = a.road || a.pedestrian || "Ubicación táctica", num = a.house_number || "s/n";
-    let dirTexto = calle + " " + num;
-    if (a.city || a.town) dirTexto += ", " + (a.city || a.town);
-    return { direccion: dirTexto, entreCalles: a.neighbourhood || a.suburb || "" };
-  } catch(err) { return { direccion: lat.toFixed(5) + ", " + lon.toFixed(5), entreCalles: "" }; }
-}
-
-/* BRÚJULA */
-let brujulaActiva = false;
-const btnBrujula = document.getElementById("btnBrujula");
-const agujaBrujula = document.getElementById("agujaBrujula");
-
-function procesarOrientacion(e) {
-  if (!brujulaActiva) return;
-  let alpha = e.alpha || e.webkitCompassHeading;
-  if (alpha !== null && alpha !== undefined) {
-    let heading = e.webkitCompassHeading ? alpha : 360 - alpha;
-    if (agujaBrujula) agujaBrujula.style.transform = "rotate(" + heading + "deg)";
-  }
-}
-
-btnBrujula?.addEventListener("click", function() {
-  if (brujulaActiva) {
-    brujulaActiva = false;
-    btnBrujula.classList.remove("activo");
-    window.removeEventListener("deviceorientation", procesarOrientacion);
-    if (agujaBrujula) agujaBrujula.style.transform = "rotate(0deg)";
-  } else {
-    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-      DeviceOrientationEvent.requestPermission().then(state => {
-        if (state === "granted") {
-          brujulaActiva = true;
-          btnBrujula.classList.add("activo");
-          window.addEventListener("deviceorientation", procesarOrientacion, true);
-        } else {
-          alert("Permiso de sensor de orientación denegado.");
-        }
-      }).catch(() => alert("No se pudo acceder a la brújula del dispositivo."));
-    } else if (window.DeviceOrientationEvent) {
-      brujulaActiva = true;
-      btnBrujula.classList.add("activo");
-      window.addEventListener("deviceorientation", procesarOrientacion, true);
-    } else {
-      alert("Tu dispositivo no soporta sensor de orientación.");
-    }
-  }
-});
-
-/* VISUALIZACIÓN */
-window.cambiarEscalaTexto = function(tipo) {
-  let factor = 1;
-  document.querySelectorAll(".btn-opcion-escala").forEach(b => {
-    if(b.id.startsWith("btnTxt")) b.classList.remove("activo");
-  });
-
-  if (tipo === "grande") {
-    factor = 1.08;
-    document.getElementById("btnTxtGrande")?.classList.add("activo");
-  } else if (tipo === "exgrande") {
-    factor = 1.16;
-    document.getElementById("btnTxtExGrande")?.classList.add("activo");
-  } else {
-    document.getElementById("btnTxtNormal")?.classList.add("activo");
-  }
-
-  document.documentElement.style.setProperty("--factor-texto", factor);
-  localStorage.setItem("escalaTextoApp", tipo);
-};
-
-window.cambiarZoomDefault = function(level) {
-  zoomPredeterminado = level;
-  document.querySelectorAll(".btn-opcion-escala").forEach(b => {
-    if(b.id.startsWith("btnZoom")) b.classList.remove("activo");
-  });
-  document.getElementById("btnZoom" + level)?.classList.add("activo");
-  localStorage.setItem("zoomDefaultApp", level);
-};
-
-const tipoTextoGuardado = localStorage.getItem("escalaTextoApp") || "normal";
-cambiarEscalaTexto(tipoTextoGuardado);
-cambiarZoomDefault(zoomPredeterminado);
-
-/* PANEL FLOTANTE */
-const panelConsulta = document.getElementById("panelConsulta");
-const btnToggleMinimizar = document.getElementById("btnToggleMinimizar");
-
-function colapsarPanelBusqueda() {
-  if (panelConsulta) {
-    panelConsulta.classList.add("colapsado");
-    if (btnToggleMinimizar) btnToggleMinimizar.textContent = "🔽";
-  }
-}
-
-function expandirPanelBusqueda() {
-  if (panelConsulta) {
-    panelConsulta.classList.remove("colapsado");
-    if (btnToggleMinimizar) btnToggleMinimizar.textContent = "🔼";
-  }
-}
-
-btnToggleMinimizar?.addEventListener("click", function(e){
-  e.stopPropagation();
-  if (panelConsulta.classList.contains("colapsado")) {
-    expandirPanelBusqueda();
-  } else {
-    colapsarPanelBusqueda();
-  }
-});
-
-function formatearUrlFirebase(urlOriginal) {
-  if (!urlOriginal) return "";
-  let url = urlOriginal.trim();
-  if (url.endsWith("/")) url = url.slice(0, -1);
-  if (!url.endsWith(".json")) {
-    url += url.endsWith("/mapa") ? ".json" : "/mapa.json";
-  }
-  return url;
-}
-
-const selectorTemaPanel = document.getElementById("selectorTemaPanel");
-selectorTemaPanel.onchange = function(){
-  document.body.classList.remove("modo-dark", "modo-tactico", "modo-sol");
-  if(this.value === "dark") document.body.classList.add("modo-dark");
-  if(this.value === "tactico") document.body.classList.add("modo-tactico");
-  if(this.value === "sol") document.body.classList.add("modo-sol");
-  localStorage.setItem("temaConsultaApp", this.value);
-};
-
-const temaGuardado = localStorage.getItem("temaConsultaApp");
-if (temaGuardado) {
-  selectorTemaPanel.value = temaGuardado;
-  selectorTemaPanel.dispatchEvent(new Event("change"));
-}
-
-/* GESTIÓN DE PERFILES */
-let perfilActual = "INVITADO";
-let usuariosLocal = [];
-let historialBusquedas = [];
-
-const loginOverlay = document.getElementById("loginOverlay");
-const txtUserSesion = document.getElementById("txtUserSesion");
-const icoUserSesion = document.getElementById("icoUserSesion");
-const selectPerfilLogin = document.getElementById("selectPerfilLogin");
-const boxClaveIonray = document.getElementById("boxClaveIonray");
-const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
-
-window.seleccionarPerfilBotonera = function(perfil) {
-  document.querySelectorAll('.tarjeta-perfil-btn').forEach(card => card.classList.remove('seleccionada'));
-  const cardSelect = document.getElementById('cardPerfil' + perfil);
-  if (cardSelect) cardSelect.classList.add('seleccionada');
-  
-  if (selectPerfilLogin) selectPerfilLogin.value = perfil;
-
-  if (perfil === "IONRAY") {
-    if (boxClaveIonray) boxClaveIonray.style.display = "block";
-  } else {
-    if (boxClaveIonray) boxClaveIonray.style.display = "none";
-  }
-};
-
-function cambiarPerfilAcceso(nuevoPerfil, guardarEnStorage = true) {
-  perfilActual = nuevoPerfil;
-  document.body.classList.remove("perfil-invitado", "perfil-verificador", "perfil-ionray");
-
-  if (nuevoPerfil === "VERIFICADOR") {
-    document.body.classList.add("perfil-verificador");
-    if (txtUserSesion) txtUserSesion.textContent = "Verificador";
-    if (icoUserSesion) icoUserSesion.textContent = "🔎";
-  } else if (nuevoPerfil === "IONRAY") {
-    document.body.classList.add("perfil-ionray");
-    if (txtUserSesion) txtUserSesion.textContent = "IONRAY (Admin)";
-    if (icoUserSesion) icoUserSesion.textContent = "👑";
-  } else {
-    document.body.classList.add("perfil-invitado");
-    if (txtUserSesion) txtUserSesion.textContent = "Invitado";
-    if (icoUserSesion) icoUserSesion.textContent = "👤";
-  }
-
-  if (guardarEnStorage) {
-    localStorage.setItem("perfilAccesoGuardado", nuevoPerfil);
-  }
-}
-
-const perfilGuardadoMemoria = localStorage.getItem("perfilAccesoGuardado");
-if (perfilGuardadoMemoria) {
-  cambiarPerfilAcceso(perfilGuardadoMemoria, false);
-} else {
-  loginOverlay.classList.remove("oculto");
-}
-
-document.getElementById("btnToggleAuth").onclick = function(e){
-  e.stopPropagation();
-  seleccionarPerfilBotonera(perfilActual);
-  loginOverlay.classList.remove("oculto");
-};
-
-document.getElementById("btnCerrarLogin").onclick = function(){
-  loginOverlay.classList.add("oculto");
-  const inputPwd = document.getElementById("pwd");
-  if (inputPwd) inputPwd.value = "";
-};
-
-document.getElementById("formLogin").onsubmit = function(e){
-  e.preventDefault();
-  const perfilElegido = selectPerfilLogin.value;
-  const inputPwd = document.getElementById("pwd");
-  const p = inputPwd ? inputPwd.value.trim() : "";
-
-  if (perfilElegido === "IONRAY") {
-    if (p.toLowerCase() === "ionray") {
-      cambiarPerfilAcceso("IONRAY", true);
-      loginOverlay.classList.add("oculto");
-      if (inputPwd) inputPwd.value = "";
-    } else {
-      alert("Contraseña de IONRAY incorrecta.");
-    }
-  } else {
-    cambiarPerfilAcceso(perfilElegido, true);
-    loginOverlay.classList.add("oculto");
-    if (inputPwd) inputPwd.value = "";
-  }
-};
-
-/* LÓGICA DEL MODAL DE MARCACIÓN DESDE TERRENO CON CAPTURA DE GPS */
-const modalNuevaMarcacion = document.getElementById("modalNuevaMarcacion");
-const btnNuevaMarcacionFlotante = document.getElementById("btnNuevaMarcacionFlotante");
-
-const mrcNumAB = document.getElementById("mrcNumAB");
-const mrcDireccion = document.getElementById("mrcDireccion");
-const mrcLocalidad = document.getElementById("mrcLocalidad");
-const mrcComoLlegar = document.getElementById("mrcComoLlegar");
-const mrcCoords = document.getElementById("mrcCoords");
-
-const inputFotoCamaraNativa = document.getElementById("inputFotoCamaraNativa");
-const inputFotoGaleria = document.getElementById("inputFotoGaleria");
-const imgPreviewMarcacion = document.getElementById("imgPreviewMarcacion");
-const txtSinFoto = document.getElementById("txtSinFoto");
-const lblEstadoSubidaFoto = document.getElementById("lblEstadoSubidaFoto");
-
-let archivoFotoBinario = null;
-let seleccionandoPuntoEnMapaModal = false;
-
-btnNuevaMarcacionFlotante.onclick = function() {
-  modalNuevaMarcacion.classList.remove("oculto");
-};
-
-function cerrarYLimpiarModal() {
-  modalNuevaMarcacion.classList.add("oculto");
-  mrcNumAB.value = "";
-  mrcDireccion.value = "";
-  mrcLocalidad.value = "";
-  mrcComoLlegar.value = "";
-  mrcCoords.value = "";
-  
-  archivoFotoBinario = null;
-  window._fotoOriginal = null;
-
-  // Liberar objectURL de la preview
-  if (imgPreviewMarcacion.dataset.objectUrl) {
-    try { URL.revokeObjectURL(imgPreviewMarcacion.dataset.objectUrl); } catch(e){}
-    delete imgPreviewMarcacion.dataset.objectUrl;
-  }
-  
-  imgPreviewMarcacion.src = "";
-  imgPreviewMarcacion.style.display = "none";
-  txtSinFoto.style.display = "block";
-  if (lblEstadoSubidaFoto) lblEstadoSubidaFoto.style.display = "none";
-}
-
-document.querySelectorAll(".btnCerrarModalGlobal").forEach(btn => {
-  btn.onclick = cerrarYLimpiarModal;
-});
-
-/* CAPTURA DE GPS RESTAURADA EN EL MODAL DE NUEVA MARCACIÓN */
-document.getElementById("btnCapturarGPSModal").onclick = function() {
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-    mrcCoords.value = lat.toFixed(5) + ", " + lon.toFixed(5);
-    
-    if (!mrcDireccion.value.trim()) {
-      const resData = await resolverDireccionYAltura(lat, lon);
-      mrcDireccion.value = resData.direccion || "";
-      if (resData.entreCalles && !mrcLocalidad.value.trim()) {
-        mrcLocalidad.value = resData.entreCalles;
+function convertirBlobABase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = function() {
+      try {
+        const resultado = String(reader.result || "");
+        const base64 = resultado.includes(",")
+          ? resultado.split(",")[1]
+          : resultado;
+
+        resolve(base64);
+      } catch (e) {
+        reject(e);
       }
-    }
-  }, () => alert("No se pudo obtener la posición GPS. Asegurate de otorgar permisos de ubicación."));
-};
-
-document.getElementById("btnMarcarMapaModal").onclick = function() {
-  modalNuevaMarcacion.classList.add("oculto");
-  seleccionandoPuntoEnMapaModal = true;
-  alert("🎯 Tocá cualquier punto del mapa para establecer las coordenadas.");
-};
-
-map.on("click", async function(e) {
-  if (seleccionandoPuntoEnMapaModal) {
-    seleccionandoPuntoEnMapaModal = false;
-    const lat = e.latlng.lat;
-    const lon = e.latlng.lng;
-    mrcCoords.value = lat.toFixed(5) + ", " + lon.toFixed(5);
-    
-    const resData = await resolverDireccionYAltura(lat, lon);
-    mrcDireccion.value = resData.direccion || "";
-    if (resData.entreCalles && !mrcLocalidad.value.trim()) {
-      mrcLocalidad.value = resData.entreCalles;
-    }
-    modalNuevaMarcacion.classList.remove("oculto");
-  }
-});
-
-document.getElementById("btnTomarFotoDirecta").onclick = function() { inputFotoCamaraNativa.click(); };
-document.getElementById("btnAbrirGaleria").onclick = function() { inputFotoGaleria.click(); };
-
-function procesarArchivoImagen(file) {
-  if (!file) return;
-
-  window._fotoOriginal = file;
-
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement("canvas");
-      const maxSize = 1024;
-      let w = img.width;
-      let h = img.height;
-
-      if (w > maxSize || h > maxSize) {
-        if (w > h) {
-          h = Math.round(h * (maxSize / w));
-          w = maxSize;
-        } else {
-          w = Math.round(w * (maxSize / h));
-          h = maxSize;
-        }
-      }
-
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, w, h);
-
-      canvas.toBlob(function(blob) {
-        if (!blob) return;
-
-        const nombre = "foto_fachada_" + Date.now() + ".jpg";
-        archivoFotoBinario = new File([blob], nombre, {
-          type: "image/jpeg",
-          lastModified: Date.now()
-        });
-
-        if (imgPreviewMarcacion.dataset.objectUrl) {
-          try { URL.revokeObjectURL(imgPreviewMarcacion.dataset.objectUrl); } catch(e){}
-        }
-        const previewUrl = URL.createObjectURL(blob);
-        imgPreviewMarcacion.dataset.objectUrl = previewUrl;
-        imgPreviewMarcacion.src = previewUrl;
-        imgPreviewMarcacion.style.display = "block";
-        txtSinFoto.style.display = "none";
-        if (lblEstadoSubidaFoto) {
-          lblEstadoSubidaFoto.style.display = "block";
-          lblEstadoSubidaFoto.textContent = "🟢 Foto lista (" + Math.round(blob.size/1024) + " KB)";
-        }
-      }, "image/jpeg", 0.82);
     };
-    img.onerror = function() {
-      alert("No se pudo procesar la imagen. Probá con otra foto.");
-    };
-    img.src = evt.target.result;
-  };
-  reader.onerror = function() {
-    alert("Error al leer la foto.");
-  };
-  reader.readAsDataURL(file);
-}
 
-inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
-inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
-
-/* =========================================================
-   DESPACHO UNIFICADO NATIVO CON FICHA TÉCNICA EN PDF
-========================================================= */
-async function generarYCompartirPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  // Carga con regla estricta de validación: "Sin datos brindados"
-  const ab = mrcNumAB.value.trim() !== "" ? mrcNumAB.value.trim() : "Sin datos brindados";
-  const dir = mrcDireccion.value.trim() !== "" ? mrcDireccion.value.trim() : "Sin datos brindados";
-  const loc = mrcLocalidad.value.trim() !== "" ? mrcLocalidad.value.trim() : "Sin datos brindados";
-  const lleg = mrcComoLlegar.value.trim() !== "" ? mrcComoLlegar.value.trim() : "Sin datos brindados";
-  const coords = mrcCoords.value.trim() !== "" ? mrcCoords.value.trim() : "Sin datos brindados";
-
-  // Formato y Maquetado Profesional de la Ficha Técnica PDF
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, 210, 25, "F");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(255, 255, 255);
-  doc.text("REPORTE DE MARCACIÓN EN TERRENO", 14, 16);
-
-  doc.setFontSize(11);
-  doc.setTextColor(30, 41, 59);
-
-  let y = 38;
-  doc.text(`• N° de Abonado / ID: ${ab}`, 14, y); y += 8;
-  doc.text(`• Dirección: ${dir}`, 14, y); y += 8;
-  doc.text(`• Localidad: ${loc}`, 14, y); y += 8;
-  doc.text(`• Coordenadas GPS: ${coords}`, 14, y); y += 8;
-  
-  // Observaciones multilínea automáticas
-  doc.text("• Observaciones / Cómo Llegar:", 14, y); y += 6;
-  doc.setFont("helvetica", "normal");
-  const lineasLlegar = doc.splitTextToSize(lleg, 180);
-  doc.text(lineasLlegar, 18, y);
-  y += (lineasLlegar.length * 6) + 6;
-
-  // Inserción de la foto si fue capturada por el usuario
-  if (imgPreviewMarcacion.src && imgPreviewMarcacion.style.display !== "none") {
-    try {
-      doc.setFont("helvetica", "bold");
-      doc.text("• Registro Fotográfico de Fachada:", 14, y); y += 6;
-      doc.addImage(imgPreviewMarcacion.src, "JPEG", 14, y, 120, 90);
-    } catch (e) {
-      console.warn("No se pudo incrustar la imagen en el PDF:", e);
-    }
-  }
-
-  // Conversión del PDF a Blob File para transmisión de sistema
-  const pdfBlob = doc.output("blob");
-  const nombreArchivo = `Ficha_Marcacion_${ab.replace(/\s+/g, "_")}.pdf`;
-  const filePDF = new File([pdfBlob], nombreArchivo, { type: "application/pdf" });
-
-  // Invocación exclusiva de la ventana nativa (Share Sheet) de Android/iOS
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [filePDF] })) {
-    try {
-      await navigator.share({
-        files: [filePDF],
-        title: "Ficha de Marcación",
-        text: `Ficha Técnica - AB ${ab}`
-      });
-      cerrarYLimpiarModal();
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        doc.save(nombreArchivo);
-        cerrarYLimpiarModal();
-      }
-    }
-  } else {
-    // Descarga directa en navegadores sin API Share avanzada
-    doc.save(nombreArchivo);
-    alert("📄 Ficha PDF generada y descargada.");
-    cerrarYLimpiarModal();
-  }
-}
-
-document.getElementById("btnCompartirNativoPDF").onclick = generarYCompartirPDF;
-
-document.getElementById("btnFinalizarModal").onclick = function() {
-  generarYCompartirPDF();
-};
-
-/* HISTORIAL */
-function cargarHistorialLocal() {
-  const data = localStorage.getItem("historialConsultaApp");
-  if (data) {
-    try { historialBusquedas = JSON.parse(data); } catch(e) { historialBusquedas = []; }
-  }
-  renderizarHistorial();
-}
-
-function agregarAlHistorial(nombre, lat, lon, entreCalles = "", comoLlegar = "", datosAB = null) {
-  historialBusquedas = historialBusquedas.filter(h => h.nombre !== nombre);
-  historialBusquedas.unshift({ nombre, lat, lon, entreCalles, comoLlegar, datosAB, fecha: new Date().toLocaleTimeString("es-AR", {hour:'2-digit', minute:'2-digit'}) });
-  if (historialBusquedas.length > 10) historialBusquedas.pop();
-  localStorage.setItem("historialConsultaApp", JSON.stringify(historialBusquedas));
-  renderizarHistorial();
-}
-
-function renderizarHistorial() {
-  if (!listaHistorialBusquedas) return;
-  listaHistorialBusquedas.innerHTML = "";
-  if (historialBusquedas.length === 0) {
-    listaHistorialBusquedas.innerHTML = "<div style='padding:8px; font-size:10px; color:#888; text-align:center;'>Sin búsquedas recientes</div>";
-    return;
-  }
-  historialBusquedas.forEach(h => {
-    const div = document.createElement("div");
-    div.className = "historial-item";
-    div.innerHTML = "<b>" + h.nombre + "</b> <small style='color:#1a73e8;'>(" + h.fecha + ")</small>";
-    div.onclick = () => {
-      verificarPunto(h.lat, h.lon, h.nombre, h.entreCalles, h.comoLlegar, h.datosAB);
-    };
-    listaHistorialBusquedas.appendChild(div);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
 }
 
-document.getElementById("btnBorrarHistorial").onclick = function() {
-  historialBusquedas = [];
-  localStorage.removeItem("historialConsultaApp");
-  renderizarHistorial();
-};
 
-function crearEstilo(p) {
-  let s = {
-    color: p.color || "#2E7D32",
-    weight: 3,
-    fillColor: p.color || "#2E7D32",
-    fillOpacity: p.opacidad === undefined ? .25 : p.opacidad,
-    className: ""
-  };
-  if(p.tipoLinea === "puntos") s.dashArray = "2,7";
-  if(p.tipoLinea === "rayas") s.dashArray = "12,8";
-  if(p.tipoLinea === "animada") s.className = "linea-animada";
-  if(p.tipoLinea === "glow") s.className = "linea-glow";
-  if(p.tipoLinea === "pulso") s.className = "linea-pulso";
-  if(p.tipoLinea === "alerta") s.className = "linea-alerta";
-  if(p.tipoLinea === "contorno" || p.relleno === "sin") s.fillOpacity = 0;
-  return s;
+function generarTextoDespacho() {
+  const ab = mrcNumAB.value.trim() || "Sin datos brindados";
+  const dir = mrcDireccion.value.trim() || "Sin datos brindados";
+  const loc = mrcLocalidad.value.trim() || "Sin datos brindados";
+  const lleg = mrcComoLlegar.value.trim() || "Sin datos brindados";
+  const coords = mrcCoords.value.trim() || "Sin datos brindados";
+
+  return (
+    "🚨 ALTA DE ABONADO / MARCACIÓN EN TERRENO 🚨\n\n" +
+    "🏢 N° AB: " + ab + "\n" +
+    "📍 Dirección: " + dir + "\n" +
+    "🏙️ Localidad: " + loc + "\n" +
+    "🗺️ Cómo Llegar: " + lleg + "\n\n" +
+    "🌐 Coordenadas GPS: " + coords
+  );
 }
 
-function etiquetaTipo(tipo){
-  if(tipo === "peligrosa") return "🚨 Zona Peligrosa";
-  if(tipo === "alerta") return "⚠️ Zona de Alerta";
-  if(tipo === "informativa") return "ℹ️ Zona Informativa";
-  if(tipo === "nomovil" || tipo === "sin_acceso_movil") return "⛔ Sin Acceso de Móvil";
-  if(tipo === "barrio_privado") return "🏰 Barrio Privado";
-  if(tipo === "parque_industrial") return "🏭 Parque Industrial";
-  if(tipo === "localidad") return "🏙️ Localidad / Municipio";
-  return "🛡️ Zona de Cobertura";
-}
 
-/* COMPARTIR */
-window.compartirNativoFicha = async function(titulo, texto) {
-  if (navigator.share) {
+async function compartirFotoYTexto() {
+
+  const texto = generarTextoDespacho();
+
+  if (!archivoFotoBinario) {
+    alert("📸 Primero capturá o seleccioná una foto.");
+    return false;
+  }
+
+  const nombreArchivo =
+    archivoFotoBinario.name ||
+    ("foto_fachada_" + Date.now() + ".jpg");
+
+
+  /* ========================================================
+     MÉTODO PRINCIPAL DE LA APK
+     JavaScript → Android nativo
+  ======================================================== */
+
+  if (
+    window.Android &&
+    typeof window.Android.compartirFotoYTexto === "function"
+  ) {
+
     try {
-      await navigator.share({ title: titulo, text: texto });
-    } catch (err) {
-      if (err.name !== "AbortError") window.copiarFichaMapa(texto);
-    }
-  } else {
-    window.copiarFichaMapa(texto);
-  }
-};
 
-window.copiarFichaMapa = function(texto) {
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(texto).then(() => {
-      alert("📋 Ficha copiada al portapapeles.");
-    }).catch(() => fallbackCopiar(texto));
-  } else {
-    fallbackCopiar(texto);
-  }
-};
+      const base64 =
+        await convertirBlobABase64(archivoFotoBinario);
 
-function fallbackCopiar(texto) {
-  const textArea = document.createElement("textarea");
-  textArea.value = texto;
-  textArea.style.position = "fixed";
-  textArea.style.left = "-9999px";
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-  try {
-    document.execCommand('copy');
-    alert("📋 Ficha copiada al portapapeles.");
-  } catch (err) {
-    alert("No se pudo copiar la información.");
-  }
-  document.body.removeChild(textArea);
-}
+      window.Android.compartirFotoYTexto(
+        base64,
+        nombreArchivo,
+        "image/jpeg",
+        texto
+      );
 
-let modoConsultaClic = false;
-const btnClicMapa = document.getElementById("btnClicMapa");
-
-btnClicMapa.onclick = function() {
-  modoConsultaClic = true;
-  btnClicMapa.classList.remove("activo");
-  btnClicMapa.textContent = "🎯 Clic en Mapa";
-  colapsarPanelBusqueda();
-};
-
-map.on("click", async function(e) {
-  if(modoConsultaClic) {
-    modoConsultaClic = false;
-    btnClicMapa.classList.remove("activo");
-    btnClicMapa.textContent = "🎯 Clic en Mapa";
-    const resData = await resolverDireccionYAltura(e.latlng.lat, e.latlng.lng);
-    document.getElementById("direccion").value = "";
-    verificarPunto(e.latlng.lat, e.latlng.lng, resData.direccion, resData.entreCalles);
-  }
-});
-
-let elementos = [], abonadosLocal = [], capas = [], marcadoresInstanciados = [], marcadoresAutos = [], marker = null;
-let currentController = null;
-const statusSync = document.getElementById("indicadorSyncStatus");
-
-const urlParams = new URLSearchParams(window.location.search);
-let endpointGuardado = urlParams.get("db") || localStorage.getItem("fbUrlAdmin") || "https://mapa-ef4d1-default-rtdb.firebaseio.com/";
-
-function renderizarClusterAbonados(lista) {
-  if (!clusterAbonadosIndex) return;
-  clusterAbonadosIndex.clearLayers();
-
-  (lista || []).forEach(ab => {
-    if (!ab.lat || !ab.lon) return;
-
-    const m = L.marker([ab.lat, ab.lon], { abNum: String(ab.ab) });
-    m.bindPopup(function() {
-      const div = document.createElement("div");
-      div.style.padding = "10px";
-      div.innerHTML = `
-        <b style="color:#1a73e8; font-size:13px;">🏢 ABONADO N°: ${ab.ab}</b><br>
-        <b>📍 Dirección:</b> ${ab.direccion || 'S/D'}<br>
-        <b>🏙️ Localidad:</b> ${ab.localidad || 'S/D'}<br>
-        <b>🗺️ Cómo llegar:</b> <i>${ab.comoLlegar || 'Sin datos'}</i><br>
-      `;
-      return div;
-    });
-
-    clusterAbonadosIndex.addLayer(m);
-  });
-}
-
-function cargarCopiaRespaldoOffline() {
-  const offlineData = localStorage.getItem("cacheMapaOfflineData");
-  if (offlineData) {
-    try {
-      const dataFB = JSON.parse(offlineData);
-      if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
-      if (dataFB.abonados) {
-        abonadosLocal = Array.isArray(dataFB.abonados) ? dataFB.abonados : Object.values(dataFB.abonados);
-        renderizarClusterAbonados(abonadosLocal);
-      }
-      if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
-      if (statusSync) { statusSync.textContent = "🟠 Modo Offline (Copia Local)"; statusSync.style.color = "#e65100"; }
-      ocultarSplashScreen();
       return true;
-    } catch(err) { return false; }
+
+    } catch (error) {
+
+      console.error(
+        "Error en el puente Android:",
+        error
+      );
+
+    }
   }
+
+
+  /* ========================================================
+     RESPALDO PARA WEB / TWA
+     Intentamos FOTO + TEXTO en una sola operación.
+  ======================================================== */
+
+  if (navigator.share) {
+
+    try {
+
+      const datosCompartir = {
+        title: "Marcación en Terreno",
+        text: texto,
+        files: [archivoFotoBinario]
+      };
+
+
+      let permitido = true;
+
+      if (typeof navigator.canShare === "function") {
+
+        permitido =
+          navigator.canShare({
+            files: [archivoFotoBinario]
+          });
+
+      }
+
+
+      if (permitido) {
+
+        await navigator.share(datosCompartir);
+
+        return true;
+
+      }
+
+    } catch (error) {
+
+      if (
+        error &&
+        error.name === "AbortError"
+      ) {
+        return false;
+      }
+
+      console.warn(
+        "Web Share no pudo enviar foto + texto:",
+        error
+      );
+    }
+  }
+
+
+  /* ========================================================
+     RESPALDO FINAL
+     No pierde la información:
+     - copia texto
+     - descarga foto
+  ======================================================== */
+
+  try {
+
+    if (
+      typeof copiarTextoSeguro === "function"
+    ) {
+
+      await copiarTextoSeguro(texto);
+
+    } else {
+
+      await navigator.clipboard.writeText(texto);
+
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "No se pudo copiar el texto:",
+      error
+    );
+
+  }
+
+
+  try {
+
+    const url =
+      URL.createObjectURL(
+        archivoFotoBinario
+      );
+
+    const enlace =
+      document.createElement("a");
+
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    enlace.style.display = "none";
+
+    document.body.appendChild(enlace);
+
+    enlace.click();
+
+    document.body.removeChild(enlace);
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 2000);
+
+  } catch (error) {
+
+    console.warn(
+      "No se pudo descargar la foto:",
+      error
+    );
+
+  }
+
+
+  alert(
+    "⚠️ El dispositivo no permitió enviar la foto y el texto juntos.\n\n" +
+    "✅ El texto quedó copiado.\n" +
+    "✅ La foto fue descargada."
+  );
+
   return false;
 }
 
-async function actualizarDesdeFirebase() {
-  const urlBruta = endpointGuardado;
-  const fetchUrl = formatearUrlFirebase(urlBruta);
 
-  if (!fetchUrl) {
-    if(!cargarCopiaRespaldoOffline() && statusSync) { 
-      statusSync.textContent = "🔴 Sin URL Base"; statusSync.style.color = "#d93025"; 
-    }
-    ocultarSplashScreen();
-    return;
-  }
+/* =========================================================
+   BOTÓN: COMPARTIR FOTO + DATOS
+========================================================= */
 
-  if (currentController) currentController.abort();
-  currentController = new AbortController();
+document.getElementById(
+  "btnCompartirNativoPDF"
+).onclick = async function() {
+
+  const boton = this;
+  const textoOriginal = boton.innerHTML;
+
+  boton.disabled = true;
+  boton.innerHTML = "⏳ Preparando...";
 
   try {
-    const res = await fetch(fetchUrl, { cache: "no-store", signal: currentController.signal });
-    if (!res.ok) throw new Error("Error HTTP " + res.status);
-    const dataFB = await res.json();
-    if (dataFB) {
-      if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
-      
-      if (dataFB.abonados) {
-        abonadosLocal = Array.isArray(dataFB.abonados) ? dataFB.abonados : Object.values(dataFB.abonados);
-        renderizarClusterAbonados(abonadosLocal);
-      }
-      
-      if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
-      
-      localStorage.setItem("cacheMapaOfflineData", JSON.stringify(dataFB));
 
-      if (dataFB.version_app) {
-        ultimaVersionDetectada = dataFB.version_app;
-        if (dataFB.version_app !== VERSION_LOCAL) {
-          const lblVer = document.getElementById("lblNuevaVersion");
-          if (lblVer) lblVer.textContent = dataFB.version_app;
-          document.getElementById("avisoUpdateCyber")?.classList.add("visible");
-        } else {
-          document.getElementById("avisoUpdateCyber")?.classList.remove("visible");
-        }
-      }
+    await compartirFotoYTexto();
 
-      if(statusSync) { statusSync.textContent = "🟢 Sincronizado en Vivo"; statusSync.style.color = "#2e7d32"; }
-      ocultarSplashScreen();
-    }
-  } catch(e) {
-    if (e.name === "AbortError") return;
-    const usoCopia = cargarCopiaRespaldoOffline();
-    if (!usoCopia && statusSync && elementos.length === 0) { 
-      statusSync.textContent = "🟡 Conectando..."; statusSync.style.color = "#f29900"; 
-    }
-    ocultarSplashScreen();
+  } finally {
+
+    boton.innerHTML = textoOriginal;
+    boton.disabled = false;
+
   }
-}
 
-document.getElementById("btnAplicarParcheCyber")?.addEventListener("click", async function() {
-  localStorage.setItem("versionGuardadaLocal", ultimaVersionDetectada);
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
-  }
-  window.location.reload(true);
-});
-
-window.addEventListener('online', actualizarDesdeFirebase);
-window.addEventListener('offline', cargarCopiaRespaldoOffline);
-
-function renderizarDatosMapa(datosGeo) {
-  capas.forEach(l => map.removeLayer(l)); capas = [];
-  marcadoresInstanciados.forEach(m => map.removeLayer(m)); marcadoresInstanciados = []; marcadoresAutos = [];
-  
-  const select = document.getElementById("selectZona");
-  select.innerHTML = '<option value="">--Ir a zona--</option>';
-
-  datosGeo.forEach((f, idx) => {
-    const p = f.properties || {};
-    
-    if(p.esMarcador) {
-      const c = f.geometry.coordinates;
-      const htmlIcono = '<div class="icono-personalizado" style="background:' + (p.color || "#1a73e8") + '">' + (p.icono || "📍") + '</div>';
-      const mIcon = L.divIcon({ className: "", html: htmlIcono, iconSize: [32, 32], iconAnchor: [16, 16] });
-      const m = L.marker([c[1], c[0]], { icon: mIcon, pane: "panelMarcadores" }).bindPopup("<b>" + (p.nombre||"Marcación") + "</b><br><small>📍 Marcación Estratégica</small>").addTo(map);
-      marcadoresInstanciados.push(m);
-      if(p.icono === "🚗" || p.icono === "🏍️") marcadoresAutos.push({ nombre: p.nombre, latlng: L.latLng(c[1], c[0]), icono: p.icono });
-      return;
-    }
-
-    const grupo = L.geoJSON(f, { style: () => crearEstilo(p) });
-    grupo.eachLayer(l => {
-      l._zona = f;
-      l.bindTooltip("<b>" + (p.nombre || "Zona") + "</b><br><small>" + etiquetaTipo(p.tipoZona) + "</small>", { permanent: false, className: "zona-tooltip" });
-      l.addTo(map); capas.push(l);
-    });
-    const opt = document.createElement("option"); opt.value = idx; opt.textContent = (p.nombre || "Zona"); select.appendChild(opt);
-  });
-}
-
-actualizarDesdeFirebase();
-setInterval(actualizarDesdeFirebase, 10800000);
-
-document.getElementById("selectZona").onchange = function(){
-  const idx = this.value; if(idx === "") return;
-  try { 
-    map.fitBounds(L.geoJSON(elementos[idx]).getBounds(), { padding: [40, 40] }); 
-    colapsarPanelBusqueda();
-  } catch(e){}
 };
 
-/* BÚSQUEDA EXCLUSIVA DE ABONADOS */
-const inputAB = document.getElementById("buscarABInput");
-const sugAB = document.getElementById("sugerenciasAB");
 
-inputAB.oninput = function() {
-  const q = inputAB.value.trim().toUpperCase();
-  if (q.length < 1) { sugAB.style.display = "none"; return; }
-  sugAB.innerHTML = "";
+/* =========================================================
+   FINALIZAR Y DESPACHAR
+========================================================= */
 
-  abonadosLocal.forEach(ab => {
-    if (ab.ab.toUpperCase().includes(q) || (ab.direccion && ab.direccion.toUpperCase().includes(q))) {
-      const div = document.createElement("div"); div.className = "sugerencia-item";
-      div.textContent = "🏢 AB " + ab.ab + " - " + (ab.direccion || "Sin dirección") + (ab.localidad ? " (" + ab.localidad + ")" : "");
-      div.onclick = () => {
-        const nomAB = "AB " + ab.ab + " - " + (ab.direccion || "");
-        inputAB.value = "";
-        sugAB.style.display = "none";
-        colapsarPanelBusqueda();
-        verificarPunto(ab.lat, ab.lon, nomAB, ab.localidad || "", ab.comoLlegar || "", ab);
-      };
-      sugAB.appendChild(div);
-    }
-  });
+document.getElementById(
+  "btnFinalizarModal"
+).onclick = async function() {
 
-  sugAB.style.display = sugAB.children.length ? "block" : "none";
+  await compartirFotoYTexto();
+
 };
-
-document.getElementById("btnBuscarAB").onclick = function() {
-  const q = inputAB.value.trim().replace("AB", "").trim().toUpperCase();
-  if (!q) return;
-  const encontrado = abonadosLocal.find(ab => ab.ab.toUpperCase() === q);
-  if (encontrado) {
-    const nomAB = "AB " + encontrado.ab + " - " + (encontrado.direccion || "");
-    inputAB.value = "";
-    sugAB.style.display = "none";
-    colapsarPanelBusqueda();
-    verificarPunto(encontrado.lat, encontrado.lon, nomAB, encontrado.localidad || "", encontrado.comoLlegar || "", encontrado);
-  } else {
-    alert("Abonado N° " + q + " no encontrado.");
-  }
-};
-
-document.getElementById("btnLimpiarAB").onclick = () => {
-  inputAB.value = ""; sugAB.style.display = "none";
-  if (marker) map.removeLayer(marker);
-};
-
-/* DIRECCIONES */
-const input = document.getElementById("direccion");
-const sugBox = document.getElementById("sugerenciasConsulta");
-
-input.oninput = function() {
-  const q = input.value.trim().toUpperCase();
-  if(q.length < 2) { sugBox.style.display = "none"; return; }
-  sugBox.innerHTML = "";
-
-  fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=" + encodeURIComponent(input.value + ", Buenos Aires") + "&maxLocations=3")
-    .then(r => r.json()).then(d => {
-      if (d && d.candidates) {
-        d.candidates.forEach(c => {
-          const div = document.createElement("div"); div.className = "sugerencia-item";
-          div.textContent = c.address;
-          div.onclick = async () => {
-            const nomDir = c.address;
-            input.value = ""; sugBox.style.display = "none";
-            colapsarPanelBusqueda();
-            const resData = await resolverDireccionYAltura(c.location.y, c.location.x);
-            verificarPunto(c.location.y, c.location.x, nomDir, resData.entreCalles);
-          };
-          sugBox.appendChild(div);
-        });
-        sugBox.style.display = "block";
-      }
-    }).catch(e => {});
-};
-
-document.getElementById("buscar").onclick = async function() {
-  const q = input.value.trim();
-  if (!q) return;
-  sugBox.style.display = "none";
-  colapsarPanelBusqueda();
-  
-  try {
-    const r = await fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=" + encodeURIComponent(q + ", Buenos Aires") + "&maxLocations=1");
-    const d = await r.json();
-    if (d && d.candidates && d.candidates.length > 0) {
-      const c = d.candidates[0];
-      const resData = await resolverDireccionYAltura(c.location.y, c.location.x);
-      input.value = "";
-      verificarPunto(c.location.y, c.location.x, c.address, resData.entreCalles);
-    } else {
-      alert("No se encontró la dirección especificada.");
-    }
-  } catch(e) {
-    alert("Error al realizar la búsqueda de dirección.");
-  }
-};
-
-document.getElementById("btnLimpiarInput").onclick = () => { input.value = ""; sugBox.style.display = "none"; if(marker) map.removeLayer(marker); };
-
-document.getElementById("btnGPSConsulta").onclick = function() {
-  colapsarPanelBusqueda();
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const resData = await resolverDireccionYAltura(pos.coords.latitude, pos.coords.longitude);
-    input.value = "";
-    verificarPunto(pos.coords.latitude, pos.coords.longitude, resData.direccion, resData.entreCalles);
-  }, err => alert("Permití el acceso al GPS."));
-};
-
-/* RECONOCIMIENTO DE VOZ */
-const btnVozInput = document.getElementById("btnVozInput");
-let recognition = null;
-
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-
-  recognition.lang = 'es-AR';
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
-  btnVozInput.onclick = function() {
-    if (navigator.vibrate) navigator.vibrate(50);
-
-    try {
-      recognition.start();
-      btnVozInput.style.background = "#ea4335";
-      btnVozInput.style.color = "#ffffff";
-      btnVozInput.textContent = "🎙️...";
-    } catch(err) {
-      recognition.stop();
-    }
-  };
-
-  recognition.onresult = function(event) {
-    if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
-    const textoDictado = event.results[0][0].transcript;
-    const inputDir = document.getElementById("direccion");
-    
-    inputDir.value = textoDictado;
-    restablecerBotonVoz();
-    inputDir.dispatchEvent(new Event('input'));
-
-    setTimeout(() => {
-      const btnBuscar = document.getElementById("buscar");
-      if (btnBuscar && inputDir.value.length > 3) {
-        colapsarPanelBusqueda();
-        btnBuscar.click();
-      }
-    }, 1200);
-  };
-
-  recognition.onerror = recognition.onend = function() {
-    restablecerBotonVoz();
-  };
-
-  function restablecerBotonVoz() {
-    btnVozInput.style.background = "#f1f5f9";
-    btnVozInput.style.color = "#64748b";
-    btnVozInput.textContent = "🎙️";
-  }
-} else {
-  if(btnVozInput) btnVozInput.style.display = 'none';
-}
-
-const detenerMicrofono = () => { if (recognition) recognition.stop(); };
-document.getElementById("buscar")?.addEventListener("click", detenerMicrofono);
-document.getElementById("btnBuscarAB")?.addEventListener("click", detenerMicrofono);
-document.getElementById("btnLimpiarInput")?.addEventListener("click", detenerMicrofono);
-
-function rayCasting(pt, ring) {
-  let inPoly = false;
-  for(let i=0, j=ring.length-1; i<ring.length; j=i++) {
-    if(((ring[i].lng > pt.lng) !== (ring[j].lng > pt.lng)) && (pt.lat < (ring[j].lat - ring[i].lat) * (pt.lng - ring[i].lng) / (ring[j].lng - ring[i].lng) + ring[i].lat)) inPoly = !inPoly;
-  }
-  return inPoly;
-}
-
-function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", datosAB = null) {
-  const pt = L.latLng(lat, lon);
-  if(marker) map.removeLayer(marker);
-
-  colapsarPanelBusqueda();
-  agregarAlHistorial(nombre, lat, lon, entreCalles, comoLlegar, datosAB);
-
-  const peligrosas = [], nomoviles = [], alertas = [], coberturas = [], informativas = [], barrioPrivado = [], parqueIndustrial = [];
-  
-  capas.forEach(l => {
-    let raw = l.getLatLngs();
-    if (Array.isArray(raw) && raw.length > 0) {
-      let ring = Array.isArray(raw[0]) && !Array.isArray(raw[0][0]) ? raw[0] : raw;
-      if (rayCasting(pt, ring)) {
-        const p = l._zona.properties || {}, t = p.tipoZona || "cobertura", n = p.nombre || "Zona";
-        if(t === "peligrosa") peligrosas.push(n);
-        else if(t === "nomovil" || t === "sin_acceso_movil") nomoviles.push(n);
-        else if(t === "alerta") alertas.push(n);
-        else if(t === "informativa") informativas.push(n);
-        else if(t === "barrio_privado") barrioPrivado.push(n);
-        else if(t === "parque_industrial") parqueIndustrial.push(n);
-        else coberturas.push(n);
-      }
-    }
-  });
-
-  let estadoTexto = "DENTRO DE COBERTURA", claseBurbuja = "burbuja-cobertura", icono = "🛡️";
-
-  if (nomoviles.length) { 
-    estadoTexto = "⛔ NO VA MÓVIL / SIN ACCESO (" + nomoviles.join(", ") + ")"; 
-    claseBurbuja = "burbuja-nomovil"; 
-    icono = "⛔"; 
-  }
-  else if (peligrosas.length) { 
-    estadoTexto = "🚨 ZONA PELIGROSA - NO VA MÓVIL (" + peligrosas.join(", ") + ")"; 
-    claseBurbuja = "burbuja-peligrosa"; 
-    icono = "🚨"; 
-  }
-  else if (barrioPrivado.length) { 
-    estadoTexto = "🏰 BARRIO PRIVADO - NO VA MÓVIL (" + barrioPrivado.join(", ") + ")"; 
-    claseBurbuja = "burbuja-barrio"; 
-    icono = "🏰"; 
-  }
-  else if (parqueIndustrial.length) { 
-    estadoTexto = "🏭 PARQUE INDUSTRIAL - RESTRICCIÓN DE ACCESO (" + parqueIndustrial.join(", ") + ")"; 
-    claseBurbuja = "burbuja-industrial"; 
-    icono = "🏭"; 
-  }
-  else if (alertas.length) { 
-    estadoTexto = "⚠️ ZONA DE ALERTA (" + alertas.join(", ") + ")"; 
-    claseBurbuja = "burbuja-alerta"; 
-    icono = "⚠️"; 
-  }
-  else if (informativas.length) { 
-    estadoTexto = "ℹ️ ZONA INFORMATIVA (" + informativas.join(", ") + ")"; 
-    claseBurbuja = "burbuja-informativa"; 
-    icono = "ℹ️"; 
-  }
-  else if (!coberturas.length) { 
-    estadoTexto = "🚫 FUERA DE COBERTURA (NO VA MÓVIL)"; 
-    claseBurbuja = "burbuja-fuera"; 
-    icono = "🚫"; 
-  }
-
-  let etaTxt = "";
-  if (marcadoresAutos.length) {
-    let masCercano = null, minDist = Infinity;
-    marcadoresAutos.forEach(a => {
-      let d = pt.distanceTo(a.latlng);
-      if(d < minDist) { minDist = d; masCercano = a; }
-    });
-    if (masCercano) {
-      let km = (minDist / 1000).toFixed(1);
-      let minEst = Math.round((minDist / 1000) / 35 * 60);
-      etaTxt = '<div class="card-eta">🚘 <b>Móvil más cercano:</b> ' + masCercano.nombre + '<br>📐 Distancia: ' + km + ' km | ⏱️ ETA aprox: ~' + (minEst < 1 ? 1 : minEst) + ' min</div>';
-    }
-  }
-
-  let entreTxt = entreCalles ? '<div class="burbuja-entre">📍 ' + entreCalles + '</div>' : '';
-
-  let comoLlegarHtml = "";
-  if (comoLlegar && comoLlegar.trim() !== "") {
-    comoLlegarHtml = '<div class="burbuja-como-llegar con-datos"><b>🗺️ Cómo Llegar:</b><br>' + comoLlegar.trim() + '</div>';
-  } else {
-    comoLlegarHtml = '<div class="burbuja-como-llegar sin-datos">❌ Sin datos de cómo llegar</div>';
-  }
-
-  let propiedadHtml = "";
-  if (datosAB) {
-    propiedadHtml = '<div class="card-propiedad">' +
-      '<div class="card-propiedad-titulo">🏢 DATOS DE LA PROPIEDAD</div>' +
-      '<div><b>N° Abonado:</b> AB ' + (datosAB.ab || "Sin datos brindados") + '</div>' +
-      '<div><b>Dirección:</b> ' + (datosAB.direccion || "Sin datos brindados") + '</div>' +
-      (datosAB.localidad ? '<div><b>Localidad:</b> ' + datosAB.localidad + '</div>' : '') +
-      '<div><b>Coordenadas:</b> ' + lat.toFixed(5) + ', ' + lon.toFixed(5) + '</div>' +
-      '</div>';
-  } else {
-    propiedadHtml = '<div class="card-propiedad">' +
-      '<div class="card-propiedad-titulo">📍 DATOS DE LA UBICACIÓN</div>' +
-      '<div><b>Ubicación:</b> General consultada en mapa</div>' +
-      '<div><b>Coordenadas:</b> ' + lat.toFixed(5) + ', ' + lon.toFixed(5) + '</div>' +
-      '</div>';
-  }
-
-  const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const urlWaze = esMovil 
-    ? "waze://?ll=" + lat + "," + lon + "&navigate=yes" 
-    : "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
-
-  const urlGmaps = esMovil 
-    ? "google.navigation:q=" + lat + "," + lon + "&mode=d" 
-    : "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
-
-  const urlWazeReporte = "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
-  const urlGmapsReporte = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
-
-  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5) + "\n🚙 *Waze:* " + urlWazeReporte + "\n🗺️ *Maps:* " + urlGmapsReporte;
-  
-  const urlWsp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(textoReporte);
-
-  const html = '<div class="burbuja-marcacion ' + claseBurbuja + '" onclick="this.classList.toggle(\'expandida\')">' +
-    '<div class="burbuja-cabecera"><span>' + icono + '</span> <span>' + estadoTexto + '</span></div>' +
-    '<div class="burbuja-sub">' + nombre + '</div>' +
-    entreTxt +
-    comoLlegarHtml +
-    '<div class="burbuja-indicador"><span>Tocá para ver opciones</span> <span>▼</span></div>' +
-    '<div class="burbuja-cuerpo">' +
-      propiedadHtml +
-      etaTxt +
-      '<div class="grupo-botones-nav">' +
-        '<button type="button" onclick="event.stopPropagation(); window.compartirNativoFicha(\'Reporte de Cobertura\', \'' + textoReporte.replace(/\n/g, '\\n') + '\');" class="btn-nav btn-share">📲 Compartir...</button>' +
-        '<a href="' + urlWsp + '" target="_blank" onclick="event.stopPropagation();" class="btn-nav btn-wsp">💬 WhatsApp</a>' +
-        '<a href="' + urlWaze + '" target="_blank" onclick="event.stopPropagation();" class="btn-nav btn-waze">🚙 Waze</a>' +
-        '<a href="' + urlGmaps + '" target="_blank" onclick="event.stopPropagation();" class="btn-nav btn-gmaps">🗺️ Maps</a>' +
-        '<button type="button" onclick="event.stopPropagation(); window.copiarFichaMapa(\'' + textoReporte.replace(/\n/g, '\\n') + '\');" class="btn-nav btn-copiar">📋 Copiar</button>' +
-      '</div>' +
-    '</div>' +
-    '</div>';
-
-  marker = L.marker(pt).addTo(map);
-  marker.bindPopup(html, { closeButton: false }).openPopup();
-  map.setView(pt, zoomPredeterminado);
-}
-
-document.querySelectorAll(".menu-header").forEach(h => {
-  h.onclick = function(){
-    const m = h.parentElement; const abierto = m.classList.contains("abierto");
-    document.querySelectorAll(".menu").forEach(x => x.classList.remove("abierto"));
-    if(!abierto) m.classList.add("abierto");
-  };
-});
-
-cargarHistorialLocal();
-});
-</script>
-</body>
-</html>
+```
