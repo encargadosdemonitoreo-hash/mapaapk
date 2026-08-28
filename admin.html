@@ -1174,14 +1174,24 @@ body.panel-oculto .panel { display: none; }
         </button>
         <div class="menu-contenido">
 
-            <!-- MÓDULO PUBLICACIÓN DE NUEVA VERSIÓN APP -->
-            <div style="background:#0f172a; color:#fff; border-radius:10px; padding:10px; margin-bottom:12px; border:1px solid #3b82f6;">
-                <div style="font-weight:800; font-size:11px; color:#60a5fa; margin-bottom:6px;">🚀 LANZAR NUEVA VERSIÓN / PARCHE DE APP</div>
-                <label style="color:#94a3b8; margin-top:0;">Número de Versión Publicada</label>
-                <div style="display:flex; gap:6px; margin-top:4px;">
-                    <input type="text" id="adminVersionInput" placeholder="Ej.: 1.0.1" value="1.0.0" style="flex:1; height:36px; background:#1e293b; color:#fff; border:1px solid #475569; font-weight:bold;">
-                    <button id="btnPublicarVersion" class="btn btn-azul" type="button" style="margin-top:0; height:36px; width:auto; padding:0 10px;">Lanzar Parche</button>
+            <!-- MÓDULO PUBLICACIÓN DE NUEVA VERSIÓN APP (MEJORADO) -->
+            <div style="background:#0f172a; color:#fff; border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid #3b82f6;">
+                <div style="font-weight:800; font-size:11px; color:#60a5fa; margin-bottom:8px;">🚀 LANZAR NUEVA VERSIÓN / PARCHE DE APP</div>
+                
+                <div style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.4); border-radius:8px; padding:8px 10px; margin-bottom:10px; font-size:11px; line-height:1.4; color:#cbd5e1;">
+                    <b style="color:#93c5fd;">⚠️ Antes de lanzar:</b><br>
+                    1. Subí el <b>index.html</b> nuevo a GitHub<br>
+                    2. Esperá 30-60 seg a que GitHub Pages actualice<br>
+                    3. Recién ahí lanzá el parche
                 </div>
+
+                <label style="color:#94a3b8; margin-top:0;">Número de Versión a Publicar</label>
+                <div style="display:flex; gap:6px; margin-top:4px;">
+                    <input type="text" id="adminVersionInput" placeholder="Ej.: 1.1.2" value="1.0.0" style="flex:1; height:36px; background:#1e293b; color:#fff; border:1px solid #475569; font-weight:bold;">
+                    <button id="btnSugerirVersion" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; width:auto; padding:0 10px; background:#334155; color:#e2e8f0; border:1px solid #475569;" title="Sugerir siguiente versión">+1</button>
+                    <button id="btnPublicarVersion" class="btn btn-azul" type="button" style="margin-top:0; height:36px; width:auto; padding:0 12px;">Lanzar Parche</button>
+                </div>
+                <div id="lblEstadoVersion" style="font-size:10px; color:#94a3b8; margin-top:6px; font-weight:600;"></div>
             </div>
             
             <!-- MÓDULO COMPLETO DE CREACIÓN Y EDICIÓN DE USUARIOS -->
@@ -1458,15 +1468,46 @@ const tituloFormAB = document.getElementById("tituloFormAB");
 
 const adminVersionInput = document.getElementById("adminVersionInput");
 const btnPublicarVersion = document.getElementById("btnPublicarVersion");
+const btnSugerirVersion = document.getElementById("btnSugerirVersion");
+const lblEstadoVersion = document.getElementById("lblEstadoVersion");
 
 /* =========================================================
-   PUBLICACIÓN Y LANZAMIENTO DE NUEVAS VERISIONES DE APP
+   PUBLICACIÓN Y LANZAMIENTO DE NUEVAS VERISIONES DE APP (MEJORADO)
 ========================================================= */
+
+// Sugerir siguiente versión automáticamente (+0.0.1)
+btnSugerirVersion?.addEventListener("click", function() {
+    const actual = (adminVersionInput?.value || "1.0.0").trim();
+    const partes = actual.split(".").map(n => parseInt(n, 10) || 0);
+    
+    // Aseguramos que tenga al menos 3 partes (major.minor.patch)
+    while (partes.length < 3) partes.push(0);
+    
+    partes[2] += 1; // incrementamos el patch
+    const sugerida = partes.join(".");
+    adminVersionInput.value = sugerida;
+    
+    if (lblEstadoVersion) {
+        lblEstadoVersion.textContent = `Sugerida: ${sugerida} (basada en ${actual})`;
+        lblEstadoVersion.style.color = "#60a5fa";
+    }
+});
+
 btnPublicarVersion?.addEventListener("click", async function() {
     if (!requiereRol(["SUPER_ADMIN"], "Solo el Super Administrador puede lanzar versiones.")) return;
 
     const nuevaVer = adminVersionInput?.value.trim();
-    if (!nuevaVer) return alert("Ingresá un número de versión válido (ej: 1.0.1)");
+    if (!nuevaVer) return alert("Ingresá un número de versión válido (ej: 1.1.2)");
+
+    // Confirmación con recordatorio importante
+    const confirmar = confirm(
+        `¿Lanzar la versión v${nuevaVer}?\n\n` +
+        `⚠️ RECORDATORIO:\n` +
+        `• ¿Ya subiste el index.html nuevo a GitHub?\n` +
+        `• ¿Esperaste a que GitHub Pages actualice?\n\n` +
+        `Si todavía no subiste el archivo, los usuarios van a recibir el aviso pero seguirán con la versión vieja.`
+    );
+    if (!confirmar) return;
 
     const fbUrlRaw = cfgFirebaseUrl?.value.trim() || localStorage.getItem("fbUrlAdmin") || "";
     if (!fbUrlRaw) return alert("Configurá primero la URL de tu Firebase en Opciones Avanzadas.");
@@ -1475,6 +1516,11 @@ btnPublicarVersion?.addEventListener("click", async function() {
 
     try {
         if (estado) estado.textContent = "⌛ Lanzando parche v" + nuevaVer + "...";
+        if (lblEstadoVersion) {
+            lblEstadoVersion.textContent = "Publicando...";
+            lblEstadoVersion.style.color = "#fbbf24";
+        }
+
         const res = await fetch(endpoint, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -1484,13 +1530,32 @@ btnPublicarVersion?.addEventListener("click", async function() {
         if (res.ok) {
             localStorage.setItem("versionAppUltima", nuevaVer);
             registrarEventoLog(`🚀 Lanzada versión/parche v${nuevaVer} a Firebase`);
-            alert(`✅ ¡Versión v${nuevaVer} lanzada con éxito! A todas las Apps con versión anterior les aparecerá el aviso de actualización.`);
+            
+            if (lblEstadoVersion) {
+                lblEstadoVersion.textContent = `✓ v${nuevaVer} activa en Firebase`;
+                lblEstadoVersion.style.color = "#34d399";
+            }
+            
+            alert(
+                `✅ Versión v${nuevaVer} lanzada con éxito.\n\n` +
+                `Qué pasa ahora:\n` +
+                `1. Las apps de consulta van a detectar la nueva versión.\n` +
+                `2. Les va a aparecer el cartel de “Nueva Versión”.\n` +
+                `3. Al apretar “Aplicar Parche” van a bajar el index.html desde GitHub.\n\n` +
+                `Si no subiste el archivo nuevo, van a seguir con la versión anterior.`
+            );
+            
             if (estado) estado.textContent = "✓ Versión v" + nuevaVer + " activa en Firebase";
         } else {
             throw new Error("HTTP " + res.status);
         }
     } catch(e) {
-        alert("❌ Error al publicar la versión en Firebase.");
+        console.error(e);
+        alert("❌ Error al publicar la versión en Firebase.\n\nRevisá la URL de Firebase y tu conexión.");
+        if (lblEstadoVersion) {
+            lblEstadoVersion.textContent = "🔴 Error al publicar";
+            lblEstadoVersion.style.color = "#f87171";
+        }
         if (estado) estado.textContent = "🔴 Error al lanzar versión";
     }
 });
