@@ -3,7 +3,7 @@
   "name": "Mesa de Consulta de Cobertura",
   "short_name": "Cobertura",
   "description": "Aplicación táctica de consulta de mapas, zonas de cobertura y marcación en terreno.",
-  "start_url": "./index.html",
+  "start_url": "/mapaapk/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f172a",
