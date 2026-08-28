@@ -19,9 +19,8 @@
 <!-- LIBRERÍA JSPDF PARA GENERACIÓN DE FICHAS PDF EN DISPOSITIVO -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<!-- VINCULACIÓN DE ARCHIVO MANIFEST Y MANIFEST EMBEBIDO PARA COMPILACIÓN PWA / APK -->
+<!-- VINCULACIÓN DE ARCHIVO MANIFEST -->
 <link rel="manifest" href="manifest.json">
-<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1lc2EgZGUgQ29uc3VsdGEgZGUgQ29iZXJ0dXJhIiwKICAic2hvcnRfbmFtZSI6ICJDb2JlcnR1cmEiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGYxNzJhIiwKICAidGhlbWVfY29sb3IiOiAiIzFhNzNlOCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogIi4vbG9nby5wbmciLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIsCiAgICAgICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiLi9sb2dvLnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -37,9 +36,9 @@
 <meta name="apple-mobile-web-app-title" content="Cobertura">
 <meta name="theme-color" content="#1a73e8">
 
-<!-- ÍCONO EMPRESARIAL -->
-<link rel="icon" type="image/png" sizes="192x192" href="./logo.png">
-<link rel="apple-touch-icon" href="./logo.png">
+<!-- ÍCONO EMPRESARIAL REVISADO -->
+<link rel="icon" type="image/png" sizes="192x192" href="./icono-192.png">
+<link rel="apple-touch-icon" href="./icono-192.png">
 
 <style>
 /* =========================================================
@@ -847,7 +846,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- PANTALLA DE CARGA ANIMADA -->
 <div id="splashScreen">
   <div class="splash-container">
-    <img src="./logo.png" alt="Cargando..." class="splash-logo" onError="this.style.display='none';">
+    <img src="./icono-192.png" alt="Cargando..." class="splash-logo" onError="this.style.display='none';">
     <div class="splash-bar-bg"><div class="splash-bar-fill"></div></div>
     <div class="splash-txt">Cargando Mapa...</div>
   </div>
@@ -879,7 +878,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <div id="loginOverlay" class="oculto">
   <div class="login-card">
     <div style="margin-bottom:8px;">
-      <img src="./logo.png" alt="Logo Empresa" id="imgLogoLogin" style="max-width: 170px; max-height: 75px; object-fit: contain;" onError="this.style.display='none'; document.getElementById('fallbackLogo').style.display='block';">
+      <img src="./icono-192.png" alt="Logo Empresa" id="imgLogoLogin" style="max-width: 170px; max-height: 75px; object-fit: contain;" onError="this.style.display='none'; document.getElementById('fallbackLogo').style.display='block';">
       <div id="fallbackLogo" style="display:none; font-size:36px;">🛡️</div>
     </div>
     <div style="font-weight:800; font-size:15px; color:#0f172a;">PERFIL DE ACCESO</div>
@@ -1006,7 +1005,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <div id="map"></div>
 
 <div id="mapMarcaAgua">
-  <img src="./logo.png" alt="Sello de Agua" onError="this.style.display='none';">
+  <img src="./icono-192.png" alt="Sello de Agua" onError="this.style.display='none';">
 </div>
 
 <div id="indicadorSyncStatus">🟢 Conectado</div>
@@ -1537,12 +1536,12 @@ async function generarYCompartirPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  // Carga con regla de validación: "Sin datos brindados"
-  const ab = mrcNumAB.value.trim() || "Sin datos brindados";
-  const dir = mrcDireccion.value.trim() || "Sin datos brindados";
-  const loc = mrcLocalidad.value.trim() || "Sin datos brindados";
-  const lleg = mrcComoLlegar.value.trim() || "Sin datos brindados";
-  const coords = mrcCoords.value.trim() || "Sin datos brindados";
+  // Carga con regla estricta de validación: "Sin datos brindados"
+  const ab = mrcNumAB.value.trim() !== "" ? mrcNumAB.value.trim() : "Sin datos brindados";
+  const dir = mrcDireccion.value.trim() !== "" ? mrcDireccion.value.trim() : "Sin datos brindados";
+  const loc = mrcLocalidad.value.trim() !== "" ? mrcLocalidad.value.trim() : "Sin datos brindados";
+  const lleg = mrcComoLlegar.value.trim() !== "" ? mrcComoLlegar.value.trim() : "Sin datos brindados";
+  const coords = mrcCoords.value.trim() !== "" ? mrcCoords.value.trim() : "Sin datos brindados";
 
   // Formato y Maquetado Profesional de la Ficha Técnica PDF
   doc.setFillColor(15, 23, 42);
@@ -1611,14 +1610,6 @@ async function generarYCompartirPDF() {
 document.getElementById("btnCompartirNativoPDF").onclick = generarYCompartirPDF;
 
 document.getElementById("btnFinalizarModal").onclick = function() {
-  const coords = mrcCoords.value.trim();
-  const dir = mrcDireccion.value.trim();
-
-  if (!coords && !dir) {
-    alert("⚠️ Completá al menos la dirección o las coordenadas antes de despachar.");
-    return;
-  }
-
   generarYCompartirPDF();
 };
 
@@ -2180,8 +2171,8 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
   if (datosAB) {
     propiedadHtml = '<div class="card-propiedad">' +
       '<div class="card-propiedad-titulo">🏢 DATOS DE LA PROPIEDAD</div>' +
-      '<div><b>N° Abonado:</b> AB ' + (datosAB.ab || "S/D") + '</div>' +
-      '<div><b>Dirección:</b> ' + (datosAB.direccion || "S/D") + '</div>' +
+      '<div><b>N° Abonado:</b> AB ' + (datosAB.ab || "Sin datos brindados") + '</div>' +
+      '<div><b>Dirección:</b> ' + (datosAB.direccion || "Sin datos brindados") + '</div>' +
       (datosAB.localidad ? '<div><b>Localidad:</b> ' + datosAB.localidad + '</div>' : '') +
       '<div><b>Coordenadas:</b> ' + lat.toFixed(5) + ', ' + lon.toFixed(5) + '</div>' +
       '</div>';
