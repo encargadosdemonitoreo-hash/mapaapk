@@ -7,7 +7,7 @@
 <!-- LIBERACIÓN DE PERMISOS DE RED Y RECURSOS EXTERNOS -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self' 'unsafe-inline' 'unsafe-eval' data: gap: https://ssl.gstatic.com;
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.gstatic.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.gstatic.com https://cdnjs.cloudflare.com;
   style-src 'self' 'unsafe-inline' https://unpkg.com;
   img-src 'self' data: blob: https: http:;
   connect-src 'self' https: wss: http: https://logos-87508-default-rtdb.firebaseio.com https://mapa-ef4d1-default-rtdb.firebaseio.com;
@@ -16,9 +16,12 @@
 
 <title>Mesa de Consulta de Cobertura</title>
 
+<!-- LIBRERÍA JSPDF PARA GENERACIÓN DE FICHAS PDF EN DISPOSITIVO -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <!-- VINCULACIÓN DE ARCHIVO MANIFEST Y MANIFEST EMBEBIDO PARA COMPILACIÓN PWA / APK -->
 <link rel="manifest" href="manifest.json">
-<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1lc2EgZGUgQ29uc3VsdGEgZGUgQ29iZXJ0dXJhIiwKICAic2hvcnRfbmFtZSI6ICJDb2JlcnR1cmEiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGYxNzJhIiwKICAidGhlbWVfY29sb3IiOiAiIzFhNzNlOCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImh0dHBzOi8vaS5wb3N0aW1nLmNjL0hreUZSZzhHL2xvZ28ucG5nIiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLAogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiCiAgICB9LAogICAgewogICAgICAic3JjIjogImh0dHBzOi8vaS5wb3N0aW1nLmNjL0hreUZSZzhHL2xvZ28ucG5nIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLAogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiCiAgICB9CiAgXQp9">
+<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1lc2EgZGUgQ29uc3VsdGEgZGUgQ29iZXJ0dXJhIiwKICAic2hvcnRfbmFtZSI6ICJDb2JlcnR1cmEiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGYxNzJhIiwKICAidGhlbWVfY29sb3IiOiAiIzFhNzNlOCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogIi4vbG9nby5wbmciLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIsCiAgICAgICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiLi9sb2dvLnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -35,8 +38,8 @@
 <meta name="theme-color" content="#1a73e8">
 
 <!-- ÍCONO EMPRESARIAL -->
-<link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/HryFRg8G/logo.png">
-<link rel="apple-touch-icon" href="https://i.postimg.cc/HryFRg8G/logo.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./logo.png">
+<link rel="apple-touch-icon" href="./logo.png">
 
 <style>
 /* =========================================================
@@ -788,8 +791,8 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 }
 
 .grid-despacho-multicanal {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   margin-top: 14px;
 }
@@ -801,16 +804,14 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
   min-height: 44px;
   border-radius: 12px;
   font-weight: 800;
-  font-size: 11px;
+  font-size: 12px;
   border: 0;
   cursor: pointer;
   color: #ffffff;
   transition: transform 0.15s, filter 0.15s;
 }
 .btn-despacho:hover { filter: brightness(1.1); transform: translateY(-1px); }
-.btn-despacho-wsp { grid-column: span 2; background: #25D366; font-size: 12px; }
-.btn-despacho-tg { background: #0088cc; }
-.btn-despacho-copy { background: #8e24aa; }
+.btn-despacho-share { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
 
 .box-acciones-modal {
   display: flex;
@@ -846,7 +847,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- PANTALLA DE CARGA ANIMADA -->
 <div id="splashScreen">
   <div class="splash-container">
-    <img src="https://i.postimg.cc/HryFRg8G/logo.png" alt="Cargando..." class="splash-logo" onError="this.style.display='none';">
+    <img src="./logo.png" alt="Cargando..." class="splash-logo" onError="this.style.display='none';">
     <div class="splash-bar-bg"><div class="splash-bar-fill"></div></div>
     <div class="splash-txt">Cargando Mapa...</div>
   </div>
@@ -878,7 +879,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <div id="loginOverlay" class="oculto">
   <div class="login-card">
     <div style="margin-bottom:8px;">
-      <img src="https://i.postimg.cc/HryFRg8G/logo.png" alt="Logo Empresa" id="imgLogoLogin" style="max-width: 170px; max-height: 75px; object-fit: contain;" onError="this.style.display='none'; document.getElementById('fallbackLogo').style.display='block';">
+      <img src="./logo.png" alt="Logo Empresa" id="imgLogoLogin" style="max-width: 170px; max-height: 75px; object-fit: contain;" onError="this.style.display='none'; document.getElementById('fallbackLogo').style.display='block';">
       <div id="fallbackLogo" style="display:none; font-size:36px;">🛡️</div>
     </div>
     <div style="font-weight:800; font-size:15px; color:#0f172a;">PERFIL DE ACCESO</div>
@@ -984,19 +985,13 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
           <img id="imgPreviewMarcacion" class="img-preview-tactica" alt="Previsualización">
         </div>
         <div id="lblEstadoSubidaFoto" style="font-size:10px; font-weight:800; color:#059669; margin-top:4px; display:none;">
-          🟢 Foto lista para adjuntar en WhatsApp
+          🟢 Foto lista para Ficha PDF
         </div>
       </div>
 
       <div class="grid-despacho-multicanal">
-        <button type="button" id="btnDespacharWsp" class="btn-despacho btn-despacho-wsp">
-          💬 Enviar por WhatsApp (Foto + Datos)
-        </button>
-        <button type="button" id="btnDespacharTg" class="btn-despacho btn-despacho-tg">
-          ✈️ Telegram
-        </button>
-        <button type="button" id="btnDespacharCopy" class="btn-despacho btn-despacho-copy">
-          📋 Copiar Ficha de Texto
+        <button type="button" id="btnCompartirNativoPDF" class="btn-despacho btn-despacho-share">
+          📤 Compartir Ficha PDF (Foto + Datos)
         </button>
       </div>
 
@@ -1011,7 +1006,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <div id="map"></div>
 
 <div id="mapMarcaAgua">
-  <img src="https://i.postimg.cc/HryFRg8G/logo.png" alt="Sello de Agua" onError="this.style.display='none';">
+  <img src="./logo.png" alt="Sello de Agua" onError="this.style.display='none';">
 </div>
 
 <div id="indicadorSyncStatus">🟢 Conectado</div>
@@ -1472,7 +1467,6 @@ document.getElementById("btnAbrirGaleria").onclick = function() { inputFotoGaler
 function procesarArchivoImagen(file) {
   if (!file) return;
 
-  // Guardamos también el archivo original por si el share prefiere ese
   window._fotoOriginal = file;
 
   const reader = new FileReader();
@@ -1480,12 +1474,10 @@ function procesarArchivoImagen(file) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      // Tamaño un poco más chico y limpio para mejor compatibilidad con share
       const maxSize = 1024;
       let w = img.width;
       let h = img.height;
 
-      // Redimensionamos manteniendo proporción (mejor que forzar cuadrado para WhatsApp)
       if (w > maxSize || h > maxSize) {
         if (w > h) {
           h = Math.round(h * (maxSize / w));
@@ -1504,14 +1496,12 @@ function procesarArchivoImagen(file) {
       canvas.toBlob(function(blob) {
         if (!blob) return;
 
-        // Creamos el File de la forma más compatible posible
         const nombre = "foto_fachada_" + Date.now() + ".jpg";
         archivoFotoBinario = new File([blob], nombre, {
           type: "image/jpeg",
           lastModified: Date.now()
         });
 
-        // Limpiamos objectURLs anteriores si existían
         if (imgPreviewMarcacion.dataset.objectUrl) {
           try { URL.revokeObjectURL(imgPreviewMarcacion.dataset.objectUrl); } catch(e){}
         }
@@ -1540,163 +1530,87 @@ function procesarArchivoImagen(file) {
 inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
-// TEXTO TÁCTICO LIMPIO SIN ENLACES URL
-function generarTextoReporteMarcacion() {
-  const ab = mrcNumAB.value.trim() || "S/D";
-  const dir = mrcDireccion.value.trim() || "S/D";
-  const loc = mrcLocalidad.value.trim() || "S/D";
-  const lleg = mrcComoLlegar.value.trim() || "Sin observaciones adicionales";
-  const coords = mrcCoords.value.trim() || "S/D";
+/* =========================================================
+   DESPACHO UNIFICADO NATIVO CON FICHA TÉCNICA EN PDF
+========================================================= */
+async function generarYCompartirPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-  return "🚨 *ALTA DE ABONADO / MARCACIÓN EN TERRENO* 🚨\n\n" +
-         "🏢 *N° AB:* " + ab + "\n" +
-         "📍 *Dirección:* " + dir + "\n" +
-         "🏙️ *Localidad:* " + loc + "\n" +
-         "🗺️ *Cómo Llegar:* " + lleg + "\n\n" +
-         "🌐 *Coordenadas GPS:* " + coords;
-}
+  // Carga con regla de validación: "Sin datos brindados"
+  const ab = mrcNumAB.value.trim() || "Sin datos brindados";
+  const dir = mrcDireccion.value.trim() || "Sin datos brindados";
+  const loc = mrcLocalidad.value.trim() || "Sin datos brindados";
+  const lleg = mrcComoLlegar.value.trim() || "Sin datos brindados";
+  const coords = mrcCoords.value.trim() || "Sin datos brindados";
 
-/* ========== ENVÍO MEJORADO A WHATSAPP (más robusto) ========== */
-function copiarTextoSeguro(texto) {
-  if (navigator.clipboard && window.isSecureContext) {
-    return navigator.clipboard.writeText(texto).then(() => true).catch(() => false);
-  }
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = texto;
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
-    return Promise.resolve(ok);
-  } catch (e) {
-    return Promise.resolve(false);
-  }
-}
+  // Formato y Maquetado Profesional de la Ficha Técnica PDF
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 25, "F");
 
-function descargarFotoLocal() {
-  if (!archivoFotoBinario) return;
-  const url = URL.createObjectURL(archivoFotoBinario);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "foto_fachada_" + Date.now() + ".jpg";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255);
+  doc.text("REPORTE DE MARCACIÓN EN TERRENO", 14, 16);
 
-document.getElementById("btnDespacharWsp").onclick = async function() {
-  const texto = generarTextoReporteMarcacion();
-  const btn = document.getElementById("btnDespacharWsp");
-  const textoOriginal = btn.innerHTML;
-  btn.innerHTML = "⏳ Preparando...";
-  btn.disabled = true;
+  doc.setFontSize(11);
+  doc.setTextColor(30, 41, 59);
 
-  // ---------- INTENTO 1: Share nativo con FOTO + TEXTO ----------
-  if (archivoFotoBinario && navigator.share) {
+  let y = 38;
+  doc.text(`• N° de Abonado / ID: ${ab}`, 14, y); y += 8;
+  doc.text(`• Dirección: ${dir}`, 14, y); y += 8;
+  doc.text(`• Localidad: ${loc}`, 14, y); y += 8;
+  doc.text(`• Coordenadas GPS: ${coords}`, 14, y); y += 8;
+  
+  // Observaciones multilínea automáticas
+  doc.text("• Observaciones / Cómo Llegar:", 14, y); y += 6;
+  doc.setFont("helvetica", "normal");
+  const lineasLlegar = doc.splitTextToSize(lleg, 180);
+  doc.text(lineasLlegar, 18, y);
+  y += (lineasLlegar.length * 6) + 6;
+
+  // Inserción de la foto si fue capturada por el usuario
+  if (imgPreviewMarcacion.src && imgPreviewMarcacion.style.display !== "none") {
     try {
-      const dataConFoto = {
-        files: [archivoFotoBinario],
-        title: "Marcación en Terreno",
-        text: texto
-      };
-
-      // Verificamos si el sistema acepta este archivo
-      let aceptaArchivo = true;
-      if (typeof navigator.canShare === "function") {
-        aceptaArchivo = navigator.canShare({ files: [archivoFotoBinario] });
-      }
-
-      if (aceptaArchivo) {
-        await navigator.share(dataConFoto);
-        // Si llegó acá, el usuario eligió una app y se compartió
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
-        return;
-      }
-    } catch (err) {
-      if (err.name === "AbortError") {
-        // Usuario canceló el menú de compartir
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
-        return;
-      }
-      console.warn("Share con archivo falló:", err.message || err);
+      doc.setFont("helvetica", "bold");
+      doc.text("• Registro Fotográfico de Fachada:", 14, y); y += 6;
+      doc.addImage(imgPreviewMarcacion.src, "JPEG", 14, y, 120, 90);
+    } catch (e) {
+      console.warn("No se pudo incrustar la imagen en el PDF:", e);
     }
   }
 
-  // ---------- INTENTO 2: Share solo con el archivo (algunos Android lo prefieren) ----------
-  if (archivoFotoBinario && navigator.share) {
+  // Conversión del PDF a Blob File para transmisión de sistema
+  const pdfBlob = doc.output("blob");
+  const nombreArchivo = `Ficha_Marcacion_${ab.replace(/\s+/g, "_")}.pdf`;
+  const filePDF = new File([pdfBlob], nombreArchivo, { type: "application/pdf" });
+
+  // Invocación exclusiva de la ventana nativa (Share Sheet) de Android/iOS
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [filePDF] })) {
     try {
       await navigator.share({
-        files: [archivoFotoBinario],
-        title: "Foto Fachada"
+        files: [filePDF],
+        title: "Ficha de Marcación",
+        text: `Ficha Técnica - AB ${ab}`
       });
-      // Si compartió solo la foto, al menos copiamos el texto para que lo pegue
-      await copiarTextoSeguro(texto);
-      btn.innerHTML = textoOriginal;
-      btn.disabled = false;
-      alert("📷 Foto compartida.\n\nEl texto de la marcación quedó copiado en el portapapeles.\nPegalo en el chat de WhatsApp.");
-      return;
+      cerrarYLimpiarModal();
     } catch (err) {
-      if (err.name === "AbortError") {
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
-        return;
+      if (err.name !== "AbortError") {
+        doc.save(nombreArchivo);
+        cerrarYLimpiarModal();
       }
     }
-  }
-
-  // ---------- PLAN B: No se pudo adjuntar automáticamente ----------
-  await copiarTextoSeguro(texto);
-  const urlWsp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
-  window.open(urlWsp, "_blank");
-
-  if (archivoFotoBinario) {
-    descargarFotoLocal();
-    setTimeout(() => {
-      alert(
-        "⚠️ Este dispositivo no permitió adjuntar la foto automáticamente.\n\n" +
-        "✅ Se hizo lo siguiente:\n" +
-        "• Texto copiado al portapapeles\n" +
-        "• WhatsApp abierto\n" +
-        "• Foto descargada en el celular\n\n" +
-        "Ahora en WhatsApp:\n" +
-        "1. Pegá el texto\n" +
-        "2. Adjuntá la foto que se acaba de descargar"
-      );
-    }, 700);
   } else {
-    setTimeout(() => {
-      alert("✅ Texto copiado y WhatsApp abierto.\nNo había foto para adjuntar.");
-    }, 400);
+    // Descarga directa en navegadores sin API Share avanzada
+    doc.save(nombreArchivo);
+    alert("📄 Ficha PDF generada y descargada.");
+    cerrarYLimpiarModal();
   }
+}
 
-  btn.innerHTML = textoOriginal;
-  btn.disabled = false;
-};
-
-document.getElementById("btnDespacharTg").onclick = function() {
-  const texto = generarTextoReporteMarcacion();
-  window.open("https://t.me/share/url?url=" + encodeURIComponent("https://mapa.local") + "&text=" + encodeURIComponent(texto), "_blank");
-};
-
-document.getElementById("btnDespacharCopy").onclick = async function() {
-  const texto = generarTextoReporteMarcacion();
-  const ok = await copiarTextoSeguro(texto);
-  if (ok) {
-    alert("📋 Ficha copiada al portapapeles.");
-  } else {
-    alert("No se pudo copiar automáticamente. Seleccioná y copiá manualmente.");
-  }
-};
+document.getElementById("btnCompartirNativoPDF").onclick = generarYCompartirPDF;
 
 document.getElementById("btnFinalizarModal").onclick = function() {
-  // Validación mínima antes de despachar
   const coords = mrcCoords.value.trim();
   const dir = mrcDireccion.value.trim();
 
@@ -1705,7 +1619,7 @@ document.getElementById("btnFinalizarModal").onclick = function() {
     return;
   }
 
-  document.getElementById("btnDespacharWsp").click();
+  generarYCompartirPDF();
 };
 
 /* HISTORIAL */
