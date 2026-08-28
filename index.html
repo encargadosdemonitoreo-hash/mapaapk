@@ -1530,269 +1530,88 @@ inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.fi
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
 /* =========================================================
-   DESPACHO: FOTO JPG + TEXTO REAL
-   La APK podrá utilizar window.Android.compartirFotoYTexto()
-   cuando implementemos el puente nativo Android.
+   DESPACHO UNIFICADO NATIVO CON FICHA TÉCNICA EN PDF
 ========================================================= */
+async function generarYCompartirPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-function convertirBlobABase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  // Carga con regla estricta de validación: "Sin datos brindados"
+  const ab = mrcNumAB.value.trim() !== "" ? mrcNumAB.value.trim() : "Sin datos brindados";
+  const dir = mrcDireccion.value.trim() !== "" ? mrcDireccion.value.trim() : "Sin datos brindados";
+  const loc = mrcLocalidad.value.trim() !== "" ? mrcLocalidad.value.trim() : "Sin datos brindados";
+  const lleg = mrcComoLlegar.value.trim() !== "" ? mrcComoLlegar.value.trim() : "Sin datos brindados";
+  const coords = mrcCoords.value.trim() !== "" ? mrcCoords.value.trim() : "Sin datos brindados";
 
-    reader.onloadend = function() {
-      try {
-        const resultado = String(reader.result || "");
-        const base64 = resultado.includes(",")
-          ? resultado.split(",")[1]
-          : resultado;
+  // Formato y Maquetado Profesional de la Ficha Técnica PDF
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 25, "F");
 
-        resolve(base64);
-      } catch (e) {
-        reject(e);
-      }
-    };
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255);
+  doc.text("REPORTE DE MARCACIÓN EN TERRENO", 14, 16);
 
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+  doc.setFontSize(11);
+  doc.setTextColor(30, 41, 59);
 
+  let y = 38;
+  doc.text(`• N° de Abonado / ID: ${ab}`, 14, y); y += 8;
+  doc.text(`• Dirección: ${dir}`, 14, y); y += 8;
+  doc.text(`• Localidad: ${loc}`, 14, y); y += 8;
+  doc.text(`• Coordenadas GPS: ${coords}`, 14, y); y += 8;
+  
+  // Observaciones multilínea automáticas
+  doc.text("• Observaciones / Cómo Llegar:", 14, y); y += 6;
+  doc.setFont("helvetica", "normal");
+  const lineasLlegar = doc.splitTextToSize(lleg, 180);
+  doc.text(lineasLlegar, 18, y);
+  y += (lineasLlegar.length * 6) + 6;
 
-function generarTextoDespacho() {
-  const ab = mrcNumAB.value.trim() || "Sin datos brindados";
-  const dir = mrcDireccion.value.trim() || "Sin datos brindados";
-  const loc = mrcLocalidad.value.trim() || "Sin datos brindados";
-  const lleg = mrcComoLlegar.value.trim() || "Sin datos brindados";
-  const coords = mrcCoords.value.trim() || "Sin datos brindados";
-
-  return (
-    "🚨 ALTA DE ABONADO / MARCACIÓN EN TERRENO 🚨\n\n" +
-    "🏢 N° AB: " + ab + "\n" +
-    "📍 Dirección: " + dir + "\n" +
-    "🏙️ Localidad: " + loc + "\n" +
-    "🗺️ Cómo Llegar: " + lleg + "\n\n" +
-    "🌐 Coordenadas GPS: " + coords
-  );
-}
-
-
-async function compartirFotoYTexto() {
-
-  const texto = generarTextoDespacho();
-
-  if (!archivoFotoBinario) {
-    alert("📸 Primero capturá o seleccioná una foto.");
-    return false;
-  }
-
-  const nombreArchivo =
-    archivoFotoBinario.name ||
-    ("foto_fachada_" + Date.now() + ".jpg");
-
-
-  /* ========================================================
-     MÉTODO PRINCIPAL DE LA APK
-     JavaScript → Android nativo
-  ======================================================== */
-
-  if (
-    window.Android &&
-    typeof window.Android.compartirFotoYTexto === "function"
-  ) {
-
+  // Inserción de la foto si fue capturada por el usuario
+  if (imgPreviewMarcacion.src && imgPreviewMarcacion.style.display !== "none") {
     try {
-
-      const base64 =
-        await convertirBlobABase64(archivoFotoBinario);
-
-      window.Android.compartirFotoYTexto(
-        base64,
-        nombreArchivo,
-        "image/jpeg",
-        texto
-      );
-
-      return true;
-
-    } catch (error) {
-
-      console.error(
-        "Error en el puente Android:",
-        error
-      );
-
+      doc.setFont("helvetica", "bold");
+      doc.text("• Registro Fotográfico de Fachada:", 14, y); y += 6;
+      doc.addImage(imgPreviewMarcacion.src, "JPEG", 14, y, 120, 90);
+    } catch (e) {
+      console.warn("No se pudo incrustar la imagen en el PDF:", e);
     }
   }
 
+  // Conversión del PDF a Blob File para transmisión de sistema
+  const pdfBlob = doc.output("blob");
+  const nombreArchivo = `Ficha_Marcacion_${ab.replace(/\s+/g, "_")}.pdf`;
+  const filePDF = new File([pdfBlob], nombreArchivo, { type: "application/pdf" });
 
-  /* ========================================================
-     RESPALDO PARA WEB / TWA
-     Intentamos FOTO + TEXTO en una sola operación.
-  ======================================================== */
-
-  if (navigator.share) {
-
+  // Invocación exclusiva de la ventana nativa (Share Sheet) de Android/iOS
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [filePDF] })) {
     try {
-
-      const datosCompartir = {
-        title: "Marcación en Terreno",
-        text: texto,
-        files: [archivoFotoBinario]
-      };
-
-
-      let permitido = true;
-
-      if (typeof navigator.canShare === "function") {
-
-        permitido =
-          navigator.canShare({
-            files: [archivoFotoBinario]
-          });
-
+      await navigator.share({
+        files: [filePDF],
+        title: "Ficha de Marcación",
+        text: `Ficha Técnica - AB ${ab}`
+      });
+      cerrarYLimpiarModal();
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        doc.save(nombreArchivo);
+        cerrarYLimpiarModal();
       }
-
-
-      if (permitido) {
-
-        await navigator.share(datosCompartir);
-
-        return true;
-
-      }
-
-    } catch (error) {
-
-      if (
-        error &&
-        error.name === "AbortError"
-      ) {
-        return false;
-      }
-
-      console.warn(
-        "Web Share no pudo enviar foto + texto:",
-        error
-      );
     }
+  } else {
+    // Descarga directa en navegadores sin API Share avanzada
+    doc.save(nombreArchivo);
+    alert("📄 Ficha PDF generada y descargada.");
+    cerrarYLimpiarModal();
   }
-
-
-  /* ========================================================
-     RESPALDO FINAL
-     No pierde la información:
-     - copia texto
-     - descarga foto
-  ======================================================== */
-
-  try {
-
-    if (
-      typeof copiarTextoSeguro === "function"
-    ) {
-
-      await copiarTextoSeguro(texto);
-
-    } else {
-
-      await navigator.clipboard.writeText(texto);
-
-    }
-
-  } catch (error) {
-
-    console.warn(
-      "No se pudo copiar el texto:",
-      error
-    );
-
-  }
-
-
-  try {
-
-    const url =
-      URL.createObjectURL(
-        archivoFotoBinario
-      );
-
-    const enlace =
-      document.createElement("a");
-
-    enlace.href = url;
-    enlace.download = nombreArchivo;
-    enlace.style.display = "none";
-
-    document.body.appendChild(enlace);
-
-    enlace.click();
-
-    document.body.removeChild(enlace);
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 2000);
-
-  } catch (error) {
-
-    console.warn(
-      "No se pudo descargar la foto:",
-      error
-    );
-
-  }
-
-
-  alert(
-    "⚠️ El dispositivo no permitió enviar la foto y el texto juntos.\n\n" +
-    "✅ El texto quedó copiado.\n" +
-    "✅ La foto fue descargada."
-  );
-
-  return false;
 }
 
+document.getElementById("btnCompartirNativoPDF").onclick = generarYCompartirPDF;
 
-/* =========================================================
-   BOTÓN: COMPARTIR FOTO + DATOS
-========================================================= */
-
-document.getElementById(
-  "btnCompartirNativoPDF"
-).onclick = async function() {
-
-  const boton = this;
-  const textoOriginal = boton.innerHTML;
-
-  boton.disabled = true;
-  boton.innerHTML = "⏳ Preparando...";
-
-  try {
-
-    await compartirFotoYTexto();
-
-  } finally {
-
-    boton.innerHTML = textoOriginal;
-    boton.disabled = false;
-
-  }
-
+document.getElementById("btnFinalizarModal").onclick = function() {
+  generarYCompartirPDF();
 };
-
-
-/* =========================================================
-   FINALIZAR Y DESPACHAR
-========================================================= */
-
-document.getElementById(
-  "btnFinalizarModal"
-).onclick = async function() {
-
-  await compartirFotoYTexto();
-
-};
-```
 
 /* HISTORIAL */
 function cargarHistorialLocal() {
