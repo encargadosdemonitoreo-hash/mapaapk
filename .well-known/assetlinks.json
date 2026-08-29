@@ -1,10 +1,26 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.github.mapa",
-    "sha256_cert_fingerprints": [
-      "14:6D:E9:7C:15:37:A2:FF:13:B9:94:0F:7D:66:35:E1:92:DF:D3:C5:5D:80:FF:10:9F:80:C2:22:98:C8:38:15"
-    ]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.github.mapa",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7C:15:37:A2:FF:13:B9:94:0F:7D:66:35:E1:92:DF:D3:C5:5D:80:FF:10:9F:80:C2:22:98:C8:38:15"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.encargadosdemonitoreo_hash.twa",
+      "sha256_cert_fingerprints": [
+        "22:DB:5C:A0:7E:15:11:58:9F:E3:E6:2A:6B:36:E1:A9:00:F5:ED:0B:F8:ED:B0:E3:1A:AB:67:C4:EC:E6:82:30"
+      ]
+    }
   }
-}]
+]
