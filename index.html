@@ -2190,11 +2190,22 @@ function renderizarDatosMapa(datosGeo) {
     
     if(p.esMarcador) {
       const c = f.geometry.coordinates;
-      const htmlIcono = '<div class="icono-personalizado" style="background:' + (p.color || "#1a73e8") + '">' + (p.icono || "📍") + '</div>';
-      const mIcon = L.divIcon({ className: "", html: htmlIcono, iconSize: [32, 32], iconAnchor: [16, 16] });
+      const esVehiculo = (p.icono === "🚗" || p.icono === "🏍️");
+
+      const htmlIcono = esVehiculo
+        ? '<div class="icono-personalizado" style="background:' + (p.color || "#1a73e8") + '">' + (p.icono || "📍") + '</div>'
+        : '<div style="font-size: 20px; line-height: 1; text-align: center; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.5));">' + (p.icono || "📍") + '</div>';
+
+      const mIcon = L.divIcon({ 
+        className: "", 
+        html: htmlIcono, 
+        iconSize: esVehiculo ? [32, 32] : [22, 22], 
+        iconAnchor: esVehiculo ? [16, 16] : [11, 11] 
+      });
+
       const m = L.marker([c[1], c[0]], { icon: mIcon, pane: "panelMarcadores" }).bindPopup("<b>" + (p.nombre||"Marcación") + "</b><br><small>📍 Marcación Estratégica</small>").addTo(map);
       marcadoresInstanciados.push(m);
-      if(p.icono === "🚗" || p.icono === "🏍️") marcadoresAutos.push({ nombre: p.nombre, latlng: L.latLng(c[1], c[0]), icono: p.icono });
+      if(esVehiculo) marcadoresAutos.push({ nombre: p.nombre, latlng: L.latLng(c[1], c[0]), icono: p.icono });
       return;
     }
 
