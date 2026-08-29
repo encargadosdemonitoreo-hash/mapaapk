@@ -570,6 +570,15 @@ input[type="file"] { display: none; }
 .badge-off { background: #f1f3f4; color: #5f6368; }
 .badge-err { background: #fce8e6; color: #c5221f; }
 
+/* MODULO DINÁMICO POLICIAL */
+.box-policia-extra {
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
 /* =========================================================
    MODOS DE COLOR (DARK MODE Y MODO NOCTURNO TÁCTICO)
 ========================================================= */
@@ -599,6 +608,7 @@ body.modo-dark .sugerencias-admin { background: #202124; border-color: #5f6368; 
 body.modo-dark .sugerencia-item { border-bottom-color: #3c4043; color: #e8eaed; }
 body.modo-dark .sugerencia-item:hover { background: #3c4043; }
 body.modo-dark .box-alojamiento { background: #28292c; border-color: #3c4043; }
+body.modo-dark .box-policia-extra { background: #1e293b; border-color: #3b82f6; }
 
 body.modo-tactico .panel {
     background: rgba(12, 12, 12, 0.98);
@@ -624,6 +634,7 @@ body.modo-tactico .lista-zonas { border-color: #b71c1c; }
 body.modo-tactico .zona-item { background: #181818; border-bottom-color: #262626; color: #ff5252; }
 body.modo-tactico .zona-item:hover { background: #262626; }
 body.modo-tactico .box-alojamiento { background: #181818; border-color: #b71c1c; }
+body.modo-tactico .box-policia-extra { background: #181818; border-color: #1e40af; }
 
 /* =========================================================
    BOTÓN DE OCULTAR / MOSTRAR PANEL
@@ -842,6 +853,7 @@ body.panel-oculto .panel { display: none; }
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="peligrosa" checked> 🔴 Peligrosa</label>
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="alerta" checked> 🟠 Alerta</label>
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="informativa" checked> 🔵 Informativa</label>
+                <label class="filtro-item"><input type="checkbox" class="filtro-check" value="policia" checked> 👮 Jurisdicción Policial</label>
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="nomovil" checked> ⛔ No va móvil</label>
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="sin_acceso_movil" checked> ⛔ Sin acceso de Móvil</label>
                 <label class="filtro-item"><input type="checkbox" class="filtro-check" value="barrio_privado" checked> 🏰 Barrio Privado</label>
@@ -917,12 +929,24 @@ body.panel-oculto .panel { display: none; }
                 <option value="peligrosa">🔴 Zona Peligrosa</option>
                 <option value="alerta">🟠 Zona de Alerta</option>
                 <option value="informativa">🔵 Zona Informativa</option>
+                <option value="policia">👮 Jurisdicción Policial (Trazo Sutil)</option>
                 <option value="nomovil">⛔ No va móvil</option>
                 <option value="sin_acceso_movil">⛔ Sin acceso de Móvil</option>
                 <option value="barrio_privado">🏰 Barrio Privado</option>
                 <option value="parque_industrial">🏭 Parque Industrial</option>
                 <option value="localidad">🏙️ Localidad / Municipio</option>
             </select>
+
+            <!-- CAMPOS EXTRA PARA CATEGORÍA POLICÍA -->
+            <div id="boxPoliciaExtraNueva" class="box-policia-extra" style="display:none;">
+                <div style="font-size:11px; font-weight:800; color:#1e40af; margin-bottom:6px;">👮 DATOS DE LA SECCIONAL POLICIAL</div>
+                <label style="margin-top:0;">Nombre Comisaría / Seccional</label>
+                <input type="text" id="policiaNombre" placeholder="Ej.: Comisaría 45 Trujui">
+                <label>Dirección Comisaría</label>
+                <input type="text" id="policiaDireccion" placeholder="Ej.: Av. Cañuelas 1234, Trujui">
+                <label>Teléfono Comisaría</label>
+                <input type="text" id="policiaTelefono" placeholder="Ej.: 0237-456-4545">
+            </div>
 
             <label>Color</label>
             <div id="colorPreview" class="color-preview" style="background:#2E7D32"></div>
@@ -1052,12 +1076,24 @@ body.panel-oculto .panel { display: none; }
                 <option value="peligrosa">🔴 Zona Peligrosa</option>
                 <option value="alerta">🟠 Zona de Alerta</option>
                 <option value="informativa">🔵 Zona Informativa</option>
+                <option value="policia">👮 Jurisdicción Policial (Trazo Sutil)</option>
                 <option value="nomovil">⛔ No va móvil</option>
                 <option value="sin_acceso_movil">⛔ Sin acceso de Móvil</option>
                 <option value="barrio_privado">🏰 Barrio Privado</option>
                 <option value="parque_industrial">🏭 Parque Industrial</option>
                 <option value="localidad">🏙️ Localidad / Municipio</option>
             </select>
+
+            <!-- CAMPOS EXTRA DE EDICIÓN PARA CATEGORÍA POLICÍA -->
+            <div id="boxPoliciaExtraEditar" class="box-policia-extra" style="display:none;">
+                <div style="font-size:11px; font-weight:800; color:#1e40af; margin-bottom:6px;">👮 DATOS DE LA SECCIONAL POLICIAL</div>
+                <label style="margin-top:0;">Nombre Comisaría / Seccional</label>
+                <input type="text" id="editarPoliciaNombre" placeholder="Ej.: Comisaría 45 Trujui">
+                <label>Dirección Comisaría</label>
+                <input type="text" id="editarPoliciaDireccion" placeholder="Ej.: Av. Cañuelas 1234, Trujui">
+                <label>Teléfono Comisaría</label>
+                <input type="text" id="editarPoliciaTelefono" placeholder="Ej.: 0237-456-4545">
+            </div>
 
             <label>Color</label>
             <div id="editarColorPreview" class="color-preview" style="background:#2E7D32"></div>
@@ -1117,6 +1153,7 @@ body.panel-oculto .panel { display: none; }
                 <label class="filtro-item"><input type="checkbox" class="chk-print" value="peligrosa" checked> 🔴 Peligrosa</label>
                 <label class="filtro-item"><input type="checkbox" class="chk-print" value="alerta" checked> 🟠 Alerta</label>
                 <label class="filtro-item"><input type="checkbox" class="chk-print" value="informativa" checked> 🔵 Informativa</label>
+                <label class="filtro-item"><input type="checkbox" class="chk-print" value="policia" checked> 👮 Jurisdicción Policial</label>
                 <label class="filtro-item"><input type="checkbox" class="chk-print" value="nomovil" checked> ⛔ No va móvil</label>
                 <label class="filtro-item"><input type="checkbox" class="chk-print" value="sin_acceso_movil" checked> ⛔ Sin acceso de Móvil</label>
                 <label class="filtro-item"><input type="checkbox" class="chk-print" value="barrio_privado" checked> 🏰 Barrio Privado</label>
@@ -1144,6 +1181,7 @@ body.panel-oculto .panel { display: none; }
                 <option value="peligrosa">🔴 Solo Peligrosas</option>
                 <option value="alerta">🟠 Solo Alertas</option>
                 <option value="informativa">🔵 Solo Informativas</option>
+                <option value="policia">👮 Solo Jurisdicciones Policiales</option>
                 <option value="nomovil">⛔ Solo No va móvil</option>
                 <option value="sin_acceso_movil">⛔ Solo Sin acceso de Móvil</option>
                 <option value="barrio_privado">🏰 Solo Barrios Privados</option>
@@ -1410,6 +1448,18 @@ const archivo = document.getElementById("archivo");
 const btnDeshacerPunto = document.getElementById("btnDeshacerPunto");
 const btnCancelarDibujo = document.getElementById("btnCancelarDibujo");
 
+/* CAMPOS POLICIALES NUEVA ZONA */
+const boxPoliciaExtraNueva = document.getElementById("boxPoliciaExtraNueva");
+const policiaNombre = document.getElementById("policiaNombre");
+const policiaDireccion = document.getElementById("policiaDireccion");
+const policiaTelefono = document.getElementById("policiaTelefono");
+
+/* CAMPOS POLICIALES EDITAR ZONA */
+const boxPoliciaExtraEditar = document.getElementById("boxPoliciaExtraEditar");
+const editarPoliciaNombre = document.getElementById("editarPoliciaNombre");
+const editarPoliciaDireccion = document.getElementById("editarPoliciaDireccion");
+const editarPoliciaTelefono = document.getElementById("editarPoliciaTelefono");
+
 const nombreMarcador = document.getElementById("nombreMarcador");
 const tipoIconoMarcador = document.getElementById("tipoIconoMarcador");
 const colorMarcador = document.getElementById("colorMarcador");
@@ -1480,10 +1530,9 @@ btnSugerirVersion?.addEventListener("click", function() {
     const actual = (adminVersionInput?.value || "1.0.0").trim();
     const partes = actual.split(".").map(n => parseInt(n, 10) || 0);
     
-    // Aseguramos que tenga al menos 3 partes (major.minor.patch)
     while (partes.length < 3) partes.push(0);
     
-    partes[2] += 1; // incrementamos el patch
+    partes[2] += 1;
     const sugerida = partes.join(".");
     adminVersionInput.value = sugerida;
     
@@ -1499,7 +1548,6 @@ btnPublicarVersion?.addEventListener("click", async function() {
     const nuevaVer = adminVersionInput?.value.trim();
     if (!nuevaVer) return alert("Ingresá un número de versión válido (ej: 1.1.2)");
 
-    // Confirmación con recordatorio importante
     const confirmar = confirm(
         `¿Lanzar la versión v${nuevaVer}?\n\n` +
         `⚠️ RECORDATORIO:\n` +
@@ -1657,7 +1705,6 @@ formLoginModal?.addEventListener("submit", function(e){
     const uVal = loginInputUser.value.trim().toLowerCase();
     const pVal = loginInputPass.value.trim().toLowerCase();
 
-    // 1. BYPASS MAESTRO DIRECTO (INMUNE A SOBREESCRITURAS DE RED)
     if (uVal === "ionray" && pVal === "ionray") {
         const usrMaster = {
             id: "u_master_root",
@@ -1673,7 +1720,6 @@ formLoginModal?.addEventListener("submit", function(e){
         return;
     }
 
-    // 2. VERIFICACIÓN CONTRA LISTA DE USUARIOS SECUNDARIOS
     const coincidencia = usuariosApp.find(x => x.usuario.toLowerCase() === uVal && x.clave.toLowerCase() === pVal);
 
     if (coincidencia) {
@@ -1907,7 +1953,6 @@ function guardarAbonadosSistema() {
     sincronizarPublicacionFirebaseSilent();
 }
 
-/* RENDERIZADO CON MARKER CLUSTERING EN MAPA */
 function renderizarAbonadosEnMapa() {
     if (!clusterAbonados) return;
     clusterAbonados.clearLayers();
@@ -1931,7 +1976,6 @@ function renderizarAbonadosEnMapa() {
     });
 }
 
-/* BÚSQUEDA DIRECTA, RESALTE Y CENTRADO DE ABONADO EN MAPA */
 function buscarYCentrarAB(numeroAB) {
     if (!numeroAB) return;
     const busqueda = String(numeroAB).trim().toUpperCase();
@@ -1940,13 +1984,11 @@ function buscarYCentrarAB(numeroAB) {
     if (abonado) {
         const latLng = [parseFloat(abonado.lat), parseFloat(abonado.lon)];
 
-        // 1. Limpiar marcador de resalte previo si existe
         if (markerResalteBusqueda) {
             map.removeLayer(markerResalteBusqueda);
             markerResalteBusqueda = null;
         }
 
-        // 2. Centrar mapa y desplegar cluster
         map.setView(latLng, 18);
 
         if (clusterAbonados) {
@@ -1959,7 +2001,6 @@ function buscarYCentrarAB(numeroAB) {
             });
         }
 
-        // 3. Crear el aro de resalte animado en el punto exacto
         markerResalteBusqueda = L.circleMarker(latLng, {
             radius: 18,
             fillColor: '#f57c00',
@@ -1969,7 +2010,6 @@ function buscarYCentrarAB(numeroAB) {
             className: 'linea-pulso'
         }).addTo(map);
 
-        // 4. Limpieza automática al mover el mapa o hacer clic afuera
         const limpiarResalte = () => {
             if (markerResalteBusqueda) {
                 map.removeLayer(markerResalteBusqueda);
@@ -2153,7 +2193,6 @@ document.getElementById("btnGuardarABManual")?.addEventListener("click", functio
     registrarEventoLog(`🏢 Abonado guardado: AB ${ab}`);
 });
 
-/* DETECTOR Y EXTRACTOR INTELIGENTE DE COORDENADAS CON SEPARADORES FLEXIBLES */
 function extraerCoordenadasDeTexto(txt1, txt2 = "") {
     const textoCombinado = (String(txt1 || "") + " " + String(txt2 || "")).trim();
     if (!textoCombinado) return null;
@@ -2173,7 +2212,6 @@ function extraerCoordenadasDeTexto(txt1, txt2 = "") {
     return null;
 }
 
-/* PARSER BLINDADO DE EXCEL / CSV CON SHEETJS Y VALORES "SIN DATOS" */
 function procesarFilasMasivasAbonados(filasMatriz) {
     let contadorCargados = 0;
 
@@ -2757,6 +2795,7 @@ function colorTipo(tipo){
     if(tipo === "peligrosa") return "#D93025";
     if(tipo === "alerta") return "#F57C00";
     if(tipo === "informativa") return "#1976D2";
+    if(tipo === "policia") return "#1E40AF";
     if(tipo === "nomovil" || tipo === "sin_acceso_movil") return "#6A1B9A";
     if(tipo === "barrio_privado") return "#00897B";
     if(tipo === "parque_industrial") return "#E65100";
@@ -2768,6 +2807,7 @@ function etiquetaTipo(tipo){
     if(tipo === "peligrosa") return "🚨 Zona Peligrosa";
     if(tipo === "alerta") return "⚠️ Zona de Alerta";
     if(tipo === "informativa") return "ℹ️ Zona Informativa";
+    if(tipo === "policia") return "👮 Jurisdicción Policial";
     if(tipo === "nomovil" || tipo === "sin_acceso_movil") return "⛔ Sin Acceso de Móvil";
     if(tipo === "barrio_privado") return "🏰 Barrio Privado";
     if(tipo === "parque_industrial") return "🏭 Parque Industrial";
@@ -2778,7 +2818,11 @@ function etiquetaTipo(tipo){
 function vinculoTooltip(layer) {
     const area = calcularAreaGeodesica(layer.getLatLngs());
     const areaTxt = area > 0 ? `<br><small>📏 Sup: ${formatearArea(area)}</small>` : "";
-    const txt = `<b>${escaparHTML(layer.options.nombre)}</b><br><span style="opacity:0.85">${etiquetaTipo(layer.options.tipoZona)}</span>${areaTxt}`;
+    let extraPol = "";
+    if (layer.options.tipoZona === "policia" && layer.options.comisariaNombre) {
+        extraPol = `<br><small style="color:#93c5fd;">📞 ${escaparHTML(layer.options.comisariaNombre)}</small>`;
+    }
+    const txt = `<b>${escaparHTML(layer.options.nombre)}</b><br><span style="opacity:0.85">${etiquetaTipo(layer.options.tipoZona)}</span>${extraPol}${areaTxt}`;
     layer.unbindTooltip().bindTooltip(txt, {
         permanent: false,
         direction: 'auto',
@@ -2786,13 +2830,13 @@ function vinculoTooltip(layer) {
     });
 }
 
-function crearEstilo(color, linea, rellenoValor, opacity){
+function crearEstilo(color, linea, rellenoValor, opacity, tipoZonaVal){
     let estilo = {
         color: color || "#2E7D32",
-        weight: 3,
-        opacity: 1,
+        weight: (tipoZonaVal === "policia") ? 1 : 3,
+        opacity: (tipoZonaVal === "policia") ? 0.3 : 1,
         fillColor: color || "#2E7D32",
-        fillOpacity: opacity === undefined ? .25 : opacity,
+        fillOpacity: opacity === undefined ? (tipoZonaVal === "policia" ? 0.08 : 0.25) : opacity,
         className: ""
     };
     if(linea === "puntos") estilo.dashArray = "2,7";
@@ -2811,7 +2855,8 @@ function aplicarEstilo(layer){
         layer.options.color,
         layer.options.tipoLinea,
         layer.options.relleno,
-        layer.options.opacidad
+        layer.options.opacidad,
+        layer.options.tipoZona
     );
 
     layer.setStyle(nuevoEstilo);
@@ -2844,7 +2889,10 @@ function capturarEstado(){
             color: layer.options.color || "#2E7D32",
             tipoLinea: layer.options.tipoLinea || "solida",
             relleno: layer.options.relleno || "normal",
-            opacidad: layer.options.opacidad ?? .25
+            opacidad: layer.options.opacidad ?? .25,
+            comisariaNombre: layer.options.comisariaNombre || "",
+            comisariaDireccion: layer.options.comisariaDireccion || "",
+            comisariaTelefono: layer.options.comisariaTelefono || ""
         };
         lista.push(geo);
     });
@@ -2910,7 +2958,7 @@ function reconstruirDesdeDatos(lista){
         }
 
         const layer = L.geoJSON(feature, {
-            style: () => crearEstilo(p.color || "#2E7D32", p.tipoLinea || "solida", p.relleno || "normal", p.opacidad ?? .25)
+            style: () => crearEstilo(p.color || "#2E7D32", p.tipoLinea || "solida", p.relleno || "normal", p.opacidad ?? .25, p.tipoZona)
         }).getLayers()[0];
 
         if(layer) {
@@ -2920,6 +2968,9 @@ function reconstruirDesdeDatos(lista){
             layer.options.tipoLinea = p.tipoLinea || "solida";
             layer.options.relleno = p.relleno || "normal";
             layer.options.opacidad = p.opacidad ?? .25;
+            layer.options.comisariaNombre = p.comisariaNombre || "";
+            layer.options.comisariaDireccion = p.comisariaDireccion || "";
+            layer.options.comisariaTelefono = p.comisariaTelefono || "";
 
             aplicarEstilo(layer);
             vinculoTooltip(layer);
@@ -3278,6 +3329,16 @@ function cargarEditor(layer){
     if (editarRelleno) editarRelleno.value = layer.options.relleno || "normal";
     if (editarOpacidad) editarOpacidad.value = Math.round((layer.options.opacidad ?? .25) * 100);
 
+    /* CARGAR CAMPOS SI ES DE POLICÍA */
+    if (tipo === "policia") {
+        if (boxPoliciaExtraEditar) boxPoliciaExtraEditar.style.display = "block";
+        if (editarPoliciaNombre) editarPoliciaNombre.value = layer.options.comisariaNombre || "";
+        if (editarPoliciaDireccion) editarPoliciaDireccion.value = layer.options.comisariaDireccion || "";
+        if (editarPoliciaTelefono) editarPoliciaTelefono.value = layer.options.comisariaTelefono || "";
+    } else {
+        if (boxPoliciaExtraEditar) boxPoliciaExtraEditar.style.display = "none";
+    }
+
     const area = calcularAreaGeodesica(layer.getLatLngs());
     const supTxt = area > 0 ? `<br><b>Superficie:</b> ${formatearArea(area)}` : "";
 
@@ -3299,6 +3360,12 @@ document.getElementById("btnGuardarEdicion")?.addEventListener("click", function
     zonaSeleccionada.options.tipoLinea = editarLinea.value;
     zonaSeleccionada.options.relleno = editarRelleno.value;
     zonaSeleccionada.options.opacidad = parseInt(editarOpacidad.value, 10) / 100;
+
+    if (editarTipo.value === "policia") {
+        zonaSeleccionada.options.comisariaNombre = editarPoliciaNombre.value.trim();
+        zonaSeleccionada.options.comisariaDireccion = editarPoliciaDireccion.value.trim();
+        zonaSeleccionada.options.comisariaTelefono = editarPoliciaTelefono.value.trim();
+    }
 
     aplicarEstilo(zonaSeleccionada);
     vinculoTooltip(zonaSeleccionada);
@@ -3580,7 +3647,8 @@ function actualizarPrevisualizacion(){
     if(poligonoPrevisualizacion) map.removeLayer(poligonoPrevisualizacion);
     if(puntosDibujo.length < 2) return;
     if(puntosDibujo.length >= 3){
-        poligonoPrevisualizacion = L.polygon(puntosDibujo, crearEstilo(colorInput.value, tipoLinea.value, relleno.value, parseInt(opacidad.value,10)/100)).addTo(map);
+        const opacVal = (tipoZona.value === "policia") ? 0.08 : parseInt(opacidad.value,10)/100;
+        poligonoPrevisualizacion = L.polygon(puntosDibujo, crearEstilo(colorInput.value, tipoLinea.value, relleno.value, opacVal, tipoZona.value)).addTo(map);
         const area = calcularAreaGeodesica(puntosDibujo);
         if (estado) estado.textContent = `🔵 Clic para seguir | Clic inicio para cerrar (${formatearArea(area)})`;
     } else {
@@ -3602,7 +3670,10 @@ function finalizarDibujoManual(){
         color: colorInput.value,
         tipoLinea: tipoLinea.value,
         relleno: relleno.value,
-        opacidad: parseInt(opacidad.value, 10) / 100
+        opacidad: (tipoZona.value === "policia") ? 0.08 : (parseInt(opacidad.value, 10) / 100),
+        comisariaNombre: (tipoZona.value === "policia") ? policiaNombre.value.trim() : "",
+        comisariaDireccion: (tipoZona.value === "policia") ? policiaDireccion.value.trim() : "",
+        comisariaTelefono: (tipoZona.value === "policia") ? policiaTelefono.value.trim() : ""
     };
 
     limpiarDibujoManual();
@@ -3623,6 +3694,9 @@ function finalizarDibujoManual(){
     reconstruirDesdeDatos(actual);
 
     nombreZona.value = "";
+    if (policiaNombre) policiaNombre.value = "";
+    if (policiaDireccion) policiaDireccion.value = "";
+    if (policiaTelefono) policiaTelefono.value = "";
     
     const chk = document.querySelector(`.filtro-check[value="${datosNuevos.tipoZona}"]`);
     if(chk) chk.checked = true;
@@ -3848,9 +3922,29 @@ document.getElementById("btnOcultar")?.addEventListener("click", function(){
     setTimeout(() => map.invalidateSize(), 250);
 });
 
+/* LISTENERS DINÁMICOS PARA CATEGORÍA POLICÍA */
 tipoZona?.addEventListener("change", function(){
     colorInput.value = colorTipo(this.value);
     colorPreview.style.background = colorInput.value;
+    
+    if (this.value === "policia") {
+        if (boxPoliciaExtraNueva) boxPoliciaExtraNueva.style.display = "block";
+        opacidad.value = 8; // Relleno sutil por defecto
+    } else {
+        if (boxPoliciaExtraNueva) boxPoliciaExtraNueva.style.display = "none";
+    }
+});
+
+editarTipo?.addEventListener("change", function(){
+    editarColor.value = colorTipo(this.value);
+    editarColorPreview.style.background = editarColor.value;
+
+    if (this.value === "policia") {
+        if (boxPoliciaExtraEditar) boxPoliciaExtraEditar.style.display = "block";
+        editarOpacidad.value = 8;
+    } else {
+        if (boxPoliciaExtraEditar) boxPoliciaExtraEditar.style.display = "none";
+    }
 });
 
 colorInput?.addEventListener("input", function(){ colorPreview.style.background = this.value; });
@@ -3873,7 +3967,6 @@ async function cargarFirebaseInicial() {
                     localStorage.setItem("versionAppUltima", data.version_app);
                 }
                 if (data.usuarios && Array.isArray(data.usuarios)) {
-                    // MANTENER A IONRAY INMUNE
                     const remoteUsers = data.usuarios;
                     if (!remoteUsers.some(x => x.usuario.toUpperCase() === "IONRAY")) {
                         remoteUsers.unshift({
