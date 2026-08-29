@@ -984,13 +984,19 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
           <img id="imgPreviewMarcacion" class="img-preview-tactica" alt="Previsualización">
         </div>
         <div id="lblEstadoSubidaFoto" style="font-size:10px; font-weight:800; color:#059669; margin-top:4px; display:none;">
-          🟢 Foto lista para Ficha PDF
+          🟢 Foto lista para despacho
         </div>
       </div>
 
       <div class="grid-despacho-multicanal">
+        <button type="button" id="btnCompartirNativoFoto" class="btn-despacho btn-despacho-share">
+          📷 Compartir Foto + Datos
+        </button>
         <button type="button" id="btnCompartirNativoPDF" class="btn-despacho btn-despacho-share">
-          📤 Compartir Ficha PDF (Foto + Datos)
+          📄 Compartir Ficha PDF (Foto + Datos)
+        </button>
+        <button type="button" id="btnGuardarFoto" class="btn-despacho btn-despacho-share">
+          📥 Guardar Foto
         </button>
       </div>
 
@@ -1530,87 +1536,380 @@ inputFotoCamaraNativa.onchange = function(e) { procesarArchivoImagen(e.target.fi
 inputFotoGaleria.onchange = function(e) { procesarArchivoImagen(e.target.files[0]); };
 
 /* =========================================================
-   DESPACHO UNIFICADO NATIVO CON FICHA TÉCNICA EN PDF
+   DESPACHO: FOTO + TEXTO Y FICHA PDF
 ========================================================= */
-async function generarYCompartirPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
 
-  // Carga con regla estricta de validación: "Sin datos brindados"
-  const ab = mrcNumAB.value.trim() !== "" ? mrcNumAB.value.trim() : "Sin datos brindados";
-  const dir = mrcDireccion.value.trim() !== "" ? mrcDireccion.value.trim() : "Sin datos brindados";
-  const loc = mrcLocalidad.value.trim() !== "" ? mrcLocalidad.value.trim() : "Sin datos brindados";
-  const lleg = mrcComoLlegar.value.trim() !== "" ? mrcComoLlegar.value.trim() : "Sin datos brindados";
-  const coords = mrcCoords.value.trim() !== "" ? mrcCoords.value.trim() : "Sin datos brindados";
+function obtenerDatosMarcacion() {
+  return {
+    ab: mrcNumAB.value.trim() || "Sin datos brindados",
+    dir: mrcDireccion.value.trim() || "Sin datos brindados",
+    loc: mrcLocalidad.value.trim() || "Sin datos brindados",
+    lleg: mrcComoLlegar.value.trim() || "Sin datos brindados",
+    coords: mrcCoords.value.trim() || "Sin datos brindados"
+  };
+}
 
-  // Formato y Maquetado Profesional de la Ficha Técnica PDF
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, 210, 25, "F");
+function generarTextoMarcacionWhatsApp() {
+  const d = obtenerDatosMarcacion();
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(255, 255, 255);
-  doc.text("REPORTE DE MARCACIÓN EN TERRENO", 14, 16);
+  return [
+    "🚨 ALTA DE ABONADO / MARCACIÓN EN TERRENO 🚨",
+    "",
+    "🏢 N° AB: " + d.ab,
+    "📍 Dirección: " + d.dir,
+    "🏙️ Localidad: " + d.loc,
+    "🗺️ Cómo Llegar: " + d.lleg,
+    "",
+    "🌐 Coordenadas GPS: " + d.coords
+  ].join("\n");
+}
 
-  doc.setFontSize(11);
-  doc.setTextColor(30, 41, 59);
+function blobADataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("No se pudo leer el archivo."));
+    reader.readAsDataURL(blob);
+  });
+}
 
-  let y = 38;
-  doc.text(`• N° de Abonado / ID: ${ab}`, 14, y); y += 8;
-  doc.text(`• Dirección: ${dir}`, 14, y); y += 8;
-  doc.text(`• Localidad: ${loc}`, 14, y); y += 8;
-  doc.text(`• Coordenadas GPS: ${coords}`, 14, y); y += 8;
-  
-  // Observaciones multilínea automáticas
-  doc.text("• Observaciones / Cómo Llegar:", 14, y); y += 6;
-  doc.setFont("helvetica", "normal");
-  const lineasLlegar = doc.splitTextToSize(lleg, 180);
-  doc.text(lineasLlegar, 18, y);
-  y += (lineasLlegar.length * 6) + 6;
+async function compartirFotoYTexto() {
+  if (!archivoFotoBinario) {
+    alert("📸 Primero capturá o seleccioná una foto.");
+    return false;
+  }
 
-  // Inserción de la foto si fue capturada por el usuario
-  if (imgPreviewMarcacion.src && imgPreviewMarcacion.style.display !== "none") {
+  const texto = generarTextoMarcacionWhatsApp();
+
+  // Puente Android nativo (se utilizará cuando la APK tenga implementado
+  // window.Android.compartirFotoYTexto). No rompe la versión web/TWA.
+  if (window.Android && typeof window.Android.compartirFotoYTexto === "function") {
     try {
-      doc.setFont("helvetica", "bold");
-      doc.text("• Registro Fotográfico de Fachada:", 14, y); y += 6;
-      doc.addImage(imgPreviewMarcacion.src, "JPEG", 14, y, 120, 90);
-    } catch (e) {
-      console.warn("No se pudo incrustar la imagen en el PDF:", e);
+      const base64 = await blobADataURL(archivoFotoBinario);
+      window.Android.compartirFotoYTexto(
+        base64.split(",")[1] || "",
+        archivoFotoBinario.name || "foto_fachada.jpg",
+        "image/jpeg",
+        texto
+      );
+      return true;
+    } catch (err) {
+      console.warn("Puente Android no disponible:", err);
     }
   }
 
-  // Conversión del PDF a Blob File para transmisión de sistema
+  // Web Share Level 2: intenta enviar FOTO + TEXTO en UNA sola operación.
+  // En Android esto permite que WhatsApp reciba la foto como adjunto y el
+  // texto como pie/caption, cuando la implementación del sistema lo admite.
+  if (typeof navigator.share === "function") {
+    try {
+      const datos = {
+        title: "Marcación en Terreno",
+        text: texto,
+        files: [archivoFotoBinario]
+      };
+
+      let puedeCompartir = true;
+      if (typeof navigator.canShare === "function") {
+        puedeCompartir = navigator.canShare({ files: [archivoFotoBinario] });
+      }
+
+      if (puedeCompartir) {
+        await navigator.share(datos);
+        return true;
+      }
+    } catch (err) {
+      // Si el usuario cerró la hoja de compartir, no mostramos error.
+      if (err && err.name === "AbortError") return false;
+      console.warn("No se pudo compartir foto + texto mediante Web Share:", err);
+    }
+  }
+
+  // Último respaldo: copiar texto y descargar la foto.
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
+    } else {
+      fallbackCopiar(texto);
+    }
+  } catch (err) {
+    console.warn("No se pudo copiar el texto:", err);
+  }
+
+  try {
+    const url = URL.createObjectURL(archivoFotoBinario);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = archivoFotoBinario.name || "foto_fachada.jpg";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  } catch (err) {
+    console.warn("No se pudo descargar la foto:", err);
+  }
+
+  alert(
+    "⚠️ Este dispositivo no permitió enviar foto + texto juntos.\n\n" +
+    "✅ El texto quedó copiado.\n" +
+    "✅ La foto fue descargada.\n\n" +
+    "Podés adjuntar la foto en WhatsApp y pegar el texto."
+  );
+
+  return false;
+}
+
+async function generarYCompartirPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("No se pudo cargar el generador PDF.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const d = obtenerDatosMarcacion();
+  const fechaHora = new Date().toLocaleString("es-AR");
+
+  // =======================================================
+  // CABECERA EMPRESARIAL
+  // =======================================================
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 30, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.setTextColor(255, 255, 255);
+  doc.text("REPORTE DE MARCACIÓN EN TERRENO", 14, 14);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(203, 213, 225);
+  doc.text("Mesa de Consulta de Cobertura", 14, 22);
+  doc.text("Fecha: " + fechaHora, 196, 22, { align: "right" });
+
+  // =======================================================
+  // BLOQUE DE DATOS
+  // =======================================================
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(12, 38, 186, 65, 4, 4, "F");
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(12, 38, 186, 65, 4, 4);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(26, 115, 232);
+  doc.text("DATOS DE LA MARCACIÓN", 18, 48);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(71, 85, 105);
+
+  let y = 58;
+  const etiqueta = (titulo, valor) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(titulo, 18, y);
+    doc.setFont("helvetica", "normal");
+    const ancho = titulo === "Dirección:" ? 150 : 145;
+    const lineas = doc.splitTextToSize(valor, ancho);
+    doc.text(lineas, 55, y);
+    y += Math.max(6, lineas.length * 5);
+  };
+
+  etiqueta("N° AB / ID:", d.ab);
+  etiqueta("Dirección:", d.dir);
+  etiqueta("Localidad:", d.loc);
+  etiqueta("Coordenadas:", d.coords);
+
+  // =======================================================
+  // OBSERVACIONES
+  // =======================================================
+  y = Math.max(y + 3, 109);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(12, y, 186, 38, 4, 4, "F");
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(12, y, 186, 38, 4, 4);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(26, 115, 232);
+  doc.text("OBSERVACIONES / CÓMO LLEGAR", 18, y + 10);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(51, 65, 85);
+  const lineasLlegar = doc.splitTextToSize(d.lleg, 174);
+  doc.text(lineasLlegar.slice(0, 4), 18, y + 18);
+
+  // =======================================================
+  // FOTO
+  // =======================================================
+  let yFoto = y + 48;
+  if (archivoFotoBinario) {
+    try {
+      const dataURL = await blobADataURL(archivoFotoBinario);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = dataURL;
+      });
+
+      const maxW = 170;
+      const maxH = 95;
+      const ratio = Math.min(maxW / img.width, maxH / img.height);
+      const w = img.width * ratio;
+      const h = img.height * ratio;
+      const x = (210 - w) / 2;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(26, 115, 232);
+      doc.text("REGISTRO FOTOGRÁFICO", 18, yFoto);
+
+      doc.setDrawColor(203, 213, 225);
+      doc.roundedRect(x - 2, yFoto + 5, w + 4, h + 4, 3, 3);
+      doc.addImage(dataURL, "JPEG", x, yFoto + 7, w, h);
+      yFoto += h + 20;
+    } catch (err) {
+      console.warn("No se pudo incrustar la foto en el PDF:", err);
+    }
+  }
+
+  // =======================================================
+  // PIE
+  // =======================================================
+  const pieY = 282;
+  doc.setDrawColor(203, 213, 225);
+  doc.line(12, pieY - 7, 198, pieY - 7);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text("Documento generado desde Mesa de Consulta de Cobertura", 12, pieY);
+  doc.text("Coordenadas: " + d.coords, 198, pieY, { align: "right" });
+
   const pdfBlob = doc.output("blob");
-  const nombreArchivo = `Ficha_Marcacion_${ab.replace(/\s+/g, "_")}.pdf`;
+  const nombreArchivo = `Ficha_Marcacion_${d.ab.replace(/\s+/g, "_")}.pdf`;
   const filePDF = new File([pdfBlob], nombreArchivo, { type: "application/pdf" });
 
-  // Invocación exclusiva de la ventana nativa (Share Sheet) de Android/iOS
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [filePDF] })) {
+  if (navigator.share) {
     try {
-      await navigator.share({
+      const shareData = {
         files: [filePDF],
         title: "Ficha de Marcación",
-        text: `Ficha Técnica - AB ${ab}`
-      });
-      cerrarYLimpiarModal();
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        doc.save(nombreArchivo);
+        text: "Ficha Técnica - AB " + d.ab
+      };
+
+      const permitido =
+        typeof navigator.canShare !== "function" ||
+        navigator.canShare({ files: [filePDF] });
+
+      if (permitido) {
+        await navigator.share(shareData);
         cerrarYLimpiarModal();
+        return;
       }
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      console.warn("No se pudo compartir el PDF:", err);
     }
-  } else {
-    // Descarga directa en navegadores sin API Share avanzada
-    doc.save(nombreArchivo);
-    alert("📄 Ficha PDF generada y descargada.");
-    cerrarYLimpiarModal();
+  }
+
+  doc.save(nombreArchivo);
+  alert("📄 Ficha PDF generada y descargada.");
+  cerrarYLimpiarModal();
+}
+
+const btnCompartirNativoFoto = document.getElementById("btnCompartirNativoFoto");
+const btnCompartirNativoPDF = document.getElementById("btnCompartirNativoPDF");
+const btnFinalizarModal = document.getElementById("btnFinalizarModal");
+
+btnCompartirNativoFoto.onclick = async function() {
+  const boton = this;
+  const textoOriginal = boton.innerHTML;
+  boton.disabled = true;
+  boton.innerHTML = "⏳ Preparando foto...";
+
+  try {
+    await compartirFotoYTexto();
+  } finally {
+    boton.innerHTML = textoOriginal;
+    boton.disabled = false;
+  }
+};
+
+async function guardarFotoLocal() {
+  if (!archivoFotoBinario) {
+    alert("📸 Primero capturá o seleccioná una foto.");
+    return false;
+  }
+
+  try {
+    const url = URL.createObjectURL(archivoFotoBinario);
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = archivoFotoBinario.name || ("foto_fachada_" + Date.now() + ".jpg");
+    enlace.style.display = "none";
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return true;
+  } catch (err) {
+    console.error("No se pudo guardar la foto:", err);
+    alert("❌ No se pudo guardar la foto en este dispositivo.");
+    return false;
   }
 }
 
-document.getElementById("btnCompartirNativoPDF").onclick = generarYCompartirPDF;
+const btnGuardarFoto = document.getElementById("btnGuardarFoto");
 
-document.getElementById("btnFinalizarModal").onclick = function() {
-  generarYCompartirPDF();
+btnGuardarFoto.onclick = async function() {
+  const boton = this;
+  const textoOriginal = boton.innerHTML;
+  boton.disabled = true;
+  boton.innerHTML = "⏳ Guardando foto...";
+
+  try {
+    const guardada = await guardarFotoLocal();
+    if (guardada) {
+      boton.innerHTML = "✅ Foto guardada";
+      setTimeout(() => {
+        boton.innerHTML = textoOriginal;
+      }, 1800);
+    } else {
+      boton.innerHTML = textoOriginal;
+    }
+  } finally {
+    boton.disabled = false;
+  }
+};
+
+btnCompartirNativoPDF.onclick = async function() {
+  const boton = this;
+  const textoOriginal = boton.innerHTML;
+  boton.disabled = true;
+  boton.innerHTML = "⏳ Preparando PDF...";
+
+  try {
+    await generarYCompartirPDF();
+  } finally {
+    boton.innerHTML = textoOriginal;
+    boton.disabled = false;
+  }
+};
+
+btnFinalizarModal.onclick = async function() {
+  const coords = mrcCoords.value.trim();
+  const dir = mrcDireccion.value.trim();
+
+  if (!coords && !dir) {
+    alert("⚠️ Completá al menos la dirección o las coordenadas antes de despachar.");
+    return;
+  }
+
+  await compartirFotoYTexto();
 };
 
 /* HISTORIAL */
