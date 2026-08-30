@@ -16,7 +16,8 @@
       "delegate_permission/common.handle_all_urls"
     ],
     "target": {
-      "namespace": "io.github.encargadosdemonitoreo_hash.twa",
+      "namespace": "android_app",
+      "package_name": "io.github.encargadosdemonitoreo_hash.twa",
       "sha256_cert_fingerprints": [
         "87:77:69:90:71:50:C3:93:26:A2:24:64:31:58:A6:61:BE:06:0D:DC:43:E7:BF:A1:E1:60:22:38:01:44:EE:4D"
       ]
