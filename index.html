@@ -869,7 +869,7 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <!-- CARTEL CYBER-GLASS DE NUEVA VERSIÓN -->
 <div id="avisoUpdateCyber">
   <div class="aviso-cabecera">
-    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.1.1</span></span>
+    <span>⚡ SYS_UPDATE // V<span id="lblNuevaVersion">1.1.2</span></span>
     <button class="btn-cerrar-update" onclick="document.getElementById('avisoUpdateCyber').classList.remove('visible')">✕</button>
   </div>
   <div class="aviso-titulo">🛡️ Nueva Versión del Mapa</div>
@@ -1107,10 +1107,99 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
 
-const VERSION_BASE = "1.1.1";
+/* =========================================================
+   CONTRATO DEL PUENTE NATIVO ANDROID (JavascriptInterface)
+   El lado Java/Kotlin debe exponer un objeto "Android" con:
+
+   • compartirFotoYTexto(base64SinPrefijo, nombreArchivo, mimeType, texto)
+       → Intent ACTION_SEND con EXTRA_STREAM (imagen) + EXTRA_TEXT
+   • guardarFoto(base64SinPrefijo, nombreArchivo, mimeType)
+       → Guarda la imagen en galería / almacenamiento
+   • compartirArchivo(base64SinPrefijo, nombreArchivo, mimeType, textoOpcional)
+       → Para PDF u otros archivos
+   • hayConexion() → boolean (opcional)
+   • log(mensaje) → debug nativo (opcional)
+
+   Ejemplo mínimo Java:
+   @JavascriptInterface
+   public void compartirFotoYTexto(String b64, String nombre, String mime, String texto) {
+     // decode base64 → FileProvider Uri
+     Intent i = new Intent(Intent.ACTION_SEND);
+     i.setType(mime != null ? mime : "image/jpeg");
+     i.putExtra(Intent.EXTRA_STREAM, uri);
+     i.putExtra(Intent.EXTRA_TEXT, texto != null ? texto : "");
+     i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+     startActivity(Intent.createChooser(i, "Compartir marcación"));
+   }
+========================================================= */
+
+const VERSION_BASE = "1.1.2";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
 let zoomPredeterminado = parseInt(localStorage.getItem("zoomDefaultApp")) || 16;
 let ultimaVersionDetectada = VERSION_LOCAL;
+
+function escapeHtml(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function debounce(fn, ms) {
+  let t = null;
+  return function() {
+    const ctx = this, args = arguments;
+    clearTimeout(t);
+    t = setTimeout(function() { fn.apply(ctx, args); }, ms);
+  };
+}
+
+function hayPuenteAndroid() {
+  return !!(window.Android && typeof window.Android === "object");
+}
+
+function bridgeDisponible(metodo) {
+  return hayPuenteAndroid() && typeof window.Android[metodo] === "function";
+}
+
+function estaOnline() {
+  if (bridgeDisponible("hayConexion")) {
+    try { return !!window.Android.hayConexion(); } catch (e) {}
+  }
+  return navigator.onLine !== false;
+}
+
+function mensajePermisoGPS(err) {
+  if (!err) return "No se pudo obtener la ubicación GPS.";
+  switch (err.code) {
+    case 1:
+      return "Permiso de ubicación denegado. Activalo en Ajustes → Aplicaciones → Permisos.";
+    case 2:
+      return "Ubicación no disponible. Verificá que el GPS esté activado.";
+    case 3:
+      return "Tiempo de espera agotado al obtener GPS. Intentá de nuevo al aire libre.";
+    default:
+      return "No se pudo obtener la posición GPS (" + (err.message || "error desconocido") + ").";
+  }
+}
+
+function obtenerGPS(opciones) {
+  return new Promise(function(resolve, reject) {
+    if (!navigator.geolocation) {
+      reject({ code: 0, message: "Geolocalización no soportada en este dispositivo." });
+      return;
+    }
+    const opts = Object.assign({
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 10000
+    }, opciones || {});
+    navigator.geolocation.getCurrentPosition(resolve, reject, opts);
+  });
+}
 
 function ocultarSplashScreen() {
   const splash = document.getElementById("splashScreen");
@@ -1119,7 +1208,7 @@ function ocultarSplashScreen() {
   }
 }
 
-setTimeout(ocultarSplashScreen, 3000);
+setTimeout(ocultarSplashScreen, 2200);
 
 const map = L.map("map", { center: [-34.6486, -58.6198], zoom: 11 });
 map.createPane('panelMarcadores').style.zIndex = 650;
@@ -1430,21 +1519,32 @@ document.querySelectorAll(".btnCerrarModalGlobal").forEach(btn => {
   btn.onclick = cerrarYLimpiarModal;
 });
 
-/* CAPTURA DE GPS RESTAURADA EN EL MODAL DE NUEVA MARCACIÓN */
-document.getElementById("btnCapturarGPSModal").onclick = function() {
-  navigator.geolocation.getCurrentPosition(async pos => {
+/* CAPTURA DE GPS EN EL MODAL (manejo de permisos) */
+document.getElementById("btnCapturarGPSModal").onclick = async function() {
+  const btn = this;
+  const textoOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = "⏳ GPS...";
+  try {
+    const pos = await obtenerGPS();
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
     mrcCoords.value = lat.toFixed(5) + ", " + lon.toFixed(5);
-    
     if (!mrcDireccion.value.trim()) {
-      const resData = await resolverDireccionYAltura(lat, lon);
-      mrcDireccion.value = resData.direccion || "";
-      if (resData.entreCalles && !mrcLocalidad.value.trim()) {
-        mrcLocalidad.value = resData.entreCalles;
-      }
+      try {
+        const resData = await resolverDireccionYAltura(lat, lon);
+        mrcDireccion.value = resData.direccion || "";
+        if (resData.entreCalles && !mrcLocalidad.value.trim()) {
+          mrcLocalidad.value = resData.entreCalles;
+        }
+      } catch (e) {}
     }
-  }, () => alert("No se pudo obtener la posición GPS. Asegurate de otorgar permisos de ubicación."));
+  } catch (err) {
+    alert(mensajePermisoGPS(err));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = textoOriginal;
+  }
 };
 
 document.getElementById("btnMarcarMapaModal").onclick = function() {
@@ -1576,6 +1676,34 @@ function blobADataURL(blob) {
   });
 }
 
+async function copiarTextoSilencioso(texto) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = texto;
+    ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Comparte foto + texto.
+ * 1) Puente nativo Android (único método fiable con WhatsApp en APK)
+ * 2) Web Share solo foto + texto ya copiado al portapapeles
+ * 3) Fallback: descargar foto + texto copiado
+ */
 async function compartirFotoYTexto() {
   if (!archivoFotoBinario) {
     alert("📸 Primero capturá o seleccioná una foto.");
@@ -1583,76 +1711,64 @@ async function compartirFotoYTexto() {
   }
 
   const texto = generarTextoMarcacionWhatsApp();
+  const nombre = archivoFotoBinario.name || ("foto_fachada_" + Date.now() + ".jpg");
 
-  if (window.Android && typeof window.Android.compartirFotoYTexto === "function") {
+  if (bridgeDisponible("compartirFotoYTexto")) {
     try {
-      const base64 = await blobADataURL(archivoFotoBinario);
-      window.Android.compartirFotoYTexto(
-        base64.split(",")[1] || "",
-        archivoFotoBinario.name || "foto_fachada.jpg",
-        "image/jpeg",
-        texto
-      );
+      const dataUrl = await blobADataURL(archivoFotoBinario);
+      const b64 = (dataUrl.split(",")[1] || "").trim();
+      if (!b64) throw new Error("Base64 vacío");
+      window.Android.compartirFotoYTexto(b64, nombre, "image/jpeg", texto);
       return true;
     } catch (err) {
-      console.warn("Puente Android no disponible:", err);
+      console.warn("Puente Android.compartirFotoYTexto falló:", err);
     }
   }
 
+  const textoCopiado = await copiarTextoSilencioso(texto);
+
   if (typeof navigator.share === "function") {
     try {
-      const datos = {
-        title: "Marcación en Terreno",
-        text: texto,
-        files: [archivoFotoBinario]
-      };
-
-      let puedeCompartir = true;
+      let puede = true;
       if (typeof navigator.canShare === "function") {
-        puedeCompartir = navigator.canShare({ files: [archivoFotoBinario] });
+        try { puede = navigator.canShare({ files: [archivoFotoBinario] }); } catch (e) { puede = false; }
       }
-
-      if (puedeCompartir) {
-        await navigator.share(datos);
+      if (puede) {
+        await navigator.share({
+          files: [archivoFotoBinario],
+          title: "Marcación en Terreno"
+        });
+        if (textoCopiado) {
+          alert("✅ Foto lista para enviar.\n\n📋 El detalle quedó COPIADO.\nPegalo debajo de la foto en WhatsApp (mantener presionado → Pegar).");
+        }
         return true;
       }
     } catch (err) {
       if (err && err.name === "AbortError") return false;
-      console.warn("No se pudo compartir foto + texto mediante Web Share:", err);
+      console.warn("Web Share falló:", err);
     }
-  }
-
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(texto);
-    } else {
-      fallbackCopiar(texto);
-    }
-  } catch (err) {
-    console.warn("No se pudo copiar el texto:", err);
   }
 
   try {
     const url = URL.createObjectURL(archivoFotoBinario);
     const a = document.createElement("a");
     a.href = url;
-    a.download = archivoFotoBinario.name || "foto_fachada.jpg";
+    a.download = nombre;
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
   } catch (err) {
     console.warn("No se pudo descargar la foto:", err);
   }
 
   alert(
-    "⚠️ Este dispositivo no permitió enviar foto + texto juntos.\n\n" +
-    "✅ El texto quedó copiado.\n" +
+    "⚠️ No se pudo abrir el compartidor automático.\n\n" +
+    (textoCopiado ? "✅ El texto quedó copiado.\n" : "⚠️ No se pudo copiar el texto.\n") +
     "✅ La foto fue descargada.\n\n" +
-    "Podés adjuntar la foto en WhatsApp y pegar el texto."
+    "Abrí WhatsApp, adjuntá la foto y pegá el texto."
   );
-
   return false;
 }
 
@@ -1805,21 +1921,32 @@ async function generarYCompartirPDF() {
   doc.text("Coordenadas: " + d.coords, 198, pieY, { align: "right" });
 
   const pdfBlob = doc.output("blob");
-  const nombreArchivo = `Ficha_Marcacion_${d.ab.replace(/\s+/g, "_")}.pdf`;
+  const nombreArchivo = "Ficha_Marcacion_" + String(d.ab).replace(/\s+/g, "_") + ".pdf";
   const filePDF = new File([pdfBlob], nombreArchivo, { type: "application/pdf" });
+  const textoPdf = "Ficha Técnica - AB " + d.ab;
 
-  if (navigator.share) {
+  if (bridgeDisponible("compartirArchivo")) {
+    try {
+      const dataUrl = await blobADataURL(pdfBlob);
+      const b64 = (dataUrl.split(",")[1] || "").trim();
+      window.Android.compartirArchivo(b64, nombreArchivo, "application/pdf", textoPdf);
+      cerrarYLimpiarModal();
+      return;
+    } catch (err) {
+      console.warn("Puente Android.compartirArchivo falló:", err);
+    }
+  }
+
+  if (typeof navigator.share === "function") {
     try {
       const shareData = {
         files: [filePDF],
         title: "Ficha de Marcación",
-        text: "Ficha Técnica - AB " + d.ab
+        text: textoPdf
       };
-
       const permitido =
         typeof navigator.canShare !== "function" ||
         navigator.canShare({ files: [filePDF] });
-
       if (permitido) {
         await navigator.share(shareData);
         cerrarYLimpiarModal();
@@ -1860,17 +1987,29 @@ async function guardarFotoLocal() {
     return false;
   }
 
+  const nombre = archivoFotoBinario.name || ("foto_fachada_" + Date.now() + ".jpg");
+
+  if (bridgeDisponible("guardarFoto")) {
+    try {
+      const dataUrl = await blobADataURL(archivoFotoBinario);
+      const b64 = (dataUrl.split(",")[1] || "").trim();
+      window.Android.guardarFoto(b64, nombre, "image/jpeg");
+      return true;
+    } catch (err) {
+      console.warn("Puente Android.guardarFoto falló:", err);
+    }
+  }
+
   try {
     const url = URL.createObjectURL(archivoFotoBinario);
     const enlace = document.createElement("a");
     enlace.href = url;
-    enlace.download = archivoFotoBinario.name || ("foto_fachada_" + Date.now() + ".jpg");
+    enlace.download = nombre;
     enlace.style.display = "none";
     document.body.appendChild(enlace);
     enlace.click();
     enlace.remove();
-
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
     return true;
   } catch (err) {
     console.error("No se pudo guardar la foto:", err);
@@ -2072,24 +2211,23 @@ function renderizarClusterAbonados(lista) {
   if (!clusterAbonadosIndex) return;
   clusterAbonadosIndex.clearLayers();
 
-  (lista || []).forEach(ab => {
-    if (!ab.lat || !ab.lon) return;
-
-    const m = L.marker([ab.lat, ab.lon], { abNum: String(ab.ab) });
+  const markers = [];
+  (lista || []).forEach(function(ab) {
+    if (!ab || !ab.lat || !ab.lon) return;
+    const m = L.marker([ab.lat, ab.lon], { abNum: String(ab.ab || "") });
     m.bindPopup(function() {
       const div = document.createElement("div");
       div.style.padding = "10px";
-      div.innerHTML = `
-        <b style="color:#1a73e8; font-size:13px;">🏢 ABONADO N°: ${ab.ab}</b><br>
-        <b>📍 Dirección:</b> ${ab.direccion || 'S/D'}<br>
-        <b>🏙️ Localidad:</b> ${ab.localidad || 'S/D'}<br>
-        <b>🗺️ Cómo llegar:</b> <i>${ab.comoLlegar || 'Sin datos'}</i><br>
-      `;
+      div.innerHTML =
+        '<b style="color:#1a73e8; font-size:13px;">🏢 ABONADO N°: ' + escapeHtml(ab.ab) + '</b><br>' +
+        '<b>📍 Dirección:</b> ' + escapeHtml(ab.direccion || "S/D") + '<br>' +
+        '<b>🏙️ Localidad:</b> ' + escapeHtml(ab.localidad || "S/D") + '<br>' +
+        '<b>🗺️ Cómo llegar:</b> <i>' + escapeHtml(ab.comoLlegar || "Sin datos") + '</i><br>';
       return div;
     });
-
-    clusterAbonadosIndex.addLayer(m);
+    markers.push(m);
   });
+  if (markers.length) clusterAbonadosIndex.addLayers(markers);
 }
 
 function cargarCopiaRespaldoOffline() {
@@ -2103,10 +2241,20 @@ function cargarCopiaRespaldoOffline() {
         renderizarClusterAbonados(abonadosLocal);
       }
       if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
-      if (statusSync) { statusSync.textContent = "🟠 Modo Offline (Copia Local)"; statusSync.style.color = "#e65100"; }
+      if (statusSync) {
+        statusSync.textContent = "🟠 Offline — usando copia local";
+        statusSync.style.color = "#e65100";
+      }
       ocultarSplashScreen();
       return true;
-    } catch(err) { return false; }
+    } catch (err) {
+      console.warn("Cache offline corrupto:", err);
+      return false;
+    }
+  }
+  if (statusSync) {
+    statusSync.textContent = "🔴 Sin datos offline";
+    statusSync.style.color = "#d93025";
   }
   return false;
 }
@@ -2116,9 +2264,16 @@ async function actualizarDesdeFirebase() {
   const fetchUrl = formatearUrlFirebase(urlBruta);
 
   if (!fetchUrl) {
-    if(!cargarCopiaRespaldoOffline() && statusSync) { 
-      statusSync.textContent = "🔴 Sin URL Base"; statusSync.style.color = "#d93025"; 
+    if (!cargarCopiaRespaldoOffline() && statusSync) {
+      statusSync.textContent = "🔴 Sin URL Base";
+      statusSync.style.color = "#d93025";
     }
+    ocultarSplashScreen();
+    return;
+  }
+
+  if (!estaOnline()) {
+    cargarCopiaRespaldoOffline();
     ocultarSplashScreen();
     return;
   }
@@ -2126,22 +2281,27 @@ async function actualizarDesdeFirebase() {
   if (currentController) currentController.abort();
   currentController = new AbortController();
 
+  if (statusSync && elementos.length === 0) {
+    statusSync.textContent = "🟡 Sincronizando...";
+    statusSync.style.color = "#f29900";
+  }
+
   try {
     const res = await fetch(fetchUrl, { cache: "no-store", signal: currentController.signal });
     if (!res.ok) throw new Error("Error HTTP " + res.status);
     const dataFB = await res.json();
     if (dataFB) {
       if (dataFB.zonas) { elementos = dataFB.zonas; renderizarDatosMapa(elementos); }
-      
       if (dataFB.abonados) {
         abonadosLocal = Array.isArray(dataFB.abonados) ? dataFB.abonados : Object.values(dataFB.abonados);
         renderizarClusterAbonados(abonadosLocal);
       }
-      
       if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
-      
-      localStorage.setItem("cacheMapaOfflineData", JSON.stringify(dataFB));
-
+      try {
+        localStorage.setItem("cacheMapaOfflineData", JSON.stringify(dataFB));
+      } catch (e) {
+        console.warn("No se pudo guardar cache offline:", e);
+      }
       if (dataFB.version_app) {
         ultimaVersionDetectada = dataFB.version_app;
         if (dataFB.version_app !== VERSION_LOCAL) {
@@ -2152,15 +2312,18 @@ async function actualizarDesdeFirebase() {
           document.getElementById("avisoUpdateCyber")?.classList.remove("visible");
         }
       }
-
-      if(statusSync) { statusSync.textContent = "🟢 Sincronizado en Vivo"; statusSync.style.color = "#2e7d32"; }
+      if (statusSync) {
+        statusSync.textContent = "🟢 Sincronizado";
+        statusSync.style.color = "#2e7d32";
+      }
       ocultarSplashScreen();
     }
-  } catch(e) {
+  } catch (e) {
     if (e.name === "AbortError") return;
     const usoCopia = cargarCopiaRespaldoOffline();
-    if (!usoCopia && statusSync && elementos.length === 0) { 
-      statusSync.textContent = "🟡 Conectando..."; statusSync.style.color = "#f29900"; 
+    if (!usoCopia && statusSync && elementos.length === 0) {
+      statusSync.textContent = "🔴 Sin conexión y sin cache";
+      statusSync.style.color = "#d93025";
     }
     ocultarSplashScreen();
   }
@@ -2168,15 +2331,25 @@ async function actualizarDesdeFirebase() {
 
 document.getElementById("btnAplicarParcheCyber")?.addEventListener("click", async function() {
   localStorage.setItem("versionGuardadaLocal", ultimaVersionDetectada);
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
+  if ("caches" in window) {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(function(k) { return caches.delete(k); }));
+    } catch (e) {}
   }
-  window.location.reload(true);
+  window.location.reload();
 });
 
-window.addEventListener('online', actualizarDesdeFirebase);
-window.addEventListener('offline', cargarCopiaRespaldoOffline);
+window.addEventListener("online", function() {
+  if (statusSync) {
+    statusSync.textContent = "🟡 Reconectando...";
+    statusSync.style.color = "#f29900";
+  }
+  actualizarDesdeFirebase();
+});
+window.addEventListener("offline", function() {
+  cargarCopiaRespaldoOffline();
+});
 
 function renderizarDatosMapa(datosGeo) {
   capas.forEach(l => map.removeLayer(l)); capas = [];
@@ -2230,20 +2403,26 @@ document.getElementById("selectZona").onchange = function(){
   } catch(e){}
 };
 
-/* BÚSQUEDA EXCLUSIVA DE ABONADOS */
+/* BÚSQUEDA EXCLUSIVA DE ABONADOS (debounce + límite para móviles bajos) */
 const inputAB = document.getElementById("buscarABInput");
 const sugAB = document.getElementById("sugerenciasAB");
 
-inputAB.oninput = function() {
+function filtrarSugerenciasAB() {
   const q = inputAB.value.trim().toUpperCase();
-  if (q.length < 1) { sugAB.style.display = "none"; return; }
+  if (q.length < 1) { sugAB.style.display = "none"; sugAB.innerHTML = ""; return; }
   sugAB.innerHTML = "";
-
-  abonadosLocal.forEach(ab => {
-    if (ab.ab.toUpperCase().includes(q) || (ab.direccion && ab.direccion.toUpperCase().includes(q))) {
-      const div = document.createElement("div"); div.className = "sugerencia-item";
+  let cont = 0;
+  const MAX_SUG = 40;
+  for (let i = 0; i < abonadosLocal.length && cont < MAX_SUG; i++) {
+    const ab = abonadosLocal[i];
+    if (!ab || !ab.ab) continue;
+    const abStr = String(ab.ab).toUpperCase();
+    const dirStr = (ab.direccion || "").toUpperCase();
+    if (abStr.indexOf(q) !== -1 || dirStr.indexOf(q) !== -1) {
+      const div = document.createElement("div");
+      div.className = "sugerencia-item";
       div.textContent = "🏢 AB " + ab.ab + " - " + (ab.direccion || "Sin dirección") + (ab.localidad ? " (" + ab.localidad + ")" : "");
-      div.onclick = () => {
+      div.onclick = function() {
         const nomAB = "AB " + ab.ab + " - " + (ab.direccion || "");
         inputAB.value = "";
         sugAB.style.display = "none";
@@ -2251,11 +2430,13 @@ inputAB.oninput = function() {
         verificarPunto(ab.lat, ab.lon, nomAB, ab.localidad || "", ab.comoLlegar || "", ab);
       };
       sugAB.appendChild(div);
+      cont++;
     }
-  });
+  }
+  sugAB.style.display = cont ? "block" : "none";
+}
 
-  sugAB.style.display = sugAB.children.length ? "block" : "none";
-};
+inputAB.oninput = debounce(filtrarSugerenciasAB, 180);
 
 document.getElementById("btnBuscarAB").onclick = function() {
   const q = inputAB.value.trim().replace("AB", "").trim().toUpperCase();
@@ -2277,34 +2458,57 @@ document.getElementById("btnLimpiarAB").onclick = () => {
   if (marker) map.removeLayer(marker);
 };
 
-/* DIRECCIONES */
+/* DIRECCIONES (debounce + abort de requests anteriores) */
 const input = document.getElementById("direccion");
 const sugBox = document.getElementById("sugerenciasConsulta");
+let geocodeController = null;
 
-input.oninput = function() {
-  const q = input.value.trim().toUpperCase();
-  if(q.length < 2) { sugBox.style.display = "none"; return; }
-  sugBox.innerHTML = "";
+const buscarSugerenciasDireccion = debounce(function() {
+  const q = input.value.trim();
+  if (q.length < 2) { sugBox.style.display = "none"; sugBox.innerHTML = ""; return; }
+  if (!estaOnline()) { sugBox.style.display = "none"; return; }
 
-  fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=" + encodeURIComponent(input.value + ", Buenos Aires") + "&maxLocations=3")
-    .then(r => r.json()).then(d => {
-      if (d && d.candidates) {
-        d.candidates.forEach(c => {
-          const div = document.createElement("div"); div.className = "sugerencia-item";
+  if (geocodeController) geocodeController.abort();
+  geocodeController = new AbortController();
+
+  fetch(
+    "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=" +
+      encodeURIComponent(q + ", Buenos Aires") + "&maxLocations=3",
+    { signal: geocodeController.signal }
+  )
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      sugBox.innerHTML = "";
+      if (d && d.candidates && d.candidates.length) {
+        d.candidates.forEach(function(c) {
+          const div = document.createElement("div");
+          div.className = "sugerencia-item";
           div.textContent = c.address;
-          div.onclick = async () => {
+          div.onclick = async function() {
             const nomDir = c.address;
-            input.value = ""; sugBox.style.display = "none";
+            input.value = "";
+            sugBox.style.display = "none";
             colapsarPanelBusqueda();
-            const resData = await resolverDireccionYAltura(c.location.y, c.location.x);
-            verificarPunto(c.location.y, c.location.x, nomDir, resData.entreCalles);
+            let entre = "";
+            try {
+              const resData = await resolverDireccionYAltura(c.location.y, c.location.x);
+              entre = resData.entreCalles || "";
+            } catch (e) {}
+            verificarPunto(c.location.y, c.location.x, nomDir, entre);
           };
           sugBox.appendChild(div);
         });
         sugBox.style.display = "block";
+      } else {
+        sugBox.style.display = "none";
       }
-    }).catch(e => {});
-};
+    })
+    .catch(function(e) {
+      if (e.name !== "AbortError") sugBox.style.display = "none";
+    });
+}, 320);
+
+input.oninput = buscarSugerenciasDireccion;
 
 document.getElementById("buscar").onclick = async function() {
   const q = input.value.trim();
@@ -2330,13 +2534,29 @@ document.getElementById("buscar").onclick = async function() {
 
 document.getElementById("btnLimpiarInput").onclick = () => { input.value = ""; sugBox.style.display = "none"; if(marker) map.removeLayer(marker); };
 
-document.getElementById("btnGPSConsulta").onclick = function() {
+document.getElementById("btnGPSConsulta").onclick = async function() {
   colapsarPanelBusqueda();
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const resData = await resolverDireccionYAltura(pos.coords.latitude, pos.coords.longitude);
+  const btn = this;
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "⏳ GPS...";
+  try {
+    const pos = await obtenerGPS();
+    let dir = pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5);
+    let entre = "";
+    try {
+      const resData = await resolverDireccionYAltura(pos.coords.latitude, pos.coords.longitude);
+      dir = resData.direccion || dir;
+      entre = resData.entreCalles || "";
+    } catch (e) {}
     input.value = "";
-    verificarPunto(pos.coords.latitude, pos.coords.longitude, resData.direccion, resData.entreCalles);
-  }, err => alert("Permití el acceso al GPS."));
+    verificarPunto(pos.coords.latitude, pos.coords.longitude, dir, entre);
+  } catch (err) {
+    alert(mensajePermisoGPS(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
 };
 
 /* RECONOCIMIENTO DE VOZ */
