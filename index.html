@@ -916,6 +916,14 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 
       <input type="hidden" id="selectPerfilLogin" value="INVITADO">
 
+      <!-- BLOQUE DE SELECCIÓN DE MÓVIL/FLOTA DESDE FIREBASE -->
+      <div id="boxMovilAsignado" style="display:none; text-align:left; margin-bottom:12px;">
+        <label style="font-weight:800; color:#4a5568; font-size:11px;">🚘 Unidad / Móvil Asignado:</label>
+        <select id="selectMovilLogin" style="width:100%; height:38px; margin-top:4px; border-radius:10px; border:1px solid #cbd5e0; padding:0 10px; box-sizing:border-box; font-weight:700; background:#f8fafc; color:#1e293b;">
+          <option value="">-- Seleccionar Móvil --</option>
+        </select>
+      </div>
+
       <div id="boxClaveIonray" style="display:none; text-align:left; margin-bottom:12px;">
         <label style="font-weight:800; color:#4a5568; font-size:11px;">Contraseña IONRAY:</label>
         <input type="password" id="pwd" placeholder="••••••••" style="width:100%; height:38px; margin-top:4px; border-radius:10px; border:1px solid #cbd5e0; padding:0 10px; box-sizing:border-box;" autocomplete="new-password">
@@ -1106,32 +1114,6 @@ body.perfil-ionray .bloque-ir-zona { display: flex !important; }
 <script>
 document.addEventListener("DOMContentLoaded", function(){
 "use strict";
-
-/* =========================================================
-   CONTRATO DEL PUENTE NATIVO ANDROID (JavascriptInterface)
-   El lado Java/Kotlin debe exponer un objeto "Android" con:
-
-   • compartirFotoYTexto(base64SinPrefijo, nombreArchivo, mimeType, texto)
-       → Intent ACTION_SEND con EXTRA_STREAM (imagen) + EXTRA_TEXT
-   • guardarFoto(base64SinPrefijo, nombreArchivo, mimeType)
-       → Guarda la imagen en galería / almacenamiento
-   • compartirArchivo(base64SinPrefijo, nombreArchivo, mimeType, textoOpcional)
-       → Para PDF u otros archivos
-   • hayConexion() → boolean (opcional)
-   • log(mensaje) → debug nativo (opcional)
-
-   Ejemplo mínimo Java:
-   @JavascriptInterface
-   public void compartirFotoYTexto(String b64, String nombre, String mime, String texto) {
-     // decode base64 → FileProvider Uri
-     Intent i = new Intent(Intent.ACTION_SEND);
-     i.setType(mime != null ? mime : "image/jpeg");
-     i.putExtra(Intent.EXTRA_STREAM, uri);
-     i.putExtra(Intent.EXTRA_TEXT, texto != null ? texto : "");
-     i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-     startActivity(Intent.createChooser(i, "Compartir marcación"));
-   }
-========================================================= */
 
 const VERSION_BASE = "1.1.2";
 let VERSION_LOCAL = localStorage.getItem("versionGuardadaLocal") || VERSION_BASE;
@@ -1380,8 +1362,15 @@ if (temaGuardado) {
   selectorTemaPanel.dispatchEvent(new Event("change"));
 }
 
-/* GESTIÓN DE PERFILES */
+/* GESTIÓN DE PERFILES Y ARQUITECTURA DE FLOTA DE MÓVILES DE USUARIOS */
 let perfilActual = "INVITADO";
+let flotaMovilesLocal = [];
+let movilObjetoSeleccionado = null;
+try {
+  const mLocal = localStorage.getItem("movilObjetoGuardado");
+  if (mLocal) movilObjetoSeleccionado = JSON.parse(mLocal);
+} catch(e) { movilObjetoSeleccionado = null; }
+
 let usuariosLocal = [];
 let historialBusquedas = [];
 
@@ -1389,8 +1378,33 @@ const loginOverlay = document.getElementById("loginOverlay");
 const txtUserSesion = document.getElementById("txtUserSesion");
 const icoUserSesion = document.getElementById("icoUserSesion");
 const selectPerfilLogin = document.getElementById("selectPerfilLogin");
+const selectMovilLogin = document.getElementById("selectMovilLogin");
+const boxMovilAsignado = document.getElementById("boxMovilAsignado");
 const boxClaveIonray = document.getElementById("boxClaveIonray");
 const listaHistorialBusquedas = document.getElementById("listaHistorialBusquedas");
+
+/* Carga dinámica de unidades desde la entidad de Flota de Firebase */
+function actualizarSelectorFlotaMoviles() {
+  if (!selectMovilLogin) return;
+  selectMovilLogin.innerHTML = '<option value="">-- Seleccionar Móvil --</option>';
+
+  if (flotaMovilesLocal && flotaMovilesLocal.length > 0) {
+    flotaMovilesLocal.forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m.id || m.numero;
+      opt.textContent = `${m.numero} | ${m.marca || 'S/D'} (${m.patente || 'S/D'})`;
+      if (movilObjetoSeleccionado && (movilObjetoSeleccionado.id === m.id || movilObjetoSeleccionado.numero === m.numero)) {
+        opt.selected = true;
+      }
+      selectMovilLogin.appendChild(opt);
+    });
+  } else {
+    const opt = document.createElement("option");
+    opt.value = "m_default";
+    opt.textContent = "🚘 Móvil 01 | Toyota Hilux (AF 123 JK)";
+    selectMovilLogin.appendChild(opt);
+  }
+}
 
 window.seleccionarPerfilBotonera = function(perfil) {
   document.querySelectorAll('.tarjeta-perfil-btn').forEach(card => card.classList.remove('seleccionada'));
@@ -1399,6 +1413,13 @@ window.seleccionarPerfilBotonera = function(perfil) {
   
   if (selectPerfilLogin) selectPerfilLogin.value = perfil;
 
+  if (perfil === "VERIFICADOR" || perfil === "IONRAY") {
+    if (boxMovilAsignado) boxMovilAsignado.style.display = "block";
+    actualizarSelectorFlotaMoviles();
+  } else {
+    if (boxMovilAsignado) boxMovilAsignado.style.display = "none";
+  }
+
   if (perfil === "IONRAY") {
     if (boxClaveIonray) boxClaveIonray.style.display = "block";
   } else {
@@ -1406,32 +1427,41 @@ window.seleccionarPerfilBotonera = function(perfil) {
   }
 };
 
-function cambiarPerfilAcceso(nuevoPerfil, guardarEnStorage = true) {
+function cambiarPerfilAcceso(nuevoPerfil, objMovil = null, guardarEnStorage = true) {
   perfilActual = nuevoPerfil;
+  if (objMovil) movilObjetoSeleccionado = objMovil;
+
   document.body.classList.remove("perfil-invitado", "perfil-verificador", "perfil-ionray");
+
+  let textoBadge = "Invitado";
+  const numMovil = movilObjetoSeleccionado ? movilObjetoSeleccionado.numero : "";
 
   if (nuevoPerfil === "VERIFICADOR") {
     document.body.classList.add("perfil-verificador");
-    if (txtUserSesion) txtUserSesion.textContent = "Verificador";
+    textoBadge = "Verificador" + (numMovil ? " (" + numMovil + ")" : "");
     if (icoUserSesion) icoUserSesion.textContent = "🔎";
   } else if (nuevoPerfil === "IONRAY") {
     document.body.classList.add("perfil-ionray");
-    if (txtUserSesion) txtUserSesion.textContent = "IONRAY (Admin)";
+    textoBadge = "IONRAY" + (numMovil ? " (" + numMovil + ")" : "");
     if (icoUserSesion) icoUserSesion.textContent = "👑";
   } else {
     document.body.classList.add("perfil-invitado");
-    if (txtUserSesion) txtUserSesion.textContent = "Invitado";
     if (icoUserSesion) icoUserSesion.textContent = "👤";
   }
 
+  if (txtUserSesion) txtUserSesion.textContent = textoBadge;
+
   if (guardarEnStorage) {
     localStorage.setItem("perfilAccesoGuardado", nuevoPerfil);
+    if (movilObjetoSeleccionado) {
+      localStorage.setItem("movilObjetoGuardado", JSON.stringify(movilObjetoSeleccionado));
+    }
   }
 }
 
 const perfilGuardadoMemoria = localStorage.getItem("perfilAccesoGuardado");
 if (perfilGuardadoMemoria) {
-  cambiarPerfilAcceso(perfilGuardadoMemoria, false);
+  cambiarPerfilAcceso(perfilGuardadoMemoria, movilObjetoSeleccionado, false);
 } else {
   loginOverlay.classList.remove("oculto");
 }
@@ -1451,19 +1481,25 @@ document.getElementById("btnCerrarLogin").onclick = function(){
 document.getElementById("formLogin").onsubmit = function(e){
   e.preventDefault();
   const perfilElegido = selectPerfilLogin.value;
+  const idMovilElegido = selectMovilLogin ? selectMovilLogin.value : "";
   const inputPwd = document.getElementById("pwd");
   const p = inputPwd ? inputPwd.value.trim() : "";
 
+  let objMovil = flotaMovilesLocal.find(m => m.id === idMovilElegido || m.numero === idMovilElegido);
+  if (!objMovil && idMovilElegido) {
+    objMovil = { numero: idMovilElegido, marca: "Unidad Operativa", patente: "S/D" };
+  }
+
   if (perfilElegido === "IONRAY") {
     if (p.toLowerCase() === "ionray") {
-      cambiarPerfilAcceso("IONRAY", true);
+      cambiarPerfilAcceso("IONRAY", objMovil, true);
       loginOverlay.classList.add("oculto");
       if (inputPwd) inputPwd.value = "";
     } else {
       alert("Contraseña de IONRAY incorrecta.");
     }
   } else {
-    cambiarPerfilAcceso(perfilElegido, true);
+    cambiarPerfilAcceso(perfilElegido, objMovil, true);
     loginOverlay.classList.add("oculto");
     if (inputPwd) inputPwd.value = "";
   }
@@ -1654,9 +1690,13 @@ function obtenerDatosMarcacion() {
 
 function generarTextoMarcacionWhatsApp() {
   const d = obtenerDatosMarcacion();
+  const infoMovil = movilObjetoSeleccionado 
+    ? `🚘 Unidad: ${movilObjetoSeleccionado.numero} (${movilObjetoSeleccionado.marca || 'S/D'} - Patente: ${movilObjetoSeleccionado.patente || 'S/D'})`
+    : "";
 
   return [
     "🚨 ALTA DE ABONADO / MARCACIÓN EN TERRENO 🚨",
+    infoMovil,
     "",
     "🏢 N° AB: " + d.ab,
     "📍 Dirección: " + d.dir,
@@ -1664,7 +1704,7 @@ function generarTextoMarcacionWhatsApp() {
     "🗺️ Cómo Llegar: " + d.lleg,
     "",
     "🌐 Coordenadas GPS: " + d.coords
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 function blobADataURL(blob) {
@@ -1698,12 +1738,6 @@ async function copiarTextoSilencioso(texto) {
   }
 }
 
-/**
- * Comparte foto + texto.
- * 1) Puente nativo Android (único método fiable con WhatsApp en APK)
- * 2) Web Share solo foto + texto ya copiado al portapapeles
- * 3) Fallback: descargar foto + texto copiado
- */
 async function compartirFotoYTexto() {
   if (!archivoFotoBinario) {
     alert("📸 Primero capturá o seleccioná una foto.");
@@ -1808,7 +1842,7 @@ async function generarYCompartirPDF() {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(203, 213, 225);
-  doc.text("Mesa de Consulta de Cobertura", 14, 22);
+  doc.text("Mesa de Consulta de Cobertura" + (movilObjetoSeleccionado ? " | Unidad: " + movilObjetoSeleccionado.numero : ""), 14, 22);
   doc.text("Fecha: " + fechaHora, 196, 22, { align: "right" });
 
   // =======================================================
@@ -1839,6 +1873,9 @@ async function generarYCompartirPDF() {
     y += Math.max(6, lineas.length * 5);
   };
 
+  if (movilObjetoSeleccionado) {
+    etiqueta("Unidad Asignada:", `${movilObjetoSeleccionado.numero} (${movilObjetoSeleccionado.marca || 'S/D'} - ${movilObjetoSeleccionado.patente || 'S/D'})`);
+  }
   etiqueta("N° AB / ID:", d.ab);
   etiqueta("Dirección:", d.dir);
   etiqueta("Localidad:", d.loc);
@@ -2241,6 +2278,10 @@ function cargarCopiaRespaldoOffline() {
         renderizarClusterAbonados(abonadosLocal);
       }
       if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
+      if (dataFB.flota_moviles) {
+        flotaMovilesLocal = Array.isArray(dataFB.flota_moviles) ? dataFB.flota_moviles : Object.values(dataFB.flota_moviles);
+        actualizarSelectorFlotaMoviles();
+      }
       if (statusSync) {
         statusSync.textContent = "🟠 Offline — usando copia local";
         statusSync.style.color = "#e65100";
@@ -2297,6 +2338,10 @@ async function actualizarDesdeFirebase() {
         renderizarClusterAbonados(abonadosLocal);
       }
       if (dataFB.usuarios) usuariosLocal = dataFB.usuarios;
+      if (dataFB.flota_moviles) {
+        flotaMovilesLocal = Array.isArray(dataFB.flota_moviles) ? dataFB.flota_moviles : Object.values(dataFB.flota_moviles);
+        actualizarSelectorFlotaMoviles();
+      }
       try {
         localStorage.setItem("cacheMapaOfflineData", JSON.stringify(dataFB));
       } catch (e) {
@@ -2717,9 +2762,14 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
   }
 
   let propiedadHtml = "";
+  const htmlInfoMovil = movilObjetoSeleccionado
+    ? '<div><b>🚘 Unidad Asignada:</b> ' + movilObjetoSeleccionado.numero + ' (' + (movilObjetoSeleccionado.marca || 'S/D') + ' - ' + (movilObjetoSeleccionado.patente || 'S/D') + ')</div>'
+    : '';
+
   if (datosAB) {
     propiedadHtml = '<div class="card-propiedad">' +
       '<div class="card-propiedad-titulo">🏢 DATOS DE LA PROPIEDAD</div>' +
+      htmlInfoMovil +
       '<div><b>N° Abonado:</b> AB ' + (datosAB.ab || "Sin datos brindados") + '</div>' +
       '<div><b>Dirección:</b> ' + (datosAB.direccion || "Sin datos brindados") + '</div>' +
       (datosAB.localidad ? '<div><b>Localidad:</b> ' + datosAB.localidad + '</div>' : '') +
@@ -2728,6 +2778,7 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
   } else {
     propiedadHtml = '<div class="card-propiedad">' +
       '<div class="card-propiedad-titulo">📍 DATOS DE LA UBICACIÓN</div>' +
+      htmlInfoMovil +
       '<div><b>Ubicación:</b> General consultada en mapa</div>' +
       '<div><b>Coordenadas:</b> ' + lat.toFixed(5) + ', ' + lon.toFixed(5) + '</div>' +
       '</div>';
@@ -2779,7 +2830,9 @@ function verificarPunto(lat, lon, nombre, entreCalles = "", comoLlegar = "", dat
   const urlWazeReporte = "https://waze.com/ul?ll=" + lat + "," + lon + "&navigate=yes";
   const urlGmapsReporte = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=driving";
 
-  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + policiaWspTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5) + "\n🚙 *Waze:* " + urlWazeReporte + "\n🗺️ *Maps:* " + urlGmapsReporte;
+  const txtMovilWsp = movilObjetoSeleccionado ? "🚘 *Móvil Asignado:* " + movilObjetoSeleccionado.numero + " (" + (movilObjetoSeleccionado.marca || 'S/D') + " - Patente: " + (movilObjetoSeleccionado.patente || 'S/D') + ")\n" : "";
+
+  const textoReporte = "🚨 *REPORTE DE COBERTURA* 🚨\n" + txtMovilWsp + "📍 *Ubicación:* " + nombre + "\n" + (entreCalles ? "🗺️ *Zona/Entre:* " + entreCalles + "\n" : "") + (comoLlegar ? "📝 *Cómo Llegar:* " + comoLlegar + "\n" : "") + icono + " *Estado:* " + estadoTexto + policiaWspTexto + "\n🌐 *Coords:* " + lat.toFixed(5) + ", " + lon.toFixed(5) + "\n🚙 *Waze:* " + urlWazeReporte + "\n🗺️ *Maps:* " + urlGmapsReporte;
   
   const urlWsp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(textoReporte);
 
