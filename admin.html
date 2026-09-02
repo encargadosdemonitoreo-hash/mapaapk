@@ -1234,6 +1234,30 @@ body.panel-oculto .panel { display: none; }
                 </div>
                 <div id="lblEstadoVersion" style="font-size:10px; color:#94a3b8; margin-top:6px; font-weight:600;"></div>
             </div>
+
+            <!-- MÓDULO DE GESTIÓN DE FLOTA DE MÓVILES -->
+            <div style="background:#f0fdf4; border:1px solid #16a34a; border-radius:8px; padding:10px; margin-bottom:12px;">
+                <div style="font-size:11px; font-weight:800; color:#15803d; margin-bottom:6px;" id="tituloFormMovil">🚘 REGISTRO DE FLOTA DE MÓVILES</div>
+                
+                <input type="hidden" id="movilEditId" value="">
+
+                <label style="margin-top:4px;">N° de Móvil / Unidad</label>
+                <input type="text" id="movilNumero" placeholder="Ej.: Móvil 04">
+
+                <label style="margin-top:6px;">Marca / Modelo</label>
+                <input type="text" id="movilMarca" placeholder="Ej.: Toyota Hilux">
+
+                <label style="margin-top:6px;">Patente / Dominio</label>
+                <input type="text" id="movilPatente" placeholder="Ej.: AF 123 JK">
+
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                    <button id="btnGuardarMovil" class="btn btn-verde" type="button" style="margin-top:0; height:36px;">💾 Guardar Móvil</button>
+                    <button id="btnCancelarMovil" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; display:none;">❌ Cancelar</button>
+                </div>
+
+                <label style="margin-top:10px; font-size:9px;">Flota Registrada</label>
+                <div id="listaMovilesRegistrados" class="lista-zonas" style="max-height:110px;"></div>
+            </div>
             
             <!-- MÓDULO COMPLETO DE CREACIÓN Y EDICIÓN DE USUARIOS -->
             <div style="background:#e8f0fe; border:1px solid #1a73e8; border-radius:8px; padding:10px; margin-bottom:12px;">
@@ -1419,6 +1443,7 @@ let procesandoFinalizacion = false;
 
 let usuariosApp = [];
 let abonadosApp = [];
+let flotaMoviles = [];
 let abonadoEnEdicionAB = null;
 
 const loginOverlay = document.getElementById("loginOverlay");
@@ -1494,6 +1519,16 @@ const btnGuardarUsuario = document.getElementById("btnGuardarUsuario");
 const btnCancelarFormUsuario = document.getElementById("btnCancelarFormUsuario");
 const tituloFormUsuario = document.getElementById("tituloFormUsuario");
 const listaUsuariosRegistrados = document.getElementById("listaUsuariosRegistrados");
+
+/* FLOTA DE MÓVILES */
+const movilEditId = document.getElementById("movilEditId");
+const movilNumero = document.getElementById("movilNumero");
+const movilMarca = document.getElementById("movilMarca");
+const movilPatente = document.getElementById("movilPatente");
+const btnGuardarMovil = document.getElementById("btnGuardarMovil");
+const btnCancelarMovil = document.getElementById("btnCancelarMovil");
+const tituloFormMovil = document.getElementById("tituloFormMovil");
+const listaMovilesRegistrados = document.getElementById("listaMovilesRegistrados");
 
 const txtEstadoSesionUser = document.getElementById("txtEstadoSesionUser");
 const btnToggleAuthUser = document.getElementById("btnToggleAuthUser");
@@ -1605,7 +1640,7 @@ btnPublicarVersion?.addEventListener("click", async function() {
         alert("❌ Error al publicar la versión en Firebase.\n\nRevisá la URL de Firebase y tu conexión.");
         if (lblEstadoVersion) {
             lblEstadoVersion.textContent = "🔴 Error al publicar";
-            lblEstadoVersion.style.color = "#f87171";
+            lblEstadoVersion.style.color = "#f8font171";
         }
         if (estado) estado.textContent = "🔴 Error al lanzar versión";
     }
@@ -1647,7 +1682,7 @@ function aplicarPermisosPorRol(u) {
 
     modoEdicionBloqueado = soloConsulta;
 
-    ["btnGuardarEdicion","btnEliminarSeleccionada","btnBorrar","btnCargar","btnCargarHeatmap","btnPublicarMultiples","btnGuardarABManual","btnProcesarMasivo","btnPublicarVersion"].forEach(id => {
+    ["btnGuardarEdicion","btnEliminarSeleccionada","btnBorrar","btnCargar","btnCargarHeatmap","btnPublicarMultiples","btnGuardarABManual","btnProcesarMasivo","btnPublicarVersion","btnGuardarMovil"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = !adminEdicion;
     });
@@ -1671,6 +1706,7 @@ function aplicarPermisosPorRol(u) {
 
 function verificarSesionInicial() {
     cargarUsuariosSistema();
+    cargarFlotaMoviles();
     const sesionActual = sessionStorage.getItem("sesionActivaAdmin");
     if (sesionActual) {
         try {
@@ -1932,6 +1968,133 @@ function eliminarUsuarioSistema(idUser) {
         guardarUsuariosSistema();
         renderizarListaUsuarios();
         registrarEventoLog(`🗑️ Usuario eliminado: "${target.usuario}"`);
+    }
+}
+
+/* =========================================================
+   GESTIÓN DE FLOTA DE MÓVILES DE USUARIOS
+========================================================= */
+function cargarFlotaMoviles() {
+    const data = localStorage.getItem("flotaMovilesAdmin");
+    if (data) {
+        try { flotaMoviles = JSON.parse(data); } catch(e) { flotaMoviles = []; }
+    }
+    renderizarListaMoviles();
+}
+
+function guardarFlotaMoviles() {
+    localStorage.setItem("flotaMovilesAdmin", JSON.stringify(flotaMoviles));
+    sincronizarPublicacionFirebaseSilent();
+}
+
+function renderizarListaMoviles() {
+    if (!listaMovilesRegistrados) return;
+    listaMovilesRegistrados.innerHTML = "";
+
+    flotaMoviles.forEach(m => {
+        const div = document.createElement("div");
+        div.className = "zona-item";
+
+        const info = document.createElement("div");
+        info.innerHTML = `<b>${escaparHTML(m.numero)}</b> - ${escaparHTML(m.marca)}<br><small style="color:#16a34a;">🪪 Patente: ${escaparHTML(m.patente)}</small>`;
+
+        const acciones = document.createElement("div");
+        acciones.style.display = "flex";
+        acciones.style.gap = "4px";
+
+        const btnEd = document.createElement("button");
+        btnEd.className = "btn-borrar-item";
+        btnEd.style.background = "#1a73e8";
+        btnEd.textContent = "✏️";
+        btnEd.title = "Editar móvil";
+        btnEd.onclick = () => cargarFormularioMovil(m);
+
+        const btnDel = document.createElement("button");
+        btnDel.className = "btn-borrar-item";
+        btnDel.textContent = "🗑️";
+        btnDel.title = "Eliminar móvil";
+        btnDel.onclick = () => eliminarMovilFlota(m.id);
+
+        acciones.appendChild(btnEd);
+        acciones.appendChild(btnDel);
+        div.appendChild(info);
+        div.appendChild(acciones);
+        listaMovilesRegistrados.appendChild(div);
+    });
+
+    if (flotaMoviles.length === 0) {
+        listaMovilesRegistrados.innerHTML = "<div style='padding:10px;font-size:11px;color:#888;'>No hay móviles registrados en la flota.</div>";
+    }
+}
+
+function cargarFormularioMovil(m) {
+    if (movilEditId) movilEditId.value = m.id;
+    if (movilNumero) movilNumero.value = m.numero || "";
+    if (movilMarca) movilMarca.value = m.marca || "";
+    if (movilPatente) movilPatente.value = m.patente || "";
+
+    if (tituloFormMovil) tituloFormMovil.textContent = `✏️ EDITAR MÓVIL: ${m.numero}`;
+    if (btnCancelarMovil) btnCancelarMovil.style.display = "inline-block";
+}
+
+function limpiarFormularioMovil() {
+    if (movilEditId) movilEditId.value = "";
+    if (movilNumero) movilNumero.value = "";
+    if (movilMarca) movilMarca.value = "";
+    if (movilPatente) movilPatente.value = "";
+
+    if (tituloFormMovil) tituloFormMovil.textContent = "🚘 REGISTRO DE FLOTA DE MÓVILES";
+    if (btnCancelarMovil) btnCancelarMovil.style.display = "none";
+}
+
+btnCancelarMovil?.addEventListener("click", limpiarFormularioMovil);
+
+btnGuardarMovil?.addEventListener("click", function(){
+    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede gestionar la flota de móviles.")) return;
+
+    const idEd = movilEditId.value;
+    const num = movilNumero.value.trim();
+    const marca = movilMarca.value.trim();
+    const pat = movilPatente.value.trim();
+
+    if (!num) return alert("Ingresá el N° de Móvil o Identificador.");
+
+    if (idEd) {
+        const idx = flotaMoviles.findIndex(x => x.id === idEd);
+        if (idx !== -1) {
+            flotaMoviles[idx].numero = num;
+            flotaMoviles[idx].marca = marca || "S/D";
+            flotaMoviles[idx].patente = pat || "S/D";
+            alert(`✅ Datos del ${num} actualizados.`);
+            registrarEventoLog(`🚘 Móvil actualizado: "${num}"`);
+        }
+    } else {
+        const nuevoMovil = {
+            id: "mov_" + Date.now(),
+            numero: num,
+            marca: marca || "S/D",
+            patente: pat || "S/D"
+        };
+        flotaMoviles.push(nuevoMovil);
+        alert(`✅ Nuevo ${num} registrado en la flota.`);
+        registrarEventoLog(`🚘 Móvil registrado: "${num}"`);
+    }
+
+    guardarFlotaMoviles();
+    renderizarListaMoviles();
+    limpiarFormularioMovil();
+});
+
+function eliminarMovilFlota(idMovil) {
+    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede eliminar unidades de la flota.")) return;
+    const target = flotaMoviles.find(x => x.id === idMovil);
+    if (!target) return;
+
+    if (confirm(`¿Eliminar de la flota la unidad "${target.numero}"?`)) {
+        flotaMoviles = flotaMoviles.filter(x => x.id !== idMovil);
+        guardarFlotaMoviles();
+        renderizarListaMoviles();
+        registrarEventoLog(`🗑️ Móvil eliminado de flota: "${target.numero}"`);
     }
 }
 
@@ -2345,6 +2508,7 @@ function sincronizarPublicacionFirebaseSilent() {
             mapaBase: localStorage.getItem("servidorMapasAdmin") || "esriStreet",
             usuarios: usuariosApp,
             abonados: abonadosApp,
+            flota_moviles: flotaMoviles,
             version_app: adminVersionInput?.value.trim() || "1.0.0"
         };
         fetch(endpoint, {
@@ -2380,6 +2544,7 @@ btnPublicarMultiples?.addEventListener("click", async function(){
         mapaBase: localStorage.getItem("servidorMapasAdmin") || "esriStreet",
         usuarios: usuariosApp,
         abonados: abonadosApp,
+        flota_moviles: flotaMoviles,
         version_app: adminVersionInput?.value.trim() || "1.0.0"
     };
 
@@ -2397,7 +2562,7 @@ btnPublicarMultiples?.addEventListener("click", async function(){
             }
             guardar();
             registrarEventoLog(`🚀 Publicado en vivo en Firebase Database`);
-            alert(`✅ ¡Zonas, Usuarios y Abonados publicados con éxito en Firebase!`);
+            alert(`✅ ¡Zonas, Usuarios, Flota y Abonados publicados con éxito en Firebase!`);
             if (estado) estado.textContent = "✓ Sincronizado en Firebase";
         } else {
             if (stRealtime) {
@@ -3994,6 +4159,10 @@ async function cargarFirebaseInicial() {
                     abonadosApp = data.abonados;
                     guardarAbonadosSistema();
                 }
+                if (data.flota_moviles && Array.isArray(data.flota_moviles)) {
+                    flotaMoviles = data.flota_moviles;
+                    guardarFlotaMoviles();
+                }
                 if (stRealtime) {
                     stRealtime.className = "badge-alojamiento badge-ok";
                     stRealtime.textContent = "🟢 Sincronizado OK";
@@ -4013,6 +4182,7 @@ async function cargar(){
     }
 
     cargarAbonadosSistema();
+    cargarFlotaMoviles();
     
     const verLocal = localStorage.getItem("versionAppUltima");
     if (verLocal && adminVersionInput) adminVersionInput.value = verLocal;
