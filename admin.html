@@ -4173,11 +4173,18 @@ async function cargarFirebaseInicial() {
 }
 
 async function cargar(){
+    // 1. Cargar configuración remota desde GitHub/config.txt
     await autoCargarConfiguracionRemota();
+
+    // 2. DESCARGA INMEDIATA DESDE FIREBASE AL ABRIR LA PÁGINA
+    await cargarFirebaseInicial();
+
+    // 3. Autenticación y verificación de usuario
     await verificarSesionInicial();
 
+    // 4. Respaldos locales si no hubo respuesta de red
     const data = localStorage.getItem("zonasAdmin");
-    if(data){
+    if(data && zonas.getLayers().length === 0){
         try { reconstruirDesdeDatos(JSON.parse(data)); } catch(e){}
     }
 
@@ -4246,8 +4253,6 @@ async function cargar(){
     actualizarListaZonas();
     actualizarListaMarcadores();
     actualizarSelectImpresion();
-
-    await cargarFirebaseInicial();
 }
 
 cargar();
