@@ -1215,117 +1215,138 @@ body.panel-oculto .panel { display: none; }
         </button>
         <div class="menu-contenido">
 
-            <!-- MÓDULO PUBLICACIÓN DE NUEVA VERSIÓN APP (MEJORADO) -->
-            <div style="background:#0f172a; color:#fff; border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid #3b82f6;">
-                <div style="font-weight:800; font-size:11px; color:#60a5fa; margin-bottom:8px;">🚀 LANZAR NUEVA VERSIÓN / PARCHE DE APP</div>
+            <!-- =========================================================
+                 GRUPO 1: GESTIONES
+            ========================================================= -->
+            <div style="border-bottom: 2px solid #cbd5e1; padding-bottom: 12px; margin-bottom: 14px;">
+                <div style="font-size: 12px; font-weight: 900; color: #0f172a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    📂 GESTIONES
+                </div>
+
+                <!-- 1.1 REGISTRO DE FLOTA DE MÓVILES -->
+                <div style="background:#f0fdf4; border:1px solid #16a34a; border-radius:8px; padding:10px; margin-bottom:12px;">
+                    <div style="font-size:11px; font-weight:800; color:#15803d; margin-bottom:6px;" id="tituloFormMovil">🚘 REGISTRO DE FLOTA DE MÓVILES</div>
+                    
+                    <input type="hidden" id="movilEditId" value="">
+
+                    <label style="margin-top:4px;">N° de Móvil / Unidad</label>
+                    <input type="text" id="movilNumero" placeholder="Ej.: Móvil 04">
+
+                    <label style="margin-top:6px;">Marca / Modelo</label>
+                    <input type="text" id="movilMarca" placeholder="Ej.: Toyota Hilux">
+
+                    <label style="margin-top:6px;">Patente / Dominio</label>
+                    <input type="text" id="movilPatente" placeholder="Ej.: AF 123 JK">
+
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <button id="btnGuardarMovil" class="btn btn-verde" type="button" style="margin-top:0; height:36px;">💾 Guardar Móvil</button>
+                        <button id="btnCancelarMovil" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; display:none;">❌ Cancelar</button>
+                    </div>
+
+                    <label style="margin-top:10px; font-size:9px;">Flota Registrada</label>
+                    <div id="listaMovilesRegistrados" class="lista-zonas" style="max-height:110px;"></div>
+                </div>
+
+                <!-- 1.2 CREAR USUARIO Y ROLES (ROL ESPECÍFICO) -->
+                <div style="background:#e8f0fe; border:1px solid #1a73e8; border-radius:8px; padding:10px;">
+                    <div style="font-size:11px; font-weight:800; color:#1557b0; margin-bottom:6px;" id="tituloFormUsuario">👥 CREAR / EDITAR USUARIOS Y ROLES</div>
+                    
+                    <input type="hidden" id="usrEditId" value="">
+
+                    <label style="margin-top:4px;">Nombre Completo / Puesto</label>
+                    <input type="text" id="usrNombre" placeholder="Ej.: Matias Formento - Monitoreo">
+
+                    <label style="margin-top:6px;">Nombre de Usuario (Login)</label>
+                    <input type="text" id="usrUsername" placeholder="Ej.: op_monitoreo">
+
+                    <label style="margin-top:6px;">Contraseña</label>
+                    <input type="password" id="usrPassword" placeholder="Contraseña de acceso">
+
+                    <label style="margin-top:6px;">Perfil / Rol de Acceso</label>
+                    <select id="usrRol">
+                        <option value="MONITOREO">🎧 Monitoreo</option>
+                        <option value="VERIFICADORES">🔎 Verificadores</option>
+                        <option value="SUPERVISORES">📋 Supervisores</option>
+                        <option value="ADMINISTRADOR">👑 Administrador</option>
+                    </select>
+
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <button id="btnGuardarUsuario" class="btn btn-azul" type="button" style="margin-top:0; height:36px;">💾 Guardar Usuario</button>
+                        <button id="btnCancelarFormUsuario" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; display:none;">❌ Cancelar</button>
+                    </div>
+
+                    <label style="margin-top:10px; font-size:9px;">Lista de Cuentas Registradas</label>
+                    <div id="listaUsuariosRegistrados" class="lista-zonas" style="max-height:110px;"></div>
+                </div>
+            </div>
+
+            <!-- =========================================================
+                 GRUPO 2: BASE DE DATOS
+            ========================================================= -->
+            <div>
+                <div style="font-size: 12px; font-weight: 900; color: #0f172a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    🗄️ BASE DE DATOS
+                </div>
+
+                <!-- 2.1 LANZAR NUEVA VERSIÓN DE APP -->
+                <div style="background:#0f172a; color:#fff; border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid #3b82f6;">
+                    <div style="font-weight:800; font-size:11px; color:#60a5fa; margin-bottom:8px;">🚀 LANZAR NUEVA VERSIÓN / PARCHE DE APP</div>
+                    
+                    <div style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.4); border-radius:8px; padding:8px 10px; margin-bottom:10px; font-size:11px; line-height:1.4; color:#cbd5e1;">
+                        <b style="color:#93c5fd;">⚠️ Antes de lanzar:</b><br>
+                        1. Subí el <b>index.html</b> nuevo a GitHub<br>
+                        2. Esperá 30-60 seg a que GitHub Pages actualice<br>
+                        3. Recién ahí lanzá el parche
+                    </div>
+
+                    <label style="color:#94a3b8; margin-top:0;">Número de Versión a Publicar</label>
+                    <div style="display:flex; gap:6px; margin-top:4px;">
+                        <input type="text" id="adminVersionInput" placeholder="Ej.: 1.1.2" value="1.0.0" style="flex:1; height:36px; background:#1e293b; color:#fff; border:1px solid #475569; font-weight:bold;">
+                        <button id="btnSugerirVersion" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; width:auto; padding:0 10px; background:#334155; color:#e2e8f0; border:1px solid #475569;" title="Sugerir siguiente versión">+1</button>
+                        <button id="btnPublicarVersion" class="btn btn-azul" type="button" style="margin-top:0; height:36px; width:auto; padding:0 12px;">Lanzar Parche</button>
+                    </div>
+                    <div id="lblEstadoVersion" style="font-size:10px; color:#94a3b8; margin-top:6px; font-weight:600;"></div>
+                </div>
+
+                <!-- 2.2 DESTINOS DE ALOJAMIENTO -->
+                <label style="font-size:11px; font-weight:800; color:#1557b0;">☑️ Seleccionar Destinos de Alojamiento Múltiple</label>
                 
-                <div style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.4); border-radius:8px; padding:8px 10px; margin-bottom:10px; font-size:11px; line-height:1.4; color:#cbd5e1;">
-                    <b style="color:#93c5fd;">⚠️ Antes de lanzar:</b><br>
-                    1. Subí el <b>index.html</b> nuevo a GitHub<br>
-                    2. Esperá 30-60 seg a que GitHub Pages actualice<br>
-                    3. Recién ahí lanzá el parche
+                <div class="filtros-grid" style="margin-top:6px;">
+                    <label class="filtro-item"><input type="checkbox" id="chkDestinoWebhook"> 🌐 Webhook / API Hosting (Netlify/GitHub)</label>
+                    <label class="filtro-item"><input type="checkbox" id="chkDestinoRealtime" checked> ⚡ Base de Datos en Vivo (Firebase)</label>
+                    <label class="filtro-item"><input type="checkbox" id="chkDestinoFtp" disabled> 📁 Servidor Intranet Empresa (FTP/Red Local) — no implementado</label>
+                    <label class="filtro-item"><input type="checkbox" id="chkDestinoCloudDrive" disabled> ☁️ Cloud Backup (Google Drive) — deshabilitado por CORS</label>
                 </div>
 
-                <label style="color:#94a3b8; margin-top:0;">Número de Versión a Publicar</label>
-                <div style="display:flex; gap:6px; margin-top:4px;">
-                    <input type="text" id="adminVersionInput" placeholder="Ej.: 1.1.2" value="1.0.0" style="flex:1; height:36px; background:#1e293b; color:#fff; border:1px solid #475569; font-weight:bold;">
-                    <button id="btnSugerirVersion" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; width:auto; padding:0 10px; background:#334155; color:#e2e8f0; border:1px solid #475569;" title="Sugerir siguiente versión">+1</button>
-                    <button id="btnPublicarVersion" class="btn btn-azul" type="button" style="margin-top:0; height:36px; width:auto; padding:0 12px;">Lanzar Parche</button>
-                </div>
-                <div id="lblEstadoVersion" style="font-size:10px; color:#94a3b8; margin-top:6px; font-weight:600;"></div>
-            </div>
-
-            <!-- MÓDULO DE GESTIÓN DE FLOTA DE MÓVILES -->
-            <div style="background:#f0fdf4; border:1px solid #16a34a; border-radius:8px; padding:10px; margin-bottom:12px;">
-                <div style="font-size:11px; font-weight:800; color:#15803d; margin-bottom:6px;" id="tituloFormMovil">🚘 REGISTRO DE FLOTA DE MÓVILES</div>
+                <label style="margin-top:10px;">URL / Endpoint Webhook Principal</label>
+                <input type="text" id="cfgWebhookUrl" placeholder="https://api.tuempresa.com/v1/mapa">
                 
-                <input type="hidden" id="movilEditId" value="">
+                <label>API Key / Clave Secreta de Token</label>
+                <input type="password" id="cfgApiKey" placeholder="Token de acceso a servidor...">
 
-                <label style="margin-top:4px;">N° de Móvil / Unidad</label>
-                <input type="text" id="movilNumero" placeholder="Ej.: Móvil 04">
+                <label style="margin-top:10px; color:#1557b0;">⚡ URL de Base de Datos Realtime (Firebase)</label>
+                <input type="text" id="cfgFirebaseUrl" placeholder="https://mapa-ef4d1-default-rtdb.firebaseio.com/mapa.json">
 
-                <label style="margin-top:6px;">Marca / Modelo</label>
-                <input type="text" id="movilMarca" placeholder="Ej.: Toyota Hilux">
+                <!-- 2.3 PUBLICAR / SINCRONIZAR EN VIVO EN FIREBASE -->
+                <button id="btnPublicarMultiples" class="btn btn-azul" type="button" style="margin-top:12px; height:42px;">🚀 Publicar / Sincronizar en Vivo en Firebase</button>
 
-                <label style="margin-top:6px;">Patente / Dominio</label>
-                <input type="text" id="movilPatente" placeholder="Ej.: AF 123 JK">
-
-                <div style="display:flex; gap:6px; margin-top:8px;">
-                    <button id="btnGuardarMovil" class="btn btn-verde" type="button" style="margin-top:0; height:36px;">💾 Guardar Móvil</button>
-                    <button id="btnCancelarMovil" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; display:none;">❌ Cancelar</button>
+                <!-- 2.4 ESTADO ACTUAL DE ALOJAMIENTO -->
+                <div class="box-alojamiento">
+                    <div style="font-size:11px; font-weight:800; color:#5f6368; margin-bottom:6px; text-transform:uppercase;">📊 Estado Actual de Alojamiento</div>
+                    <div style="font-size:11px; line-height:1.6;">
+                        • Realtime Sync: <span id="stRealtime" class="badge-alojamiento badge-off">Sin configurar</span><br>
+                        • Webhook API: <span id="stWebhook" class="badge-alojamiento badge-off">Sin configurar</span>
+                    </div>
                 </div>
 
-                <label style="margin-top:10px; font-size:9px;">Flota Registrada</label>
-                <div id="listaMovilesRegistrados" class="lista-zonas" style="max-height:110px;"></div>
-            </div>
-            
-            <!-- MÓDULO COMPLETO DE CREACIÓN Y EDICIÓN DE USUARIOS -->
-            <div style="background:#e8f0fe; border:1px solid #1a73e8; border-radius:8px; padding:10px; margin-bottom:12px;">
-                <div style="font-size:11px; font-weight:800; color:#1557b0; margin-bottom:6px;" id="tituloFormUsuario">👥 CREAR / EDITAR USUARIOS Y ROLES</div>
-                
-                <input type="hidden" id="usrEditId" value="">
+                <hr style="border:0; border-top:1px solid #e0e4e8; margin:12px 0;">
 
-                <label style="margin-top:4px;">Nombre Completo / Puesto</label>
-                <input type="text" id="usrNombre" placeholder="Ej.: Matias Formento - Monitoreo">
-
-                <label style="margin-top:6px;">Nombre de Usuario (Login)</label>
-                <input type="text" id="usrUsername" placeholder="Ej.: IONRAY o op_noche">
-
-                <label style="margin-top:6px;">Contraseña</label>
-                <input type="password" id="usrPassword" placeholder="Contraseña de acceso">
-
-                <label style="margin-top:6px;">Perfil / Rol de Acceso</label>
-                <select id="usrRol">
-                    <option value="SUPER_ADMIN">👑 Super Administrador (Acceso Total)</option>
-                    <option value="OPERADOR_ADMIN">🛠️ Operador Administrador (Edición de Zonas)</option>
-                    <option value="OPERADOR_CONSULTA">🔎 Operador Consulta (Mesa de Despacho)</option>
-                    <option value="ACUDIDOR">🚘 Acudidor / Patrulla (Solo Vista Móvil)</option>
-                </select>
-
-                <div style="display:flex; gap:6px; margin-top:8px;">
-                    <button id="btnGuardarUsuario" class="btn btn-azul" type="button" style="margin-top:0; height:36px;">💾 Guardar Usuario</button>
-                    <button id="btnCancelarFormUsuario" class="btn btn-secundario" type="button" style="margin-top:0; height:36px; display:none;">❌ Cancelar</button>
-                </div>
-
-                <label style="margin-top:10px; font-size:9px;">Lista de Cuentas Registradas</label>
-                <div id="listaUsuariosRegistrados" class="lista-zonas" style="max-height:110px;"></div>
+                <label>Mantenimiento Local & Backup Automático</label>
+                <button id="btnConsulta" class="btn btn-verde" type="button" style="margin-top:4px;">🌐 Generar y Reemplazar Mapa Consulta (.html / .bak)</button>
+                <button id="btnGPSApp" class="btn btn-azul" type="button" style="margin-top:4px;">GM Generar y Reemplazar App Navegador GPS (.html)</button>
+                <button id="btnBorrar" class="btn btn-rojo" type="button">🗑️ Borrar TODAS las Zonas</button>
             </div>
 
-            <label style="font-size:11px; font-weight:800; color:#1557b0;">☑️ Seleccionar Destinos de Alojamiento Múltiple</label>
-            
-            <div class="filtros-grid" style="margin-top:6px;">
-                <label class="filtro-item"><input type="checkbox" id="chkDestinoWebhook"> 🌐 Webhook / API Hosting (Netlify/GitHub)</label>
-                <label class="filtro-item"><input type="checkbox" id="chkDestinoRealtime" checked> ⚡ Base de Datos en Vivo (Firebase)</label>
-                <label class="filtro-item"><input type="checkbox" id="chkDestinoFtp" disabled> 📁 Servidor Intranet Empresa (FTP/Red Local) — no implementado</label>
-                <label class="filtro-item"><input type="checkbox" id="chkDestinoCloudDrive" disabled> ☁️ Cloud Backup (Google Drive) — deshabilitado por CORS</label>
-            </div>
-
-            <label style="margin-top:10px;">URL / Endpoint Webhook Principal</label>
-            <input type="text" id="cfgWebhookUrl" placeholder="https://api.tuempresa.com/v1/mapa">
-            
-            <label>API Key / Clave Secreta de Token</label>
-            <input type="password" id="cfgApiKey" placeholder="Token de acceso a servidor...">
-
-            <label style="margin-top:10px; color:#1557b0;">⚡ URL de Base de Datos Realtime (Firebase)</label>
-            <input type="text" id="cfgFirebaseUrl" placeholder="https://mapa-ef4d1-default-rtdb.firebaseio.com/mapa.json">
-
-            <button id="btnPublicarMultiples" class="btn btn-azul" type="button" style="margin-top:12px; height:42px;">🚀 Publicar / Sincronizar en Vivo en Firebase</button>
-
-            <!-- MATRIZ DE VISIÓN DE ESTADO EN VIVO -->
-            <div class="box-alojamiento">
-                <div style="font-size:11px; font-weight:800; color:#5f6368; margin-bottom:6px; text-transform:uppercase;">📊 Estado Actual de Alojamiento</div>
-                <div style="font-size:11px; line-height:1.6;">
-                    • Realtime Sync: <span id="stRealtime" class="badge-alojamiento badge-off">Sin configurar</span><br>
-                    • Webhook API: <span id="stWebhook" class="badge-alojamiento badge-off">Sin configurar</span>
-                </div>
-            </div>
-
-            <hr style="border:0; border-top:1px solid #e0e4e8; margin:12px 0;">
-
-            <label>Mantenimiento Local & Backup Automático</label>
-            <button id="btnConsulta" class="btn btn-verde" type="button" style="margin-top:4px;">🌐 Generar y Reemplazar Mapa Consulta (.html / .bak)</button>
-            <button id="btnGPSApp" class="btn btn-azul" type="button" style="margin-top:4px;">GM Generar y Reemplazar App Navegador GPS (.html)</button>
-            <button id="btnBorrar" class="btn btn-rojo" type="button">🗑️ Borrar TODAS las Zonas</button>
         </div>
     </div>
 
@@ -1581,7 +1602,7 @@ btnSugerirVersion?.addEventListener("click", function() {
 });
 
 btnPublicarVersion?.addEventListener("click", async function() {
-    if (!requiereRol(["SUPER_ADMIN"], "Solo el Super Administrador puede lanzar versiones.")) return;
+    if (!requiereRol(["ADMINISTRADOR"], "Solo el Administrador puede lanzar versiones.")) return;
 
     const nuevaVer = adminVersionInput?.value.trim();
     if (!nuevaVer) return alert("Ingresá un número de versión válido (ej: 1.1.2)");
@@ -1676,9 +1697,9 @@ function requiereRol(roles, mensaje = "No tenés permisos para realizar esta acc
 function aplicarPermisosPorRol(u) {
     usuarioSesionActual = u || null;
     const rol = u?.rol || "";
-    const soloConsulta = rol === "OPERADOR_CONSULTA" || rol === "ACUDIDOR";
-    const adminEdicion = rol === "OPERADOR_ADMIN" || rol === "SUPER_ADMIN";
-    const superAdmin = rol === "SUPER_ADMIN";
+    const soloConsulta = rol === "MONITOREO" || rol === "VERIFICADORES";
+    const adminEdicion = rol === "SUPERVISORES" || rol === "ADMINISTRADOR" || rol === "SUPER_ADMIN";
+    const superAdmin = rol === "ADMINISTRADOR" || rol === "SUPER_ADMIN";
 
     modoEdicionBloqueado = soloConsulta;
 
@@ -1750,12 +1771,12 @@ formLoginModal?.addEventListener("submit", function(e){
             nombre: "Supervisión IONRAY",
             usuario: "IONRAY",
             clave: "IONRAY",
-            rol: "SUPER_ADMIN"
+            rol: "ADMINISTRADOR"
         };
         sessionStorage.setItem("sesionActivaAdmin", JSON.stringify(usrMaster));
         ocultarModalLogin(usrMaster);
         aplicarPermisosPorRol(usrMaster);
-        registrarEventoLog(`🔑 Sesión iniciada: "IONRAY" (SUPER_ADMIN)`);
+        registrarEventoLog(`🔑 Sesión iniciada: "IONRAY" (ADMINISTRADOR)`);
         return;
     }
 
@@ -1832,7 +1853,7 @@ function cargarUsuariosSistema() {
             nombre: "Supervisión IONRAY",
             usuario: "IONRAY",
             clave: "IONRAY",
-            rol: "SUPER_ADMIN"
+            rol: "ADMINISTRADOR"
         }];
         guardarUsuariosSistema();
     }
@@ -1852,10 +1873,10 @@ function renderizarListaUsuarios() {
         const div = document.createElement("div");
         div.className = "zona-item";
         
-        let rolEtiqueta = "👑 Super Admin";
-        if (u.rol === "OPERADOR_ADMIN") rolEtiqueta = "🛠️ Op. Admin";
-        if (u.rol === "OPERADOR_CONSULTA") rolEtiqueta = "🔎 Op. Consulta";
-        if (u.rol === "ACUDIDOR") rolEtiqueta = "🚘 Acudidor";
+        let rolEtiqueta = "👑 Administrador";
+        if (u.rol === "MONITOREO") rolEtiqueta = "🎧 Monitoreo";
+        if (u.rol === "VERIFICADORES") rolEtiqueta = "🔎 Verificadores";
+        if (u.rol === "SUPERVISORES") rolEtiqueta = "📋 Supervisores";
 
         const info = document.createElement("div");
         info.innerHTML = `<b>${escaparHTML(u.nombre || u.usuario)}</b> (${escaparHTML(u.usuario)})<br><small style="color:#1a73e8;">${rolEtiqueta}</small>`;
@@ -1891,7 +1912,7 @@ function cargarFormularioUsuario(u) {
     usrUsername.value = u.usuario || "";
     usrPassword.value = "";
     usrPassword.placeholder = "Dejar vacío para conservar la contraseña actual";
-    usrRol.value = u.rol || "SUPER_ADMIN";
+    usrRol.value = u.rol || "ADMINISTRADOR";
 
     tituloFormUsuario.textContent = `✏️ EDITAR USUARIO: ${u.usuario}`;
     btnCancelarFormUsuario.style.display = "inline-block";
@@ -1903,7 +1924,7 @@ function limpiarFormularioUsuario() {
     usrUsername.value = "";
     usrPassword.value = "";
     usrPassword.placeholder = "Contraseña de acceso";
-    usrRol.value = "SUPER_ADMIN";
+    usrRol.value = "ADMINISTRADOR";
 
     tituloFormUsuario.textContent = "👥 CREAR / EDITAR USUARIOS Y ROLES";
     btnCancelarFormUsuario.style.display = "none";
@@ -1912,7 +1933,7 @@ function limpiarFormularioUsuario() {
 btnCancelarFormUsuario?.addEventListener("click", limpiarFormularioUsuario);
 
 btnGuardarUsuario?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN"], "Solo el Super Administrador puede gestionar usuarios.")) return;
+    if (!requiereRol(["ADMINISTRADOR", "SUPERVISORES"], "Solo Administradores o Supervisores pueden gestionar usuarios.")) return;
 
     const idEd = usrEditId.value;
     const nom = usrNombre.value.trim();
@@ -1956,7 +1977,7 @@ btnGuardarUsuario?.addEventListener("click", function(){
 });
 
 function eliminarUsuarioSistema(idUser) {
-    if (!requiereRol(["SUPER_ADMIN"], "Solo el Super Administrador puede eliminar usuarios.")) return;
+    if (!requiereRol(["ADMINISTRADOR"], "Solo el Administrador puede eliminar usuarios.")) return;
     if (usuariosApp.length <= 1) {
         return alert("⚠️ Debe existir al menos un usuario activo en el sistema.");
     }
@@ -2050,7 +2071,7 @@ function limpiarFormularioMovil() {
 btnCancelarMovil?.addEventListener("click", limpiarFormularioMovil);
 
 btnGuardarMovil?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede gestionar la flota de móviles.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil no puede gestionar la flota de móviles.")) return;
 
     const idEd = movilEditId.value;
     const num = movilNumero.value.trim();
@@ -2086,7 +2107,7 @@ btnGuardarMovil?.addEventListener("click", function(){
 });
 
 function eliminarMovilFlota(idMovil) {
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede eliminar unidades de la flota.")) return;
+    if (!requiereRol(["ADMINISTRADOR"], "Tu perfil no puede eliminar unidades de la flota.")) return;
     const target = flotaMoviles.find(x => x.id === idMovil);
     if (!target) return;
 
@@ -2295,7 +2316,7 @@ function limpiarFormularioAB() {
 btnCancelarEdicionAB?.addEventListener("click", limpiarFormularioAB);
 
 function eliminarAbonadoSistema(abNumeroTarget) {
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede eliminar abonados.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil no puede eliminar abonados.")) return;
     if (confirm(`¿Eliminar definitivamente el abonado AB ${abNumeroTarget}?`)) {
         abonadosApp = abonadosApp.filter(x => x.ab.toUpperCase() !== abNumeroTarget.toUpperCase());
         guardarAbonadosSistema();
@@ -2325,7 +2346,7 @@ document.getElementById("btnGeocodificarAB")?.addEventListener("click", function
 });
 
 document.getElementById("btnGuardarABManual")?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede registrar abonados.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil no puede registrar abonados.")) return;
     
     const ab = document.getElementById("abNumero").value.trim() || "Sin datos";
     const dir = document.getElementById("abDireccion").value.trim() || "Sin datos";
@@ -2452,7 +2473,7 @@ function procesarFilasMasivasAbonados(filasMatriz) {
 }
 
 document.getElementById("btnProcesarMasivo")?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede importar masivamente.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil no puede importar masivamente.")) return;
     const txt = document.getElementById("txtMasivoExcel").value.trim();
     if (!txt) return alert("Pegá el texto de las celdas o cargá un archivo de Excel.");
 
@@ -2524,7 +2545,7 @@ btnPublicarMultiples?.addEventListener("click", async function(){
     const publicarRealtime = chkDestinoRealtime?.checked;
     const fbUrlRaw = cfgFirebaseUrl?.value.trim() || localStorage.getItem("fbUrlAdmin") || "https://mapa-ef4d1-default-rtdb.firebaseio.com/";
 
-    if (!requiereRol(["SUPER_ADMIN"], "Solo el Super Administrador puede publicar o sincronizar datos.")) return;
+    if (!requiereRol(["ADMINISTRADOR"], "Solo el Administrador puede publicar o sincronizar datos.")) return;
 
     if (!publicarRealtime || !fbUrlRaw) {
         if (stRealtime) {
@@ -2582,7 +2603,7 @@ btnPublicarMultiples?.addEventListener("click", async function(){
 
 /* BLOQUEO DE EDICIÓN */
 btnBloqueoEdicion?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil es de solo consulta.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil es de solo consulta.")) return;
     modoEdicionBloqueado = !modoEdicionBloqueado;
     if (modoEdicionBloqueado) {
         btnBloqueoEdicion.textContent = "🔒 Solo Lectura";
@@ -3523,7 +3544,7 @@ function cargarEditor(layer){
 }
 
 document.getElementById("btnGuardarEdicion")?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede guardar cambios de zonas.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil no puede guardar cambios de zonas.")) return;
     if(modoEdicionBloqueado) return alert("La edición está bloqueada en MODO LECTURA.");
     if(!zonaSeleccionada) return alert("Seleccioná primero una zona.");
     const nombre = editarNombre.value.trim();
@@ -3556,7 +3577,7 @@ document.getElementById("btnGuardarEdicion")?.addEventListener("click", function
 });
 
 document.getElementById("btnEliminarSeleccionada")?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede eliminar zonas.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil no puede eliminar zonas.")) return;
     if(modoEdicionBloqueado) return alert("La edición está bloqueada en MODO LECTURA.");
     if(!zonaSeleccionada) return alert("Seleccioná primero una zona.");
     const nombreBorrado = zonaSeleccionada.options.nombre;
@@ -4058,7 +4079,7 @@ archivo?.addEventListener("change", function(e){
 });
 
 document.getElementById("btnBorrar")?.addEventListener("click", function(){
-    if (!requiereRol(["SUPER_ADMIN","OPERADOR_ADMIN"], "Tu perfil no puede borrar todas las zonas.")) return;
+    if (!requiereRol(["ADMINISTRADOR","SUPERVISORES"], "Tu perfil no puede borrar todas las zonas.")) return;
     if(modoEdicionBloqueado) return alert("La edición está bloqueada en MODO LECTURA.");
     if(!confirm("¿Borrar TODAS las zonas y marcaciones?")) return;
     zonas.clearLayers();
@@ -4153,7 +4174,7 @@ async function cargarFirebaseInicial() {
                             nombre: "Supervisión IONRAY",
                             usuario: "IONRAY",
                             clave: "IONRAY",
-                            rol: "SUPER_ADMIN"
+                            rol: "ADMINISTRADOR"
                         });
                     }
                     usuariosApp = remoteUsers;
