@@ -1661,7 +1661,7 @@ btnPublicarVersion?.addEventListener("click", async function() {
         alert("❌ Error al publicar la versión en Firebase.\n\nRevisá la URL de Firebase y tu conexión.");
         if (lblEstadoVersion) {
             lblEstadoVersion.textContent = "🔴 Error al publicar";
-            lblEstadoVersion.style.color = "#f8font171";
+            lblEstadoVersion.style.color = "#ef4444";
         }
         if (estado) estado.textContent = "🔴 Error al lanzar versión";
     }
