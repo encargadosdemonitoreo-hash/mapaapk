@@ -33,32 +33,40 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y imagemagick
           RES_DIR="android/app/src/main/res"
-          
-          # Crear carpetas si no existen
-          mkdir -p $RES_DIR/mipmap-mdpi $RES_DIR/mipmap-hdpi $RES_DIR/mipmap-xhdpi $RES_DIR/mipmap-xxhdpi $RES_DIR/mipmap-xxxhdpi
-          mkdir -p $RES_DIR/drawable $RES_DIR/drawable-port-xxhdpi
-          
-          # Generar íconos estándar de aplicación
+
+          # Crear carpetas necesarias
+          mkdir -p $RES_DIR/mipmap-mdpi
+          mkdir -p $RES_DIR/mipmap-hdpi
+          mkdir -p $RES_DIR/mipmap-xhdpi
+          mkdir -p $RES_DIR/mipmap-xxhdpi
+          mkdir -p $RES_DIR/mipmap-xxxhdpi
+          mkdir -p $RES_DIR/drawable
+          mkdir -p $RES_DIR/drawable-port-xxhdpi
+
+          # Íconos principales
           convert icon.png -resize 48x48 $RES_DIR/mipmap-mdpi/ic_launcher.png
           convert icon.png -resize 72x72 $RES_DIR/mipmap-hdpi/ic_launcher.png
           convert icon.png -resize 96x96 $RES_DIR/mipmap-xhdpi/ic_launcher.png
           convert icon.png -resize 144x144 $RES_DIR/mipmap-xxhdpi/ic_launcher.png
           convert icon.png -resize 192x192 $RES_DIR/mipmap-xxxhdpi/ic_launcher.png
-          
-          # Generar íconos redondos y de primer plano
+
+          # Íconos redondos
           convert icon.png -resize 48x48 $RES_DIR/mipmap-mdpi/ic_launcher_round.png
           convert icon.png -resize 72x72 $RES_DIR/mipmap-hdpi/ic_launcher_round.png
           convert icon.png -resize 96x96 $RES_DIR/mipmap-xhdpi/ic_launcher_round.png
           convert icon.png -resize 144x144 $RES_DIR/mipmap-xxhdpi/ic_launcher_round.png
           convert icon.png -resize 192x192 $RES_DIR/mipmap-xxxhdpi/ic_launcher_round.png
-          
-          convert icon.png -resize 48x48 $RES_DIR/mipmap-mdpi/ic_launcher_foreground.png
-          convert icon.png -resize 72x72 $RES_DIR/mipmap-hdpi/ic_launcher_foreground.png
-          convert icon.png -resize 96x96 $RES_DIR/mipmap-xhdpi/ic_launcher_foreground.png
-          convert icon.png -resize 144x144 $RES_DIR/mipmap-xxhdpi/ic_launcher_foreground.png
-          convert icon.png -resize 192x192 $RES_DIR/mipmap-xxxhdpi/ic_launcher_foreground.png
 
-          # Reemplazar la pantalla de splash nativa
+          # Foreground adaptativo: logo centrado con margen de seguridad
+          # icon.png es completamente opaco.
+          # Se reduce a 72x72 y se coloca centrado en un lienzo transparente de 108x108.
+          convert icon.png -resize 72x72 -background none -gravity center -extent 108x108 $RES_DIR/mipmap-mdpi/ic_launcher_foreground.png
+          convert icon.png -resize 72x72 -background none -gravity center -extent 108x108 $RES_DIR/mipmap-hdpi/ic_launcher_foreground.png
+          convert icon.png -resize 72x72 -background none -gravity center -extent 108x108 $RES_DIR/mipmap-xhdpi/ic_launcher_foreground.png
+          convert icon.png -resize 72x72 -background none -gravity center -extent 108x108 $RES_DIR/mipmap-xxhdpi/ic_launcher_foreground.png
+          convert icon.png -resize 72x72 -background none -gravity center -extent 108x108 $RES_DIR/mipmap-xxxhdpi/ic_launcher_foreground.png
+
+          # Splash nativo
           convert icon.png -resize 512x512 $RES_DIR/drawable/splash.png
           convert icon.png -resize 512x512 $RES_DIR/drawable-port-xxhdpi/splash.png
 
