@@ -2079,6 +2079,13 @@ body {
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
 
+
+<style id="ocultar-ficha-ejemplo">
+#mesaFicha {
+    display: none !important;
+}
+</style>
+
 </head>
 
 <body>
@@ -2959,24 +2966,6 @@ function actualizarColorFichaCobertura(dentroCobertura) {
             {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap contributors'
-            }
-        ).addTo(mapa);
-
-        /*
-         * Marcador inicial visual
-         */
-
-        const icono = L.divIcon({
-            className: "",
-            html: '<div class="marcador-mapa"></div>',
-            iconSize: [24, 24],
-            iconAnchor: [12, 24]
-        });
-
-        window._marcadorMapa = L.marker(
-            [-34.761, -58.405],
-            {
-                icon: icono
             }
         ).addTo(mapa);
 
