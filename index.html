@@ -1983,6 +1983,95 @@ body {
     touch-action: pan-x pan-y;
 }
 
+
+/* ============================================================
+   MAPA — INTERACCIÓN REAL
+   ============================================================ */
+
+#mapa {
+    pointer-events: auto !important;
+    touch-action: none !important;
+}
+
+#mapa .leaflet-container {
+    pointer-events: auto !important;
+    touch-action: none !important;
+    cursor: grab !important;
+}
+
+#mapa .leaflet-container:active {
+    cursor: grabbing !important;
+}
+
+/*
+ * Las capas puramente visuales no deben capturar eventos.
+ */
+
+#mapa::before,
+#mapa::after {
+    pointer-events: none !important;
+}
+
+/*
+ * El contenido interno decorativo tampoco.
+ */
+
+#mapa .calle,
+#mapa .calle * {
+    pointer-events: none !important;
+}
+
+/*
+ * Leaflet sí debe recibir los eventos.
+ */
+
+#mapa .leaflet-pane,
+#mapa .leaflet-tile-pane,
+#mapa .leaflet-overlay-pane,
+#mapa .leaflet-shadow-pane,
+#mapa .leaflet-marker-pane,
+#mapa .leaflet-tooltip-pane,
+#mapa .leaflet-popup-pane,
+#mapa .leaflet-control-container {
+    pointer-events: auto !important;
+}
+
+/*
+ * La interfaz superior sigue funcionando.
+ */
+
+#mesaFicha,
+.mesa-ficha,
+.bottom-nav,
+.bottom-bar,
+.menu-panel {
+    pointer-events: auto;
+}
+
+
+/* ============================================================
+   JERARQUÍA DE CAPAS
+   ============================================================ */
+
+#mapa {
+    z-index: 1 !important;
+}
+
+#mapa .leaflet-control-container {
+    z-index: 900 !important;
+}
+
+#mesaFicha,
+.mesa-ficha {
+    z-index: 2000 !important;
+}
+
+.bottom-nav,
+.bottom-bar,
+.menu-panel {
+    z-index: 3000 !important;
+}
+
 </style>
 
 <link
