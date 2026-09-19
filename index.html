@@ -1881,9 +1881,6 @@ section.ficha#ficha {
 }
 
 /* Evitar que el mapa tape la interfaz */
-#mapa {
-    pointer-events: none;
-}
 
 
 /* ============================================================
@@ -1970,6 +1967,20 @@ body {
     border-radius: 50%;
 
     background: #ffffff;
+}
+
+
+/* ============================================================
+   INTERACCIÓN DEL MAPA
+   ============================================================ */
+
+#mapa {
+    pointer-events: auto !important;
+}
+
+#mapa .leaflet-container {
+    pointer-events: auto !important;
+    touch-action: pan-x pan-y;
 }
 
 </style>
