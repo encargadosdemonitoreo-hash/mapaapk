@@ -3216,5 +3216,45 @@ function actualizarColorFichaCobertura(dentroCobertura) {
 })();
 </script>
 
+
+<script>
+/* ============================================================
+   CIERRE DE FICHA DE BÚSQUEDA
+   ============================================================ */
+
+(function () {
+
+    const ficha = document.getElementById("mesaFicha");
+    const botonCerrar = document.getElementById("cerrarMesaFicha");
+
+    if (!ficha || !botonCerrar) {
+        console.warn("Ficha o botón de cierre no encontrados.");
+        return;
+    }
+
+    if (botonCerrar.dataset.cierreConfigurado === "1") {
+        return;
+    }
+
+    botonCerrar.dataset.cierreConfigurado = "1";
+
+    botonCerrar.addEventListener("click", function (evento) {
+
+        evento.preventDefault();
+        evento.stopPropagation();
+
+        ficha.style.setProperty(
+            "display",
+            "none",
+            "important"
+        );
+
+        console.log("Ficha cerrada.");
+
+    });
+
+})();
+</script>
+
 </body>
 </html>
