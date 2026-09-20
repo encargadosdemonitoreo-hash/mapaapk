@@ -146,14 +146,54 @@
                     titulo.textContent = "UBICACIÓN";
                 }
 
+                /*
+                 * Datos administrativos devueltos por Nominatim.
+                 */
+                const direccionCalle =
+                    resultado.address?.road || texto;
+
+                const altura =
+                    resultado.address?.house_number || "";
+
+                const localidadTexto =
+                    resultado.address?.city ||
+                    resultado.address?.town ||
+                    resultado.address?.village ||
+                    "";
+
+                const partidoTexto =
+                    resultado.address?.state_district ||
+                    "";
+
+                /*
+                 * La altura ingresada por el usuario se conserva
+                 * aunque Nominatim no devuelva house_number.
+                 */
+                let direccionMostrada = direccionCalle;
+
+                if (
+                    !altura &&
+                    texto !== direccionCalle
+                ) {
+                    direccionMostrada = texto;
+                } else if (altura) {
+                    direccionMostrada =
+                        direccionCalle + " " + altura;
+                }
+
                 if (direccion) {
                     direccion.textContent =
-                        resultado.display_name || texto;
+                        "Dirección: " +
+                        direccionMostrada;
                 }
 
                 if (localidad) {
                     localidad.textContent =
-                        "Resultado de búsqueda";
+                        "Localidad: " +
+                        (localidadTexto || "No disponible") +
+                        "\n" +
+                        "Partido: " +
+                        (partidoTexto || "No disponible");
                 }
 
                 ficha.style.setProperty(
