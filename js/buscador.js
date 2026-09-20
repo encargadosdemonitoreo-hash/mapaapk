@@ -270,21 +270,26 @@
                 }
 
                 if (localidadElemento) {
-                    localidadElemento.textContent =
-                        "Localidad: " +
-                        (localidad ||
-                            "No disponible") +
-                        "\n" +
-                        "Partido: " +
-                        (partido ||
-                            "No disponible");
+
+                    localidadElemento.innerHTML =
+                        '<span class="dato-localidad">Localidad: ' +
+                        (localidad || "No disponible") +
+                        '</span>' +
+                        '<br>' +
+                        '<span class="dato-partido">Partido: ' +
+                        (partido || "No disponible") +
+                        '</span>';
                 }
 
-                ficha.style.setProperty(
-                    "display",
-                    "block",
-                    "important"
-                );
+                if (typeof mostrarFichaNuevaBusqueda === "function") {
+                    mostrarFichaNuevaBusqueda();
+                } else {
+                    ficha.style.setProperty(
+                        "display",
+                        "block",
+                        "important"
+                    );
+                }
             }
 
             console.log(

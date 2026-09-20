@@ -2074,3 +2074,23 @@ body {
 #mesaFicha {
     display: none !important;
 }
+
+/* ============================================================
+   FICHA — DIFERENCIAR LOCALIDAD Y PARTIDO
+   ============================================================ */
+
+.mesa-localidad {
+    white-space: pre-line;
+    line-height: 1.5;
+}
+
+.mesa-localidad .dato-localidad {
+    color: #2f6fed;
+    font-weight: 700;
+}
+
+.mesa-localidad .dato-partido {
+    color: #7a4bb7;
+    font-weight: 700;
+}
+
