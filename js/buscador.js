@@ -2,10 +2,6 @@
 // BUSCADOR DE DIRECCIONES
 // ============================================================
 
-/* ============================================================
-   BUSCADOR DE CALLE Y ALTURA — PRUEBA
-   ============================================================ */
-
 (function () {
 
     const input = document.getElementById("buscarDireccion");
@@ -39,65 +35,185 @@
 
         try {
 
-            /*
-             * Argentina como referencia geográfica.
-             */
+            // ====================================================
+            // 1. BUSQUEDA PRINCIPAL — ARC GIS
+            // ====================================================
 
-            const consulta = encodeURIComponent(
-                texto + ", Buenos Aires, Argentina"
+            const consultaArcGIS = encodeURIComponent(
+                texto + ", Buenos Aires"
             );
 
-            const url =
-                "https://nominatim.openstreetmap.org/search" +
-                "?format=json" +
-                "&limit=1" +
-                "&countrycodes=ar" +
-                "&q=" + consulta;
+            const urlArcGIS =
+                "https://geocode.arcgis.com/arcgis/rest/services/" +
+                "World/GeocodeServer/findAddressCandidates" +
+                "?f=json" +
+                "&singleLine=" + consultaArcGIS +
+                "&maxLocations=3";
 
-            const respuesta = await fetch(url, {
+            const respuestaArcGIS = await fetch(urlArcGIS, {
                 headers: {
                     "Accept": "application/json"
                 }
             });
 
-            if (!respuesta.ok) {
+            if (!respuestaArcGIS.ok) {
                 throw new Error(
-                    "Error HTTP " + respuesta.status
+                    "Error HTTP ArcGIS " +
+                    respuestaArcGIS.status
                 );
             }
 
-            const resultados = await respuesta.json();
+            const datosArcGIS = await respuestaArcGIS.json();
 
-            if (!resultados.length) {
-
+            if (
+                !datosArcGIS.candidates ||
+                !datosArcGIS.candidates.length
+            ) {
                 alert(
                     "No se encontró la dirección:\n\n" +
                     texto
                 );
-
                 return;
             }
 
-            const resultado = resultados[0];
+            const candidato = datosArcGIS.candidates[0];
 
-            const lat = parseFloat(resultado.lat);
-            const lon = parseFloat(resultado.lon);
+            const lat = parseFloat(
+                candidato.location.y
+            );
 
-            /*
-             * Eliminar marcador anterior de búsqueda.
-             */
+            const lon = parseFloat(
+                candidato.location.x
+            );
+
+            if (
+                !Number.isFinite(lat) ||
+                !Number.isFinite(lon)
+            ) {
+                throw new Error(
+                    "ArcGIS devolvió coordenadas inválidas."
+                );
+            }
+
+            // ====================================================
+            // 2. ALTURA ESCRITA POR EL USUARIO
+            // ====================================================
+
+            const coincidenciaAltura =
+                texto.match(/\b(\d{1,6})\b/);
+
+            const alturaIngresada =
+                coincidenciaAltura
+                    ? coincidenciaAltura[1]
+                    : "";
+
+            // ====================================================
+            // 3. REVERSE GEOCODING — NOMINATIM
+            // ====================================================
+
+            let datosReverse = null;
+
+            try {
+
+                const urlReverse =
+                    "https://nominatim.openstreetmap.org/reverse?" +
+                    new URLSearchParams({
+                        lat: lat,
+                        lon: lon,
+                        format: "json",
+                        addressdetails: "1",
+                        zoom: "18",
+                        "accept-language": "es"
+                    });
+
+                const respuestaReverse =
+                    await fetch(urlReverse, {
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    });
+
+                if (respuestaReverse.ok) {
+                    datosReverse =
+                        await respuestaReverse.json();
+                }
+
+            } catch (errorReverse) {
+
+                console.warn(
+                    "Reverse geocoding no disponible:",
+                    errorReverse
+                );
+            }
+
+            // ====================================================
+            // 4. DATOS DE LA DIRECCIÓN
+            // ====================================================
+
+            const direccionArcGIS =
+                candidato.address ||
+                texto;
+
+            const direccionNominatim =
+                datosReverse?.address || {};
+
+            const calle =
+                direccionNominatim.road ||
+                direccionNominatim.pedestrian ||
+                "";
+
+            const altura =
+                alturaIngresada ||
+                direccionNominatim.house_number ||
+                "";
+
+            let direccionMostrada = "";
+
+            if (calle && altura) {
+                direccionMostrada =
+                    calle + " " + altura;
+            } else if (calle) {
+                direccionMostrada =
+                    calle;
+            } else {
+                direccionMostrada =
+                    direccionArcGIS;
+            }
+
+            // ====================================================
+            // 5. LOCALIDAD
+            // ====================================================
+
+            const localidad =
+                direccionNominatim.city ||
+                direccionNominatim.town ||
+                direccionNominatim.village ||
+                "";
+
+            // ====================================================
+            // 6. PARTIDO
+            // ====================================================
+
+            const partido =
+                direccionNominatim.state_district ||
+                "";
+
+            // ====================================================
+            // 7. ELIMINAR MARCADOR ANTERIOR
+            // ====================================================
 
             if (marcadorBusqueda) {
                 mapa.removeLayer(marcadorBusqueda);
             }
 
-            /*
-             * Crear marcador de la dirección encontrada.
-             */
+            // ====================================================
+            // 8. CREAR MARCADOR
+            // ====================================================
 
             const icono = L.divIcon({
                 className: "",
-                html: '<div class="marcador-mapa"></div>',
+                html:
+                    '<div class="marcador-mapa"></div>',
                 iconSize: [24, 24],
                 iconAnchor: [12, 24]
             });
@@ -109,9 +225,9 @@
                 }
             ).addTo(mapa);
 
-            /*
-             * Centrar mapa.
-             */
+            // ====================================================
+            // 9. CENTRAR MAPA
+            // ====================================================
 
             mapa.setView(
                 [lat, lon],
@@ -121,9 +237,9 @@
                 }
             );
 
-            /*
-             * Mostrar ficha flotante.
-             */
+            // ====================================================
+            // 10. ACTUALIZAR FICHA
+            // ====================================================
 
             if (ficha) {
 
@@ -137,48 +253,14 @@
                         ".mesa-direccion"
                     );
 
-                const localidad =
+                const localidadElemento =
                     ficha.querySelector(
                         ".mesa-localidad"
                     );
 
                 if (titulo) {
-                    titulo.textContent = "UBICACIÓN";
-                }
-
-                /*
-                 * Datos administrativos devueltos por Nominatim.
-                 */
-                const direccionCalle =
-                    resultado.address?.road || texto;
-
-                const altura =
-                    resultado.address?.house_number || "";
-
-                const localidadTexto =
-                    resultado.address?.city ||
-                    resultado.address?.town ||
-                    resultado.address?.village ||
-                    "";
-
-                const partidoTexto =
-                    resultado.address?.state_district ||
-                    "";
-
-                /*
-                 * La altura ingresada por el usuario se conserva
-                 * aunque Nominatim no devuelva house_number.
-                 */
-                let direccionMostrada = direccionCalle;
-
-                if (
-                    !altura &&
-                    texto !== direccionCalle
-                ) {
-                    direccionMostrada = texto;
-                } else if (altura) {
-                    direccionMostrada =
-                        direccionCalle + " " + altura;
+                    titulo.textContent =
+                        "UBICACIÓN";
                 }
 
                 if (direccion) {
@@ -187,13 +269,15 @@
                         direccionMostrada;
                 }
 
-                if (localidad) {
-                    localidad.textContent =
+                if (localidadElemento) {
+                    localidadElemento.textContent =
                         "Localidad: " +
-                        (localidadTexto || "No disponible") +
+                        (localidad ||
+                            "No disponible") +
                         "\n" +
                         "Partido: " +
-                        (partidoTexto || "No disponible");
+                        (partido ||
+                            "No disponible");
                 }
 
                 ficha.style.setProperty(
@@ -204,8 +288,22 @@
             }
 
             console.log(
-                "Dirección encontrada:",
-                resultado.display_name
+                "Búsqueda ArcGIS:",
+                {
+                    textoIngresado: texto,
+                    direccionArcGIS:
+                        direccionArcGIS,
+                    lat: lat,
+                    lon: lon,
+                    alturaIngresada:
+                        alturaIngresada,
+                    calleNominatim:
+                        calle,
+                    localidad:
+                        localidad,
+                    partido:
+                        partido
+                }
             );
 
         } catch (error) {
@@ -223,7 +321,6 @@
         } finally {
 
             boton.disabled = false;
-
         }
     }
 
